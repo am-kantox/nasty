@@ -10,7 +10,9 @@
 # 4. Phrase Structure Parsing
 # 5. Dependency Extraction
 # 6. Named Entity Recognition
-# 7. Text Summarization
+# 7. Semantic Role Labeling (NEW!)
+# 8. Coreference Resolution (NEW!)
+# 9. Text Summarization (Enhanced with MMR!)
 
 Mix.install([{:nasty, path: "."}])
 
@@ -19,8 +21,7 @@ alias Nasty.Language.English.{
   Tokenizer,
   POSTagger,
   DependencyExtractor,
-  EntityRecognizer,
-  Summarizer
+  EntityRecognizer
 }
 
 # Helper functions for pretty printing
@@ -95,8 +96,10 @@ text = """
 Natural language processing is a subfield of artificial intelligence.
 It focuses on the interaction between computers and human language.
 John Smith, a researcher at Stanford University, developed new techniques for machine translation.
+He published his findings in a leading journal.
 These methods improved translation quality significantly.
 Google and Microsoft have implemented similar approaches in their products.
+The companies reported strong results from the new systems.
 """
 
 IO.puts("Input Text:")
@@ -219,34 +222,109 @@ entity_counts
 end)
 
 # =============================================================================
-# STEP 6: TEXT SUMMARIZATION
+# STEP 6: SEMANTIC ROLE LABELING
 # =============================================================================
 
-Demo.section("STEP 6: TEXT SUMMARIZATION")
+Demo.section("STEP 6: SEMANTIC ROLE LABELING (NEW!)")
 
-IO.puts("Extracting the most important sentences...\n")
+IO.puts("Extracting predicate-argument structure (who did what to whom)...\n")
 
-# Summarize at 40% compression
-summary_sentences = Summarizer.summarize(document, ratio: 0.4)
+# Parse with semantic roles
+{:ok, document_with_srl} = English.parse(tagged, semantic_roles: true)
+frames = document_with_srl.semantic_frames
 
-IO.puts("Original: #{document.metadata.sentence_count} sentences")
-IO.puts("Summary:  #{length(summary_sentences)} sentences (40% compression)")
-IO.puts("")
+IO.puts("Total semantic frames: #{length(frames)}\n")
 
-Demo.subsection("Summary")
-summary_sentences
+Demo.subsection("Semantic Frames (first 3)")
+frames
+|> Enum.take(3)
+|> Enum.with_index(1)
+|> Enum.each(fn {frame, idx} ->
+  IO.puts("\n#{idx}. Predicate: #{frame.predicate.text} (#{frame.voice})")
+  IO.puts("   Roles:")
+  frame.roles
+  |> Enum.each(fn role ->
+    IO.puts("     #{role.type}: #{role.text}")
+  end)
+end)
+
+# =============================================================================
+# STEP 7: COREFERENCE RESOLUTION
+# =============================================================================
+
+Demo.section("STEP 7: COREFERENCE RESOLUTION (NEW!)")
+
+IO.puts("Linking mentions across sentences (pronouns, names, etc.)...\n")
+
+# Parse with coreference
+{:ok, document_with_coref} = English.parse(tagged, coreference: true)
+chains = document_with_coref.coref_chains
+
+IO.puts("Total coreference chains: #{length(chains)}\n")
+
+Demo.subsection("Coreference Chains")
+chains
+|> Enum.with_index(1)
+|> Enum.each(fn {chain, idx} ->
+  mentions_text = chain.mentions |> Enum.map(& &1.text) |> Enum.join(", ")
+  IO.puts("#{idx}. [#{chain.representative}] → #{mentions_text}")
+end)
+
+# =============================================================================
+# STEP 8: TEXT SUMMARIZATION (ENHANCED!)
+# =============================================================================
+
+Demo.section("STEP 8: TEXT SUMMARIZATION (ENHANCED!)")
+
+IO.puts("Extracting the most important sentences using multiple scoring features...\n")
+IO.puts("Scoring features:")
+IO.puts("  - Position (early sentences score higher)")
+IO.puts("  - Entity density (sentences with named entities)")
+IO.puts("  - Discourse markers (\"importantly\", \"in conclusion\", etc.)")
+IO.puts("  - Keyword frequency (TF scoring)")
+IO.puts("  - Coreference participation\n")
+
+# Greedy summarization
+Demo.subsection("Greedy Summarization (40% compression)")
+summary_greedy = English.summarize(document, ratio: 0.4, method: :greedy)
+
+IO.puts("Selected #{length(summary_greedy)} of #{document.metadata.sentence_count} sentences")
+summary_greedy
 |> Enum.with_index(1)
 |> Enum.each(fn {sentence, idx} ->
   # Extract text from sentence structure
-  subject_text = if sentence.main_clause.subject do
-    "#{sentence.main_clause.subject.head.text}"
-  else
-    ""
+  IO.write("#{idx}. ")
+  
+  # Subject
+  if sentence.main_clause.subject do
+    IO.write("#{sentence.main_clause.subject.head.text} ")
   end
   
-  predicate_text = "#{sentence.main_clause.predicate.head.text}"
+  # Predicate
+  IO.write("#{sentence.main_clause.predicate.head.text}...")
+  IO.puts("")
+end)
+
+# MMR summarization for comparison
+Demo.subsection("\nMMR Summarization (max 2 sentences, reduced redundancy)")
+summary_mmr = English.summarize(document, max_sentences: 2, method: :mmr, mmr_lambda: 0.5)
+
+IO.puts("MMR balances relevance and diversity to avoid redundant sentences")
+IO.puts("Selected #{length(summary_mmr)} sentences:\n")
+summary_mmr
+|> Enum.with_index(1)
+|> Enum.each(fn {sentence, idx} ->
+  # Extract text from sentence structure
+  IO.write("#{idx}. ")
   
-  IO.puts("#{idx}. #{subject_text} #{predicate_text}...")
+  # Subject
+  if sentence.main_clause.subject do
+    IO.write("#{sentence.main_clause.subject.head.text} ")
+  end
+  
+  # Predicate
+  IO.write("#{sentence.main_clause.predicate.head.text}...")
+  IO.puts("")
 end)
 
 # =============================================================================
@@ -291,11 +369,13 @@ IO.puts("""
 The Nasty NLP library has successfully processed the text through all stages:
 
 ✓ Tokenization       - Split text into words and punctuation
-✓ POS Tagging        - Identified grammatical categories
+✓ POS Tagging        - Identified grammatical categories  
 ✓ Parsing            - Built syntactic structure (NP, VP, PP, clauses)
 ✓ Dependencies       - Extracted grammatical relationships
 ✓ Entity Recognition - Found people, places, and organizations
-✓ Summarization      - Selected most important sentences
+✓ Semantic Roles     - Extracted predicate-argument structure (NEW!)
+✓ Coreference        - Linked mentions across sentences (NEW!)
+✓ Summarization      - Selected key sentences with MMR (ENHANCED!)
 
 For more information, see:
   - Documentation: mix docs
