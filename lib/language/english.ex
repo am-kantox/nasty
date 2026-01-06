@@ -19,6 +19,7 @@ defmodule Nasty.Language.English do
     POSTagger,
     SemanticRoleLabeler,
     SentenceParser,
+    Summarizer,
     Tokenizer
   }
 
@@ -176,5 +177,33 @@ defmodule Nasty.Language.English do
   @spec resolve_coreference(Document.t()) :: {:ok, [Nasty.AST.CorefChain.t()]} | {:error, term()}
   def resolve_coreference(%Document{} = document) do
     CoreferenceResolver.resolve(document)
+  end
+
+  @doc """
+  Summarizes a document by extracting important sentences.
+
+  ## Options
+
+  - `:ratio` - Compression ratio (0.0 to 1.0), default 0.3
+  - `:max_sentences` - Maximum number of sentences in summary
+  - `:min_sentence_length` - Minimum sentence length (in tokens)
+  - `:method` - Selection method: `:greedy` or `:mmr` (default: `:greedy`)
+  - `:mmr_lambda` - MMR diversity parameter, 0-1 (default: 0.5)
+
+  ## Examples
+
+      iex> document = English.parse("Long text...")
+      iex> summary_sentences = English.summarize(document, max_sentences: 3)
+      iex> is_list(summary_sentences)
+      true
+
+      # With MMR to reduce redundancy
+      iex> summary = English.summarize(document, max_sentences: 5, method: :mmr)
+      iex> length(summary) <= 5
+      true
+  """
+  @spec summarize(Document.t(), keyword()) :: [Nasty.AST.Sentence.t()]
+  def summarize(%Document{} = document, opts \\ []) do
+    Summarizer.summarize(document, opts)
   end
 end
