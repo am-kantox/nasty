@@ -21,7 +21,8 @@ defmodule Nasty.AST.Event do
       }
   """
 
-  alias Nasty.AST.{Entity, Node, Token}
+  alias Nasty.AST.{Node, Token}
+  alias Nasty.AST.Semantic.Entity
 
   @type event_type ::
           :business_acquisition

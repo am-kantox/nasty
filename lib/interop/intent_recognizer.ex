@@ -26,7 +26,8 @@ defmodule Nasty.Interop.IntentRecognizer do
      - "calculate", "compute" → arithmetic ops
   """
 
-  alias Nasty.AST.{Intent, SemanticFrame, Sentence, Token, VerbPhrase}
+  alias Nasty.AST.{Intent, Sentence, Token, VerbPhrase}
+  alias Nasty.AST.Semantic.Frame, as: SemanticFrame
 
   @doc """
   Recognizes intent from a sentence.

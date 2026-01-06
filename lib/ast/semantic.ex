@@ -1,4 +1,4 @@
-defmodule Nasty.AST.Entity do
+defmodule Nasty.AST.Semantic.Entity do
   @moduledoc """
   Entity node representing a named entity (person, organization, location, etc.).
 
@@ -112,14 +112,15 @@ defmodule Nasty.AST.Entity do
   end
 end
 
-defmodule Nasty.AST.SemanticRelation do
+defmodule Nasty.AST.Semantic.Relation do
   @moduledoc """
   Relation node representing a semantic relationship between entities.
 
   Relations connect entities with typed relationships (e.g., "works_for", "located_in").
   """
 
-  alias Nasty.AST.{Entity, Node}
+  alias Nasty.AST.Node
+  alias Nasty.AST.Semantic.Entity
 
   @typedoc """
   Relation type classification.
@@ -154,7 +155,7 @@ defmodule Nasty.AST.SemanticRelation do
   ]
 end
 
-defmodule Nasty.AST.Reference do
+defmodule Nasty.AST.Semantic.Reference do
   @moduledoc """
   Reference node representing anaphora and coreference.
 
@@ -162,7 +163,8 @@ defmodule Nasty.AST.Reference do
   building entity chains across sentences.
   """
 
-  alias Nasty.AST.{Entity, Node, NounPhrase, Token}
+  alias Nasty.AST.{Node, NounPhrase, Token}
+  alias Nasty.AST.Semantic.Entity
 
   @typedoc """
   Reference type classification.
@@ -192,7 +194,7 @@ defmodule Nasty.AST.Reference do
   ]
 end
 
-defmodule Nasty.AST.SemanticEvent do
+defmodule Nasty.AST.Semantic.Event do
   @moduledoc """
   Event node representing actions, states, or processes.
 
@@ -242,7 +244,7 @@ defmodule Nasty.AST.SemanticEvent do
   ]
 end
 
-defmodule Nasty.AST.Modality do
+defmodule Nasty.AST.Semantic.Modality do
   @moduledoc """
   Modality node representing epistemic and deontic modality.
 
@@ -297,7 +299,7 @@ defmodule Nasty.AST.Modality do
   defstruct [:type, :marker, :strength, :span]
 end
 
-defmodule Nasty.AST.SemanticRole do
+defmodule Nasty.AST.Semantic.Role do
   @moduledoc """
   Semantic role assigned to a phrase in relation to a predicate.
 
@@ -388,7 +390,7 @@ defmodule Nasty.AST.SemanticRole do
   def adjunct_role?(%__MODULE__{} = role), do: not core_role?(role)
 end
 
-defmodule Nasty.AST.SemanticFrame do
+defmodule Nasty.AST.Semantic.Frame do
   @moduledoc """
   Semantic frame representing a predicate with its arguments and adjuncts.
 
@@ -397,11 +399,12 @@ defmodule Nasty.AST.SemanticFrame do
   and includes semantic roles for participants and circumstances.
   """
 
-  alias Nasty.AST.{Node, SemanticRole, Token}
+  alias Nasty.AST.{Node, Token}
+  alias Nasty.AST.Semantic.Role
 
   @type t :: %__MODULE__{
           predicate: Token.t(),
-          roles: [SemanticRole.t()],
+          roles: [Role.t()],
           voice: :active | :passive | :unknown,
           span: Node.span()
         }
@@ -412,7 +415,7 @@ defmodule Nasty.AST.SemanticFrame do
   @doc """
   Creates a new semantic frame.
   """
-  @spec new(Token.t(), [SemanticRole.t()], Node.span(), keyword()) :: t()
+  @spec new(Token.t(), [Role.t()], Node.span(), keyword()) :: t()
   def new(predicate, roles, span, opts \\ []) do
     %__MODULE__{
       predicate: predicate,
@@ -425,7 +428,7 @@ defmodule Nasty.AST.SemanticFrame do
   @doc """
   Finds roles of a specific type in the frame.
   """
-  @spec find_roles(t(), SemanticRole.role_type()) :: [SemanticRole.t()]
+  @spec find_roles(t(), Role.role_type()) :: [Role.t()]
   def find_roles(%__MODULE__{roles: roles}, type) do
     Enum.filter(roles, fn role -> role.type == type end)
   end
@@ -433,7 +436,7 @@ defmodule Nasty.AST.SemanticFrame do
   @doc """
   Gets the agent role if present.
   """
-  @spec agent(t()) :: SemanticRole.t() | nil
+  @spec agent(t()) :: Role.t() | nil
   def agent(%__MODULE__{} = frame) do
     frame
     |> find_roles(:agent)
@@ -443,7 +446,7 @@ defmodule Nasty.AST.SemanticFrame do
   @doc """
   Gets the patient/theme role if present.
   """
-  @spec patient(t()) :: SemanticRole.t() | nil
+  @spec patient(t()) :: Role.t() | nil
   def patient(%__MODULE__{} = frame) do
     case find_roles(frame, :patient) do
       [p | _] -> p
@@ -454,21 +457,21 @@ defmodule Nasty.AST.SemanticFrame do
   @doc """
   Returns core roles (arguments) only.
   """
-  @spec core_roles(t()) :: [SemanticRole.t()]
+  @spec core_roles(t()) :: [Role.t()]
   def core_roles(%__MODULE__{roles: roles}) do
-    Enum.filter(roles, &SemanticRole.core_role?/1)
+    Enum.filter(roles, &Role.core_role?/1)
   end
 
   @doc """
   Returns adjunct roles (modifiers) only.
   """
-  @spec adjunct_roles(t()) :: [SemanticRole.t()]
+  @spec adjunct_roles(t()) :: [Role.t()]
   def adjunct_roles(%__MODULE__{roles: roles}) do
-    Enum.filter(roles, &SemanticRole.adjunct_role?/1)
+    Enum.filter(roles, &Role.adjunct_role?/1)
   end
 end
 
-defmodule Nasty.AST.Mention do
+defmodule Nasty.AST.Semantic.Mention do
   @moduledoc """
   Mention of an entity in text, used for coreference resolution.
 
@@ -577,7 +580,7 @@ defmodule Nasty.AST.Mention do
   def number_agrees?(%__MODULE__{number: n1}, %__MODULE__{number: n2}), do: n1 == n2
 end
 
-defmodule Nasty.AST.CorefChain do
+defmodule Nasty.AST.Semantic.CorefChain do
   @moduledoc """
   Coreference chain linking mentions that refer to the same entity.
 
@@ -586,7 +589,7 @@ defmodule Nasty.AST.CorefChain do
   or most informative noun phrase).
   """
 
-  alias Nasty.AST.Mention
+  alias Nasty.AST.Semantic.Mention
 
   @type t :: %__MODULE__{
           id: pos_integer(),

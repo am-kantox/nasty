@@ -1,7 +1,8 @@
 defmodule Nasty.Language.English.CoreferenceResolverTest do
   use ExUnit.Case, async: true
 
-  alias Nasty.AST.{CorefChain, Document, Mention, Paragraph}
+  alias Nasty.AST.{Document, Paragraph}
+  alias Nasty.AST.Semantic.{CorefChain, Mention}
 
   alias Nasty.Language.English.{
     CoreferenceResolver,

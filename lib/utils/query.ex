@@ -23,13 +23,14 @@ defmodule Nasty.Utils.Query do
   alias Nasty.AST.{
     Clause,
     Document,
-    Entity,
     NounPhrase,
     Paragraph,
     Sentence,
     Token,
     VerbPhrase
   }
+
+  alias Nasty.AST.Semantic.Entity
 
   alias Nasty.Utils.Traversal
 

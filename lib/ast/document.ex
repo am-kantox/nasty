@@ -113,8 +113,8 @@ defmodule Nasty.AST.Document do
           paragraphs: [Paragraph.t()],
           language: Node.language(),
           metadata: metadata(),
-          semantic_frames: [Nasty.AST.SemanticFrame.t()] | nil,
-          coref_chains: [Nasty.AST.CorefChain.t()] | nil,
+          semantic_frames: [Nasty.AST.Semantic.Frame.t()] | nil,
+          coref_chains: [Nasty.AST.Semantic.CorefChain.t()] | nil,
           span: Node.span()
         }
 

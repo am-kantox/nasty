@@ -25,7 +25,8 @@ defmodule Nasty.Language.English.EntityRecognizer do
       ]
   """
 
-  alias Nasty.AST.{Entity, Node, Token}
+  alias Nasty.AST.{Node, Token}
+  alias Nasty.AST.Semantic.Entity
 
   @doc """
   Recognizes named entities in a list of POS-tagged tokens.

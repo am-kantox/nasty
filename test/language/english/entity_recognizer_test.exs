@@ -1,7 +1,7 @@
 defmodule Nasty.Language.English.EntityRecognizerTest do
   use ExUnit.Case, async: true
 
-  alias Nasty.AST.Entity
+  alias Nasty.AST.Semantic.Entity
   alias Nasty.Language.English.{EntityRecognizer, POSTagger, Tokenizer}
 
   describe "person entities" do

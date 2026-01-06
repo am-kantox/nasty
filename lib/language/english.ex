@@ -164,7 +164,7 @@ defmodule Nasty.Language.English do
       true
   """
   @spec label_semantic_roles(Document.t()) ::
-          {:ok, [Nasty.AST.SemanticFrame.t()]} | {:error, term()}
+          {:ok, [Nasty.AST.Semantic.Frame.t()]} | {:error, term()}
   def label_semantic_roles(%Document{} = document) do
     frames =
       document
@@ -188,7 +188,8 @@ defmodule Nasty.Language.English do
       iex> is_list(chains)
       true
   """
-  @spec resolve_coreference(Document.t()) :: {:ok, [Nasty.AST.CorefChain.t()]} | {:error, term()}
+  @spec resolve_coreference(Document.t()) ::
+          {:ok, [Nasty.AST.Semantic.CorefChain.t()]} | {:error, term()}
   def resolve_coreference(%Document{} = document) do
     CoreferenceResolver.resolve(document)
   end

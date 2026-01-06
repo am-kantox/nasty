@@ -45,7 +45,7 @@ defmodule Nasty.AST.NounPhrase do
           post_modifiers: [
             Nasty.AST.PrepositionalPhrase.t() | Nasty.AST.Clause.t()
           ],
-          entity: Nasty.AST.Entity.t() | nil,
+          entity: Nasty.AST.Semantic.Entity.t() | nil,
           language: Node.language(),
           span: Node.span()
         }

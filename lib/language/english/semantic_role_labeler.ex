@@ -25,12 +25,12 @@ defmodule Nasty.Language.English.SemanticRoleLabeler do
     Clause,
     NounPhrase,
     PrepositionalPhrase,
-    SemanticFrame,
-    SemanticRole,
     Sentence,
     Token,
     VerbPhrase
   }
+
+  alias Nasty.AST.Semantic.{Frame, Role}
 
   @doc """
   Labels semantic roles for all predicates in a sentence.
@@ -43,7 +43,7 @@ defmodule Nasty.Language.English.SemanticRoleLabeler do
       iex> is_list(frames)
       true
   """
-  @spec label(Sentence.t(), keyword()) :: {:ok, [SemanticFrame.t()]} | {:error, term()}
+  @spec label(Sentence.t(), keyword()) :: {:ok, [Frame.t()]} | {:error, term()}
   def label(%Sentence{} = sentence, _opts \\ []) do
     frames =
       sentence
@@ -59,7 +59,7 @@ defmodule Nasty.Language.English.SemanticRoleLabeler do
   Note: Since DependencyExtractor works at the Sentence level,
   we build a simple sentence wrapper and extract dependencies from that.
   """
-  @spec label_clause(Clause.t()) :: [SemanticFrame.t()]
+  @spec label_clause(Clause.t()) :: [Frame.t()]
   def label_clause(%Clause{predicate: predicate} = clause) do
     # Identify main verb(s)
     verbs = identify_predicates(predicate)
@@ -82,7 +82,7 @@ defmodule Nasty.Language.English.SemanticRoleLabeler do
     voice = detect_voice(predicate, clause)
     roles = extract_roles(predicate, clause, voice)
 
-    SemanticFrame.new(
+    Frame.new(
       predicate,
       roles,
       clause.span,
@@ -259,12 +259,12 @@ defmodule Nasty.Language.English.SemanticRoleLabeler do
 
   # Create a semantic role from a token/phrase
   defp make_role(type, %Token{} = token, span) do
-    SemanticRole.new(type, token.text, span)
+    Role.new(type, token.text, span)
   end
 
   defp make_role(type, phrase, span) when is_struct(phrase) do
     text = extract_text(phrase)
-    SemanticRole.new(type, text, span, phrase: phrase)
+    Role.new(type, text, span, phrase: phrase)
   end
 
   # Extract text from phrase structures

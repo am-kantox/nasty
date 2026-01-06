@@ -18,7 +18,8 @@ defmodule Nasty.AST.Relation do
       }
   """
 
-  alias Nasty.AST.{Entity, Node}
+  alias Nasty.AST.Node
+  alias Nasty.AST.Semantic.Entity
 
   @type relation_type ::
           :works_at

@@ -1,7 +1,7 @@
 defmodule Nasty.Language.English.SemanticRoleLabelerTest do
   use ExUnit.Case, async: true
 
-  alias Nasty.AST.{SemanticFrame, SemanticRole}
+  alias Nasty.AST.Semantic.{Frame, Role}
 
   alias Nasty.Language.English.{
     Morphology,
@@ -235,14 +235,14 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       {:ok, frames} = SemanticRoleLabeler.label(sentence)
 
       assert [frame] = frames
-      assert %SemanticFrame{} = frame
+      assert %Frame{} = frame
       assert is_list(frame.roles)
       assert frame.voice in [:active, :passive, :unknown]
       assert is_struct(frame.predicate, Nasty.AST.Token)
 
       # All roles should be SemanticRole structs
       Enum.each(frame.roles, fn role ->
-        assert %SemanticRole{} = role
+        assert %Role{} = role
 
         assert role.type in [
                  :agent,
@@ -271,29 +271,29 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
     test "correctly identifies core roles" do
       span = Nasty.AST.Node.make_span({1, 0}, 0, {1, 4}, 4)
 
-      agent_role = SemanticRole.new(:agent, "John", span)
-      assert SemanticRole.core_role?(agent_role) == true
-      assert SemanticRole.adjunct_role?(agent_role) == false
+      agent_role = Role.new(:agent, "John", span)
+      assert Role.core_role?(agent_role) == true
+      assert Role.adjunct_role?(agent_role) == false
 
-      patient_role = SemanticRole.new(:patient, "ball", span)
-      assert SemanticRole.core_role?(patient_role) == true
+      patient_role = Role.new(:patient, "ball", span)
+      assert Role.core_role?(patient_role) == true
 
-      theme_role = SemanticRole.new(:theme, "book", span)
-      assert SemanticRole.core_role?(theme_role) == true
+      theme_role = Role.new(:theme, "book", span)
+      assert Role.core_role?(theme_role) == true
     end
 
     test "correctly identifies adjunct roles" do
       span = Nasty.AST.Node.make_span({1, 0}, 0, {1, 10}, 10)
 
-      location_role = SemanticRole.new(:location, "in Boston", span)
-      assert SemanticRole.adjunct_role?(location_role) == true
-      assert SemanticRole.core_role?(location_role) == false
+      location_role = Role.new(:location, "in Boston", span)
+      assert Role.adjunct_role?(location_role) == true
+      assert Role.core_role?(location_role) == false
 
-      time_role = SemanticRole.new(:time, "yesterday", span)
-      assert SemanticRole.adjunct_role?(time_role) == true
+      time_role = Role.new(:time, "yesterday", span)
+      assert Role.adjunct_role?(time_role) == true
 
-      manner_role = SemanticRole.new(:manner, "quickly", span)
-      assert SemanticRole.adjunct_role?(manner_role) == true
+      manner_role = Role.new(:manner, "quickly", span)
+      assert Role.adjunct_role?(manner_role) == true
     end
   end
 
@@ -311,21 +311,21 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       }
 
       roles = [
-        SemanticRole.new(:agent, "John", span),
-        SemanticRole.new(:theme, "book", span),
-        SemanticRole.new(:recipient, "Mary", span),
-        SemanticRole.new(:location, "at school", span)
+        Role.new(:agent, "John", span),
+        Role.new(:theme, "book", span),
+        Role.new(:recipient, "Mary", span),
+        Role.new(:location, "at school", span)
       ]
 
-      frame = SemanticFrame.new(predicate, roles, span)
+      frame = Frame.new(predicate, roles, span)
 
-      agents = SemanticFrame.find_roles(frame, :agent)
-      assert [%SemanticRole{type: :agent}] = agents
+      agents = Frame.find_roles(frame, :agent)
+      assert [%Role{type: :agent}] = agents
 
-      themes = SemanticFrame.find_roles(frame, :theme)
+      themes = Frame.find_roles(frame, :theme)
       assert match?([_], themes)
 
-      locations = SemanticFrame.find_roles(frame, :location)
+      locations = Frame.find_roles(frame, :location)
       assert match?([_], locations)
     end
 
@@ -342,13 +342,13 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       }
 
       roles = [
-        SemanticRole.new(:agent, "dog", span),
-        SemanticRole.new(:manner, "quickly", span)
+        Role.new(:agent, "dog", span),
+        Role.new(:manner, "quickly", span)
       ]
 
-      frame = SemanticFrame.new(predicate, roles, span)
+      frame = Frame.new(predicate, roles, span)
 
-      agent = SemanticFrame.agent(frame)
+      agent = Frame.agent(frame)
       assert agent != nil
       assert agent.type == :agent
       assert agent.text == "dog"
@@ -367,15 +367,15 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       }
 
       roles = [
-        SemanticRole.new(:agent, "John", span),
-        SemanticRole.new(:location, "to store", span),
-        SemanticRole.new(:time, "yesterday", span)
+        Role.new(:agent, "John", span),
+        Role.new(:location, "to store", span),
+        Role.new(:time, "yesterday", span)
       ]
 
-      frame = SemanticFrame.new(predicate, roles, span)
+      frame = Frame.new(predicate, roles, span)
 
-      core = SemanticFrame.core_roles(frame)
-      assert [%SemanticRole{type: :agent}] = core
+      core = Frame.core_roles(frame)
+      assert [%Role{type: :agent}] = core
     end
 
     test "adjunct_roles/1 returns only adjunct roles" do
@@ -391,14 +391,14 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       }
 
       roles = [
-        SemanticRole.new(:agent, "John", span),
-        SemanticRole.new(:location, "to store", span),
-        SemanticRole.new(:time, "yesterday", span)
+        Role.new(:agent, "John", span),
+        Role.new(:location, "to store", span),
+        Role.new(:time, "yesterday", span)
       ]
 
-      frame = SemanticFrame.new(predicate, roles, span)
+      frame = Frame.new(predicate, roles, span)
 
-      adjuncts = SemanticFrame.adjunct_roles(frame)
+      adjuncts = Frame.adjunct_roles(frame)
       assert match?([_, _], adjuncts)
       assert Enum.all?(adjuncts, fn r -> r.type in [:location, :time] end)
     end

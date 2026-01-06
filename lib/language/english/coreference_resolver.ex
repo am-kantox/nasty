@@ -21,14 +21,13 @@ defmodule Nasty.Language.English.CoreferenceResolver do
 
   alias Nasty.AST.{
     Clause,
-    CorefChain,
     Document,
-    Entity,
-    Mention,
     NounPhrase,
     Sentence,
     Token
   }
+
+  alias Nasty.AST.Semantic.{CorefChain, Mention}
 
   alias Nasty.Language.English.EntityRecognizer
 
@@ -200,7 +199,7 @@ defmodule Nasty.Language.English.CoreferenceResolver do
   end
 
   # Infer gender/number from entity type
-  defp infer_entity_attributes(%Entity{type: type, text: text}) do
+  defp infer_entity_attributes(%Nasty.AST.Semantic.Entity{type: type, text: text}) do
     gender =
       case type do
         :person -> infer_person_gender(text)
