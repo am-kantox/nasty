@@ -21,6 +21,7 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **Text Summarization** - Extractive summarization with MMR
 - **Question Answering** - Extractive QA for factoid questions
 - **Text Classification** - Multinomial Naive Bayes classifier with multiple feature types
+- **Information Extraction** - Relation extraction, event extraction, and template-based extraction
 - **Statistical Models** - HMM POS tagger with 95% accuracy
 
 ## Quick Start
@@ -94,6 +95,20 @@ model = English.train_classifier(training_data, features: [:bow, :lexical])
 # Classify new documents
 {:ok, predictions} = English.classify(test_doc, model)
 # => [%Classification{class: :positive, confidence: 0.85, ...}, ...]
+
+# Information extraction
+# Extract relations between entities
+{:ok, relations} = English.extract_relations(document)
+# => [%Relation{type: :works_at, subject: person, object: org, confidence: 0.8}]
+
+# Extract events with participants
+{:ok, events} = English.extract_events(document)
+# => [%Event{type: :business_acquisition, trigger: "acquired", participants: %{agent: ..., patient: ...}}]
+
+# Template-based extraction
+templates = [TemplateExtractor.employment_template()]
+{:ok, results} = English.extract_templates(document, templates)
+# => [%{template: "employment", slots: %{employee: "John", employer: "Google"}, confidence: 0.85}]
 ```
 
 ## Architecture
@@ -120,6 +135,7 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
 10. **Summarization** (`English.Summarizer`) → Extract key sentences
 11. **Question Answering** (`English.QuestionAnalyzer`, `English.AnswerExtractor`) → Answer questions
 12. **Text Classification** (`English.FeatureExtractor`, `English.TextClassifier`) → Train and classify documents
+13. **Information Extraction** (`English.RelationExtractor`, `English.EventExtractor`, `English.TemplateExtractor`) → Extract structured information
 
 ## Features
 
@@ -198,6 +214,48 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
   - Topic classification (sports, tech, politics, etc.)
   - Formality detection (formal/informal text)
 
+### Information Extraction
+- **Relation Extraction** - Extract semantic relationships between entities
+  - **Supported relations**:
+    - Employment: `works_at`, `employed_by`, `member_of`
+    - Organization: `founded`, `acquired_by`, `subsidiary_of`
+    - Location: `located_in`, `based_in`, `headquarters_in`
+    - Temporal: `occurred_on`, `founded_in`
+  - Pattern-based extraction using verb patterns and prepositions
+  - Confidence scoring (0.5-0.8 based on pattern strength)
+  - Integrates with NER and dependency parsing
+
+- **Event Extraction** - Identify events with triggers and participants
+  - **Event types**:
+    - Business: `business_acquisition`, `business_merger`, `company_founding`, `product_launch`
+    - Employment: `employment_start`, `employment_end`
+    - Communication: `announcement`, `meeting`
+    - Other: `movement`, `transaction`
+  - Verb and nominalization triggers
+  - Participant extraction using semantic role labeling
+  - Temporal expression linking
+  - Confidence scoring (0.7-0.8)
+
+- **Template-Based Extraction** - Structured information using custom templates
+  - Define extraction templates with typed slots
+  - Pre-defined templates: employment, acquisition, location
+  - Flexible pattern matching
+  - Required/optional slot support
+  - Confidence based on slot fill rate
+
+- **API Functions**:
+  ```elixir
+  # Extract relations
+  {:ok, relations} = English.extract_relations(document, min_confidence: 0.6)
+  
+  # Extract events
+  {:ok, events} = English.extract_events(document, max_events: 10)
+  
+  # Template extraction
+  templates = [TemplateExtractor.employment_template()]
+  {:ok, results} = English.extract_templates(document, templates)
+  ```
+
 ## Testing
 
 ```bash
@@ -249,6 +307,7 @@ mix nasty.eval.pos \
 - [x] Semantic role labeling (rule-based SRL - done!)
 - [x] Coreference resolution (heuristic-based - done!)
 - [x] Question answering (extractive QA - done!)
+- [x] Information extraction (relations, events, templates - done!)
 - [ ] PCFG parser for phrase structure
 - [ ] CRF for named entity recognition  
 - [ ] Multi-language support (Spanish, Catalan)
