@@ -23,8 +23,8 @@ defmodule Nasty.Language.English do
   end
 
   @impl true
-  def tag_pos(tokens, _opts \\ []) do
-    POSTagger.tag_pos(tokens)
+  def tag_pos(tokens, opts \\ []) do
+    POSTagger.tag_pos(tokens, opts)
   end
 
   @impl true

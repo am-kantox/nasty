@@ -56,10 +56,11 @@ defmodule Nasty.MixProject do
   defp deps do
     [
       {:nimble_parsec, "~> 1.4"},
-      # Doc / Test
+      # Doc / Test / Benchmarking
       {:credo, "~> 1.5", only: :dev},
       # {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:excoveralls, "~> 0.18", only: :test}
+      {:excoveralls, "~> 0.18", only: :test},
+      {:benchee, "~> 1.0", only: :dev}
     ]
   end
 end

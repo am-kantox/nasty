@@ -32,13 +32,37 @@ defmodule Nasty.Language.English.POSTagger do
   ## Parameters
 
     - `tokens` - List of Token structs (from tokenizer)
+    - `opts` - Options
+      - `:model` - Model type: `:rule_based` (default), `:hmm`, `:ensemble`
+      - `:hmm_model` - Trained HMM model (required if model is :hmm or :ensemble)
 
   ## Returns
 
     - `{:ok, tokens}` - Tokens with updated pos_tag field
   """
-  @spec tag_pos([Token.t()]) :: {:ok, [Token.t()]}
-  def tag_pos(tokens) do
+  @spec tag_pos([Token.t()], keyword()) :: {:ok, [Token.t()]}
+  def tag_pos(tokens, opts \\ []) do
+    model_type = Keyword.get(opts, :model, :rule_based)
+
+    case model_type do
+      :rule_based ->
+        tag_pos_rule_based(tokens)
+
+      :hmm ->
+        tag_pos_hmm(tokens, opts)
+
+      :ensemble ->
+        tag_pos_ensemble(tokens, opts)
+
+      _ ->
+        {:error, {:unknown_model_type, model_type}}
+    end
+  end
+
+  @doc """
+  Rule-based POS tagging (original implementation).
+  """
+  def tag_pos_rule_based(tokens) do
     tagged =
       tokens
       |> Enum.with_index()
@@ -47,6 +71,61 @@ defmodule Nasty.Language.English.POSTagger do
       end)
 
     {:ok, tagged}
+  end
+
+  @doc """
+  HMM-based POS tagging.
+
+  Requires a trained HMM model passed via `:hmm_model` option.
+  """
+  def tag_pos_hmm(tokens, opts) do
+    case Keyword.get(opts, :hmm_model) do
+      nil ->
+        {:error, :hmm_model_required}
+
+      hmm_model ->
+        words = Enum.map(tokens, & &1.text)
+
+        case Nasty.Statistics.POSTagging.HMMTagger.predict(hmm_model, words, []) do
+          {:ok, tags} ->
+            tagged =
+              Enum.zip(tokens, tags)
+              |> Enum.map(fn {token, tag} -> %{token | pos_tag: tag} end)
+
+            {:ok, tagged}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+    end
+  end
+
+  @doc """
+  Ensemble POS tagging combining rule-based and HMM.
+
+  Uses HMM predictions but falls back to rule-based for punctuation
+  and other deterministic cases.
+  """
+  def tag_pos_ensemble(tokens, opts) do
+    with {:ok, rule_tokens} <- tag_pos_rule_based(tokens),
+         {:ok, hmm_tokens} <- tag_pos_hmm(tokens, opts) do
+      # Prefer rule-based for punctuation, numbers, and high-confidence cases
+      ensemble_tokens =
+        Enum.zip(rule_tokens, hmm_tokens)
+        |> Enum.map(fn {rule_token, hmm_token} ->
+          cond do
+            # Keep rule-based tags for punctuation and numbers
+            rule_token.pos_tag in [:punct, :num] ->
+              rule_token
+
+            # For other tags, prefer HMM
+            true ->
+              hmm_token
+          end
+        end)
+
+      {:ok, ensemble_tokens}
+    end
   end
 
   ## Private Functions
