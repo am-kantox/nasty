@@ -107,6 +107,18 @@ All nodes include:
 4. **Pure Elixir** - No external NLP dependencies; uses NimbleParsec for parsing
 5. **Composable** - Small, focused modules that compose into full pipeline
 
+## Coding Style Rules
+
+### Documentation
+- Never use emojis in documentation, code comments, commit messages, or any technical writing
+- Keep documentation professional and text-based
+
+### Testing
+- For short lists in tests, use pattern matching instead of `length/1`:
+  - Good: `assert [_, _, _] = list` or `assert match?([_, _, _], list)`
+  - Avoid: `assert length(list) == 3`
+- This makes tests more explicit about structure and fails faster
+
 ## Testing Conventions
 
 - Tests use `ExUnit.Case` with `async: true` for parallel execution
