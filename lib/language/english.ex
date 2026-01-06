@@ -30,6 +30,10 @@ defmodule Nasty.Language.English do
     Tokenizer
   }
 
+  alias Nasty.Interop.CodeGen.Elixir, as: ElixirCodeGen
+  alias Nasty.Interop.CodeGen.Explain
+  alias Nasty.Interop.{IntentRecognizer, RagexBridge}
+
   @impl true
   def language_code, do: :en
 
@@ -387,5 +391,118 @@ defmodule Nasty.Language.English do
           {:ok, [TemplateExtractor.extraction_result()]}
   def extract_templates(%Document{} = document, templates, opts \\ []) do
     TemplateExtractor.extract(document, templates, opts)
+  end
+
+  # Code Interoperability
+
+  @doc """
+  Converts natural language to Elixir code.
+
+  Takes a natural language command and generates executable Elixir code.
+
+  ## Options
+
+  - `:enhance_with_ragex` - Use Ragex for context-aware suggestions (default: false)
+
+  ## Examples
+
+      iex> {:ok, code} = English.to_code("Sort the numbers")
+      iex> code
+      "Enum.sort(numbers)"
+
+      iex> {:ok, code} = English.to_code("Filter users where age is greater than 18")
+      iex> code
+      "Enum.filter(users, fn item -> item > 18 end)"
+  """
+  @spec to_code(String.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
+  def to_code(text, opts \\ []) when is_binary(text) do
+    with {:ok, intent} <- IntentRecognizer.recognize_from_text(text, language: :en),
+         intent <- maybe_enhance_with_ragex(intent, opts),
+         do: ElixirCodeGen.generate_string(intent, opts)
+  end
+
+  @doc """
+  Converts natural language to Elixir AST.
+
+  Similar to `to_code/2` but returns the Elixir AST instead of a string.
+
+  ## Examples
+
+      iex> {:ok, ast} = English.to_code_ast("Sort the list")
+      iex> Macro.to_string(ast)
+      "Enum.sort(list)"
+  """
+  @spec to_code_ast(String.t(), keyword()) :: {:ok, Macro.t()} | {:error, term()}
+  def to_code_ast(text, opts \\ []) when is_binary(text) do
+    with {:ok, intent} <- IntentRecognizer.recognize_from_text(text, language: :en),
+         intent <- maybe_enhance_with_ragex(intent, opts),
+         do: ElixirCodeGen.generate(intent, opts)
+  end
+
+  @doc """
+  Explains Elixir code in natural language.
+
+  Takes Elixir code (string or AST) and generates a natural language explanation.
+
+  ## Examples
+
+      iex> {:ok, explanation} = English.explain_code("Enum.sort(numbers)")
+      iex> explanation
+      "sort numbers"
+
+      iex> {:ok, explanation} = English.explain_code("x = 5")
+      iex> explanation
+      "X is 5"
+  """
+  @spec explain_code(String.t() | Macro.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
+  def explain_code(code, opts \\ []) do
+    Explain.explain_code(code, opts)
+  end
+
+  @doc """
+  Explains Elixir code and returns a natural language AST Document.
+
+  ## Examples
+
+      iex> ast = quote do: Enum.sort(list)
+      iex> {:ok, document} = English.explain_code_to_document(ast)
+      iex> document.language
+      :en
+  """
+  @spec explain_code_to_document(Macro.t(), keyword()) :: {:ok, Document.t()} | {:error, term()}
+  def explain_code_to_document(ast, opts \\ []) do
+    Explain.explain_ast_to_document(ast, opts)
+  end
+
+  @doc """
+  Recognizes intent from natural language text.
+
+  This is a lower-level function that extracts the semantic intent
+  without generating code. Useful for understanding what action
+  the user wants to perform.
+
+  ## Examples
+
+      iex> {:ok, intent} = English.recognize_intent("Sort the numbers")
+      iex> intent.type
+      :action
+      iex> intent.action
+      "sort"
+  """
+  @spec recognize_intent(String.t(), keyword()) :: {:ok, Nasty.AST.Intent.t()} | {:error, term()}
+  def recognize_intent(text, opts \\ []) when is_binary(text) do
+    IntentRecognizer.recognize_from_text(text, Keyword.put(opts, :language, :en))
+  end
+
+  # Private helper for Ragex integration
+  defp maybe_enhance_with_ragex(intent, opts) do
+    if Keyword.get(opts, :enhance_with_ragex, false) and RagexBridge.available?() do
+      case RagexBridge.enhance_intent(intent) do
+        {:ok, enhanced} -> enhanced
+        {:error, _} -> intent
+      end
+    else
+      intent
+    end
   end
 end

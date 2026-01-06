@@ -112,7 +112,7 @@ defmodule Nasty.AST.Entity do
   end
 end
 
-defmodule Nasty.AST.Relation do
+defmodule Nasty.AST.SemanticRelation do
   @moduledoc """
   Relation node representing a semantic relationship between entities.
 
@@ -192,7 +192,7 @@ defmodule Nasty.AST.Reference do
   ]
 end
 
-defmodule Nasty.AST.Event do
+defmodule Nasty.AST.SemanticEvent do
   @moduledoc """
   Event node representing actions, states, or processes.
 

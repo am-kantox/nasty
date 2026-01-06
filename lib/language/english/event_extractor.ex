@@ -19,13 +19,14 @@ defmodule Nasty.Language.English.EventExtractor do
       ]}
   """
 
-  alias Nasty.AST.{Document, Entity, Event, Sentence}
+  alias Nasty.AST.{Document, Event, Sentence}
   alias Nasty.Language.English.{EntityRecognizer, SemanticRoleLabeler}
 
   # Event trigger verbs mapped to event types
+  # Note: Include both full forms and stems since lemmatization may produce stems
   @event_triggers %{
     # Business events
-    ~w(acquire acquired buy bought purchase purchased takeover) => :business_acquisition,
+    ~w(acquire acquired acquir buy bought purchase purchased takeover) => :business_acquisition,
     ~w(merge merged consolidate consolidated) => :business_merger,
     ~w(launch launched release released introduce introduced unveil unveiled) => :product_launch,
     ~w(found founded establish established start started create created) => :company_founding,
@@ -245,13 +246,39 @@ defmodule Nasty.Language.English.EventExtractor do
   end
 
   # Get tokens from a phrase
+  defp get_phrase_tokens(%{
+         head: head,
+         determiner: det,
+         modifiers: mods,
+         post_modifiers: post_mods
+       }) do
+    # NounPhrase with post_modifiers
+    tokens = [head | mods]
+    tokens = if det, do: [det | tokens], else: tokens
+    post_tokens = Enum.flat_map(post_mods, &get_phrase_tokens/1)
+    tokens ++ post_tokens
+  end
+
   defp get_phrase_tokens(%{head: head, determiner: det, modifiers: mods}) do
+    # NounPhrase without post_modifiers
     tokens = [head | mods]
     if det, do: [det | tokens], else: tokens
   end
 
+  defp get_phrase_tokens(%{head: head, auxiliaries: aux, complements: comps}) do
+    # VerbPhrase with complements
+    comp_tokens = Enum.flat_map(comps, &get_phrase_tokens/1)
+    [head | aux] ++ comp_tokens
+  end
+
   defp get_phrase_tokens(%{head: head, auxiliaries: aux}) do
+    # VerbPhrase without complements field (shouldn't happen but be defensive)
     [head | aux]
+  end
+
+  defp get_phrase_tokens(%{head: head, object: obj}) do
+    # PrepositionalPhrase
+    [head | get_phrase_tokens(obj)]
   end
 
   defp get_phrase_tokens(%{head: head}) do

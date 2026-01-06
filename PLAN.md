@@ -532,72 +532,105 @@ Implement entity extraction:
 **Tests**: 26 comprehensive tests covering all features
 **Examples**: `examples/text_classification.exs` with 4 real-world demonstrations
 
-#### 5.4 Information Extraction
+#### 5.4 Information Extraction ✅
 
-- Relation extraction based on dependency paths
-- Event extraction from verb phrases
-- Template-based extraction for structured data
+**Implementation Complete:**
+- **Relation Extraction** - Extract semantic relationships between entities
+  - 15+ relation types (employment, organization, location, temporal)
+  - Pattern-based extraction using verb patterns and prepositions
+  - Confidence scoring (0.5-0.8 based on pattern strength)
+  - Integrates with NER and dependency extraction
+  - Helper functions: invert, sort, filter
 
-### Phase 6: AST ↔ Code Interoperability (Week 7-8)
+- **Event Extraction** - Identify events with triggers and participants
+  - 10+ event types (business, employment, communication, movement, transaction)
+  - Verb and nominalization triggers
+  - Participant extraction using semantic role labeling
+  - Temporal expression linking from entities
+  - Confidence scoring (0.7-0.8)
 
-#### 6.1 Natural Language → Code AST
+- **Template-Based Extraction** - Structured information using custom templates
+  - Flexible template system with typed slots
+  - Pre-defined templates: employment, acquisition, location
+  - Pattern matching with confidence calculation
+  - Required/optional slot support
 
-Define mapping strategies:
+**Modules**: `Nasty.Language.English.RelationExtractor`, `Nasty.Language.English.EventExtractor`, `Nasty.Language.English.TemplateExtractor`
+**API**: `English.extract_relations/2`, `English.extract_events/2`, `English.extract_templates/3`
+**AST Nodes**: `Nasty.AST.Relation`, `Nasty.AST.Event`
+**Tests**: 50+ comprehensive tests covering all extraction types
+**Examples**: `examples/information_extraction.exs` with 4 real-world demonstrations
 
-**Imperative Statements → Function Calls**
-- "Sort the list" → `List.sort(list)`
-- "Calculate the sum" → `Enum.sum(values)`
+### Phase 6: AST ↔ Code Interoperability ✅ (COMPLETED)
 
-**Declarative Statements → Variable Assignments**
-- "X is 5" → `x = 5`
-- "The result is X plus Y" → `result = x + y`
+**Implementation Complete:**
 
-**Conditionals → If/Case Expressions**
-- "If X is greater than 5, return true" → `if x > 5, do: true`
+#### 6.1 Natural Language → Code Generation ✅
 
-**Loops → Comprehensions/Recursion**
-- "For each item in the list" → `for item <- list`
+- **Intent Recognition** - Extract semantic intent from natural language
+  - Intent types: `:action`, `:query`, `:definition`, `:conditional`
+  - Action extraction from predicates and verbs
+  - Target/argument extraction from semantic roles
+  - Confidence scoring (0.65-0.95 based on completeness)
+  - Verb normalization ("sort" → `Enum.sort`, "filter" → `Enum.filter`)
 
-**Questions → Assertions/Tests**
-- "Is X equal to 5?" → `assert x == 5`
+- **Elixir Code Generation** - Convert intents to executable Elixir AST
+  - List operations: `Enum.sort`, `Enum.filter`, `Enum.map`, `Enum.sum`, etc.
+  - Arithmetic operations: addition, subtraction, multiplication, division
+  - Variable assignments with literals and expressions
+  - Conditional statements: `if/then` expressions
+  - AST validation using `Code.string_to_quoted`
 
-Implement converter:
-```elixir
-defmodule Nasty.Interop.CodeGen.Elixir do
-  @spec convert(Nasty.AST.Sentence.t()) :: {:ok, Macro.t()} | {:error, term()}
-  def convert(sentence) do
-    # Parse imperative/declarative intent
-    # Map NL constructs to code constructs
-    # Generate Elixir AST (using quote/unquote)
-  end
-end
-```
+- **Supported Patterns**:
+  - "Sort the list" → `Enum.sort(list)`
+  - "Filter users where age > 18" → `Enum.filter(users, fn item -> item > 18 end)`
+  - "X is 5" → `x = 5`
+  - "If X then Y" → `if x, do: y`
 
-#### 6.2 Code AST → Natural Language
+**Modules**: `Nasty.AST.Intent`, `Nasty.Interop.IntentRecognizer`, `Nasty.Interop.CodeGen.Elixir`
+**API**: `English.to_code(text)`, `English.to_code_ast(text)`, `English.recognize_intent(text)`
 
-Reverse mapping:
-- Function calls → Imperative statements
-- Assignments → Declarative statements  
-- Control flow → Conditional/loop descriptions
-- Module/function structure → Hierarchical descriptions
+#### 6.2 Code → Natural Language Explanation ✅
 
-```elixir
-defmodule Nasty.Interop.CodeGen.Explain do
-  @spec explain(Macro.t(), language: atom()) :: Nasty.AST.Sentence.t()
-  def explain(ast, opts) do
-    # Traverse code AST
-    # Generate natural language AST in target language
-    # Render to text
-  end
-end
-```
+- **Code Explanation** - Generate natural language from Elixir AST
+  - Function call explanation (Enum operations, custom functions)
+  - Pipeline explanation with sequential descriptions
+  - Assignment explanation ("X is Y")
+  - Arithmetic operation explanation ("X plus Y", "X times Y")
+  - Conditional explanation ("If X then Y")
 
-#### 6.3 Semantic Bridge Layer
+- **AST Traversal Patterns**:
+  - `Enum.sort(numbers)` → "sort numbers"
+  - `x = a + b` → "X is a plus b"
+  - `list |> Enum.map(&(&1 * 2)) |> Enum.sum()` → "map list to each element times 2, then sum list"
+  - `if x > 5, do: :ok` → "If x is greater than 5, then :ok"
 
-Create intermediate representation:
-- **Intent Representation**: High-level semantic intent (ACTION, QUERY, DEFINITION)
-- **Entity-Relation Model**: Common structure for both NL and code
-- **Type System Mapping**: NL types (person, place, thing) ↔ Code types (string, int, struct)
+- **Document Generation** - Create full NL AST from code
+  - Generate Document with Paragraph, Sentence, Clause structures
+  - Token creation with inferred POS tags
+  - Proper span tracking for all nodes
+
+**Modules**: `Nasty.Interop.CodeGen.Explain`
+**API**: `English.explain_code(code)`, `English.explain_code_to_document(ast)`
+
+#### 6.3 Optional Ragex Integration ✅
+
+- **Context-Aware Enhancement** - Leverage Ragex knowledge graph
+  - Semantic search for function suggestions
+  - Function signature and documentation extraction
+  - Intent enhancement with codebase context
+  - Graceful degradation when Ragex unavailable
+
+**Module**: `Nasty.Interop.RagexBridge`
+**API**: `English.to_code(text, enhance_with_ragex: true)`
+**Configuration**: `config :nasty, :ragex, enabled: true, path: "/path/to/ragex"`
+
+#### Implementation Summary
+
+- **Files Created**: 5 modules, 2 example scripts
+- **Lines of Code**: ~1,200 lines of implementation
+- **Examples**: `examples/code_generation.exs`, `examples/code_explanation.exs`
+- **Documentation**: Complete README section with API examples
 
 ### Phase 7: Rendering & Utilities (Week 8-9)
 

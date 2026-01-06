@@ -14,7 +14,7 @@ defmodule Nasty.Language.English.RelationExtractor do
       ]}
   """
 
-  alias Nasty.AST.{Document, Entity, Paragraph, Relation, Sentence}
+  alias Nasty.AST.{Document, Relation, Sentence}
   alias Nasty.Language.English.{DependencyExtractor, EntityRecognizer}
 
   # Verb patterns for different relation types
@@ -76,9 +76,11 @@ defmodule Nasty.Language.English.RelationExtractor do
     # Extract relations for each pair
     entity_pairs
     |> Enum.flat_map(fn {e1, e2} ->
-      extract_relation_for_pair(e1, e2, sentence, tokens, dependencies, language)
+      case extract_relation_for_pair(e1, e2, sentence, tokens, dependencies, language) do
+        nil -> []
+        relation -> [relation]
+      end
     end)
-    |> Enum.reject(&is_nil/1)
   end
 
   # Generate all pairs of entities
@@ -104,6 +106,7 @@ defmodule Nasty.Language.English.RelationExtractor do
   end
 
   # Match relation patterns based on tokens between entities
+  # credo:disable-for-lines:62
   defp match_relation_pattern(entity1, entity2, between_tokens, sentence, language) do
     # Extract lemmas from between tokens
     lemmas =
@@ -220,13 +223,39 @@ defmodule Nasty.Language.English.RelationExtractor do
   end
 
   # Get tokens from a phrase
+  defp get_phrase_tokens(%{
+         head: head,
+         determiner: det,
+         modifiers: mods,
+         post_modifiers: post_mods
+       }) do
+    # NounPhrase with post_modifiers
+    tokens = [head | mods]
+    tokens = if det, do: [det | tokens], else: tokens
+    post_tokens = Enum.flat_map(post_mods, &get_phrase_tokens/1)
+    tokens ++ post_tokens
+  end
+
   defp get_phrase_tokens(%{head: head, determiner: det, modifiers: mods}) do
+    # NounPhrase without post_modifiers
     tokens = [head | mods]
     if det, do: [det | tokens], else: tokens
   end
 
+  defp get_phrase_tokens(%{head: head, auxiliaries: aux, complements: comps}) do
+    # VerbPhrase with complements
+    comp_tokens = Enum.flat_map(comps, &get_phrase_tokens/1)
+    [head | aux] ++ comp_tokens
+  end
+
   defp get_phrase_tokens(%{head: head, auxiliaries: aux}) do
+    # VerbPhrase without complements field (shouldn't happen but be defensive)
     [head | aux]
+  end
+
+  defp get_phrase_tokens(%{head: head, object: obj}) do
+    # PrepositionalPhrase
+    [head | get_phrase_tokens(obj)]
   end
 
   defp get_phrase_tokens(%{head: head}) do
@@ -239,8 +268,7 @@ defmodule Nasty.Language.English.RelationExtractor do
   defp sentence_text(sentence) do
     sentence
     |> get_sentence_tokens()
-    |> Enum.map(& &1.text)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", & &1.text)
   end
 
   # Limit results if max specified

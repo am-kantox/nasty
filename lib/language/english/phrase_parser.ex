@@ -61,6 +61,17 @@ defmodule Nasty.Language.English.PhraseParser do
       %Token{pos_tag: tag} = head when tag in [:noun, :propn, :pron] ->
         pos = pos + 1
 
+        # If head is PROPN, consume additional consecutive PROPNs (for multi-word names)
+        {additional_propns, pos} =
+          if tag == :propn do
+            consume_while(tokens, pos, [:propn])
+          else
+            {[], pos}
+          end
+
+        # Merge additional PROPNs into modifiers list
+        modifiers = modifiers ++ additional_propns
+
         # Try to parse post-modifiers (PP*)
         {post_modifiers, pos} = parse_post_modifiers(tokens, pos)
 
@@ -142,6 +153,48 @@ defmodule Nasty.Language.English.PhraseParser do
 
         vp = %VerbPhrase{
           auxiliaries: auxiliaries,
+          head: main_verb,
+          complements: if(object, do: [object | complements], else: complements),
+          language: main_verb.language,
+          span: span
+        }
+
+        {:ok, vp, pos}
+
+      _ when auxiliaries != [] ->
+        # No main verb found but we have auxiliaries
+        # Treat the last auxiliary as main verb (copula construction: "is happy", "are engineers")
+        main_verb = List.last(auxiliaries)
+        remaining_aux = Enum.slice(auxiliaries, 0..-2//1)
+
+        # Try to parse object (NP?)
+        {object, pos} =
+          case parse_noun_phrase(tokens, pos) do
+            {:ok, np, new_pos} -> {np, new_pos}
+            :error -> {nil, pos}
+          end
+
+        # Parse post-modifiers (PP* Adv*)
+        {complements, pos} = parse_vp_complements(tokens, pos)
+
+        # Calculate span
+        first_token = if remaining_aux != [], do: hd(remaining_aux), else: main_verb
+
+        last_token =
+          if complements != [],
+            do: List.last(complements) |> get_last_token(),
+            else: if(object, do: get_last_token(object), else: main_verb)
+
+        span =
+          Node.make_span(
+            first_token.span.start_pos,
+            first_token.span.start_offset,
+            last_token.span.end_pos,
+            last_token.span.end_offset
+          )
+
+        vp = %VerbPhrase{
+          auxiliaries: remaining_aux,
           head: main_verb,
           complements: if(object, do: [object | complements], else: complements),
           language: main_verb.language,

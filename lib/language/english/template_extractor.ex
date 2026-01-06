@@ -22,7 +22,7 @@ defmodule Nasty.Language.English.TemplateExtractor do
       # => [%{employee: "John Smith", employer: "Google", confidence: 0.85}]
   """
 
-  alias Nasty.AST.{Document, Entity, Sentence}
+  alias Nasty.AST.{Document, Sentence}
   alias Nasty.Language.English.EntityRecognizer
 
   @type slot :: %{
@@ -161,7 +161,8 @@ defmodule Nasty.Language.English.TemplateExtractor do
   end
 
   # Match a template against a sentence
-  defp match_template(sentence, template, language) do
+  # [TODO] `language`
+  defp match_template(sentence, template, _language) do
     # Get tokens and entities from sentence
     tokens = get_sentence_tokens(sentence)
     entities = EntityRecognizer.recognize(tokens)
@@ -172,7 +173,7 @@ defmodule Nasty.Language.English.TemplateExtractor do
     # Try each pattern
     patterns
     |> Enum.flat_map(fn pattern ->
-      case try_match_pattern(pattern, entities, template.slots) do
+      case try_match_pattern(pattern, tokens, entities, template.slots) do
         {:ok, filled_slots, confidence} ->
           [
             %{
@@ -191,15 +192,16 @@ defmodule Nasty.Language.English.TemplateExtractor do
   end
 
   # Try to match a pattern and fill slots
-  defp try_match_pattern(pattern, entities, slots) do
-    # Parse pattern to extract slot positions
-    slot_markers = extract_slot_markers(pattern)
+  # Now verifies that pattern words appear in the sentence in correct order
+  defp try_match_pattern(pattern, tokens, entities, slot_defs) do
+    # Parse pattern into components (slot markers and literal words)
+    pattern_parts = parse_pattern(pattern)
 
-    # Try to fill slots with entities
-    case fill_slots(slot_markers, entities, slots) do
+    # Try to match pattern against tokens and entities
+    case match_pattern_parts(pattern_parts, tokens, entities, slot_defs) do
       {:ok, filled_slots} ->
         # Calculate confidence based on how well slots were filled
-        confidence = calculate_confidence(filled_slots, slots)
+        confidence = calculate_confidence(filled_slots, slot_defs)
         {:ok, filled_slots, confidence}
 
       :no_match ->
@@ -207,61 +209,179 @@ defmodule Nasty.Language.English.TemplateExtractor do
     end
   end
 
-  # Extract slot markers from pattern (e.g., "[PERSON]", "[ORG]")
-  defp extract_slot_markers(pattern) do
-    ~r/\[(\w+)\]/
-    |> Regex.scan(pattern, capture: :all_but_first)
+  # Parse pattern into slot markers and literal words
+  # E.g., "[ORG] acquired [ORG]" -> [{:slot, :org}, {:word, "acquired"}, {:slot, :org}]
+  defp parse_pattern(pattern) do
+    # Split by slot markers but keep them
+    parts = Regex.split(~r/(\[\w+\])/, pattern, include_captures: true, trim: true)
+
+    Enum.map(parts, fn part ->
+      case Regex.run(~r/\[(\w+)\]/, part) do
+        [_, type] ->
+          {:slot, String.downcase(type) |> String.to_atom()}
+
+        nil ->
+          # Literal word(s) - normalize and split
+          part
+          |> String.trim()
+          |> String.downcase()
+          |> String.split()
+          |> Enum.map(&{:word, &1})
+      end
+    end)
     |> List.flatten()
-    |> Enum.map(&String.downcase/1)
-    |> Enum.map(&String.to_atom/1)
+    |> Enum.reject(fn
+      {:word, ""} -> true
+      _ -> false
+    end)
   end
 
-  # Fill slots with matching entities
-  defp fill_slots(slot_markers, entities, slot_defs) do
-    # Group entities by type
-    entities_by_type = Enum.group_by(entities, & &1.type)
+  # Match pattern parts against tokens and entities
+  defp match_pattern_parts(pattern_parts, tokens, entities, slot_defs) do
+    # Create a map of token positions to entities
+    entity_positions = build_entity_position_map(tokens, entities)
 
-    # Try to fill each slot marker in order
-    filled =
-      slot_markers
-      |> Enum.with_index()
-      |> Enum.map(fn {marker_type, index} ->
-        # Find corresponding slot definition
-        slot_def = find_slot_for_type(slot_defs, marker_type)
-
-        if slot_def do
-          # Get entities of the required type
-          matching_entities = Map.get(entities_by_type, marker_type, [])
-
-          # Take the entity at the corresponding index (if available)
-          entity = Enum.at(matching_entities, 0)
-
-          if entity do
-            {slot_def.name, entity.text}
-          else
-            nil
-          end
-        else
-          nil
-        end
-      end)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.into(%{})
-
-    # Check if all required slots were filled
-    required_slots = Enum.filter(slot_defs, & &1.required)
-    required_filled = Enum.all?(required_slots, &Map.has_key?(filled, &1.name))
-
-    if required_filled do
-      {:ok, filled}
-    else
-      :no_match
+    # Try to find a matching sequence in the tokens
+    case find_matching_sequence(pattern_parts, tokens, entity_positions, slot_defs, 0) do
+      {:ok, filled_slots} -> {:ok, filled_slots}
+      :no_match -> :no_match
     end
   end
 
-  # Find slot definition for a type
-  defp find_slot_for_type(slot_defs, type) do
-    Enum.find(slot_defs, &(&1.type == type))
+  # Build a map of token index -> entity
+  defp build_entity_position_map(tokens, entities) do
+    entities
+    |> Enum.flat_map(fn entity ->
+      # Find token indices that are part of this entity
+      tokens
+      |> Enum.with_index()
+      |> Enum.filter(fn {token, _idx} ->
+        # Check if token is part of entity
+        entity_tokens = Enum.map(entity.tokens, & &1.text)
+        token.text in entity_tokens
+      end)
+      |> Enum.map(fn {_token, idx} -> {idx, entity} end)
+    end)
+    |> Enum.into(%{})
+  end
+
+  # Find a matching sequence starting from pos
+  defp find_matching_sequence(pattern_parts, tokens, entity_positions, slot_defs, start_pos) do
+    if start_pos >= length(tokens) do
+      :no_match
+    else
+      case try_match_from_position(
+             pattern_parts,
+             tokens,
+             entity_positions,
+             slot_defs,
+             start_pos,
+             %{}
+           ) do
+        {:ok, filled_slots} ->
+          {:ok, filled_slots}
+
+        :no_match ->
+          # Try next position
+          find_matching_sequence(
+            pattern_parts,
+            tokens,
+            entity_positions,
+            slot_defs,
+            start_pos + 1
+          )
+      end
+    end
+  end
+
+  # Try to match pattern starting from a specific token position
+  defp try_match_from_position([], _tokens, _entity_positions, _slot_defs, _pos, filled_slots) do
+    # Successfully matched all pattern parts
+    {:ok, filled_slots}
+  end
+
+  defp try_match_from_position(
+         [{:slot, slot_type} | rest],
+         tokens,
+         entity_positions,
+         slot_defs,
+         pos,
+         filled_slots
+       ) do
+    # Try to match a slot at this position
+    case Map.get(entity_positions, pos) do
+      %{type: ^slot_type} = entity ->
+        # Entity matches the slot type
+        # Find the first unfilled slot definition of this type
+        slot_def = find_unfilled_slot_for_type(slot_defs, slot_type, filled_slots)
+
+        if slot_def do
+          # Add to filled slots
+          new_filled = Map.put(filled_slots, slot_def.name, entity.text)
+          # Skip past all tokens that are part of this entity
+          entity_length = length(entity.tokens)
+
+          try_match_from_position(
+            rest,
+            tokens,
+            entity_positions,
+            slot_defs,
+            pos + entity_length,
+            new_filled
+          )
+        else
+          :no_match
+        end
+
+      _ ->
+        :no_match
+    end
+  end
+
+  defp try_match_from_position(
+         [{:word, word} | rest],
+         tokens,
+         entity_positions,
+         slot_defs,
+         pos,
+         filled_slots
+       ) do
+    # Try to match a literal word at this position
+    case Enum.at(tokens, pos) do
+      %{text: text} when is_binary(text) ->
+        token_lemma = get_token_lemma(Enum.at(tokens, pos))
+
+        if String.downcase(text) == word or token_lemma == word do
+          # Word matches
+          try_match_from_position(
+            rest,
+            tokens,
+            entity_positions,
+            slot_defs,
+            pos + 1,
+            filled_slots
+          )
+        else
+          :no_match
+        end
+
+      _ ->
+        :no_match
+    end
+  end
+
+  defp try_match_from_position(_, _, _, _, _, _), do: :no_match
+
+  # Get token lemma or text in lowercase
+  defp get_token_lemma(token) do
+    (token.lemma || token.text) |> String.downcase()
+  end
+
+  # Find the first unfilled slot definition of a given type
+  defp find_unfilled_slot_for_type(slot_defs, type, filled_slots) do
+    slot_defs
+    |> Enum.filter(&(&1.type == type))
+    |> Enum.find(&(not Map.has_key?(filled_slots, &1.name)))
   end
 
   # Calculate confidence based on slot filling
@@ -302,13 +422,39 @@ defmodule Nasty.Language.English.TemplateExtractor do
   end
 
   # Get tokens from a phrase
+  defp get_phrase_tokens(%{
+         head: head,
+         determiner: det,
+         modifiers: mods,
+         post_modifiers: post_mods
+       }) do
+    # NounPhrase with post_modifiers
+    tokens = [head | mods]
+    tokens = if det, do: [det | tokens], else: tokens
+    post_tokens = Enum.flat_map(post_mods, &get_phrase_tokens/1)
+    tokens ++ post_tokens
+  end
+
   defp get_phrase_tokens(%{head: head, determiner: det, modifiers: mods}) do
+    # NounPhrase without post_modifiers
     tokens = [head | mods]
     if det, do: [det | tokens], else: tokens
   end
 
+  defp get_phrase_tokens(%{head: head, auxiliaries: aux, complements: comps}) do
+    # VerbPhrase with complements
+    comp_tokens = Enum.flat_map(comps, &get_phrase_tokens/1)
+    [head | aux] ++ comp_tokens
+  end
+
   defp get_phrase_tokens(%{head: head, auxiliaries: aux}) do
+    # VerbPhrase without complements field (shouldn't happen but be defensive)
     [head | aux]
+  end
+
+  defp get_phrase_tokens(%{head: head, object: obj}) do
+    # PrepositionalPhrase
+    [head | get_phrase_tokens(obj)]
   end
 
   defp get_phrase_tokens(%{head: head}) do
@@ -321,8 +467,7 @@ defmodule Nasty.Language.English.TemplateExtractor do
   defp sentence_text(sentence) do
     sentence
     |> get_sentence_tokens()
-    |> Enum.map(& &1.text)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", & &1.text)
   end
 
   # Limit results if max specified

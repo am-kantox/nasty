@@ -210,8 +210,7 @@ defmodule Nasty.AST.Event do
   defp format_participants(participants) when map_size(participants) == 0, do: ""
 
   defp format_participants(participants) do
-    participants
-    |> Enum.map(fn {role, entity} ->
+    Enum.map_join(participants, ", ", fn {role, entity} ->
       text =
         case entity do
           %Entity{text: t} -> t
@@ -221,6 +220,5 @@ defmodule Nasty.AST.Event do
 
       "#{role}:#{text}"
     end)
-    |> Enum.join(", ")
   end
 end

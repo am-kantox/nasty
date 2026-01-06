@@ -23,6 +23,7 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **Text Classification** - Multinomial Naive Bayes classifier with multiple feature types
 - **Information Extraction** - Relation extraction, event extraction, and template-based extraction
 - **Statistical Models** - HMM POS tagger with 95% accuracy
+- **Code Interoperability** - Bidirectional NL ↔ Code conversion (Natural language commands to Elixir code and vice versa)
 
 ## Quick Start
 
@@ -256,6 +257,46 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
   {:ok, results} = English.extract_templates(document, templates)
   ```
 
+### Code Interoperability
+
+Convert between natural language and Elixir code bidirectionally:
+
+- **NL → Code Generation** - Convert natural language commands to executable Elixir code
+  - List operations: "Sort the numbers" → `Enum.sort(numbers)`
+  - Filtering: "Filter users where age > 18" → `Enum.filter(users, fn item -> item > 18 end)`
+  - Mapping: "Map the list" → `Enum.map(list, fn item -> item end)`
+  - Arithmetic: "X plus Y" → `x + y`
+  - Assignments: "X is 5" → `x = 5`
+  - Conditionals: "If X then Y" → `if x, do: y`
+
+- **Code → NL Explanation** - Generate natural language explanations from code
+  - `Enum.sort(numbers)` → "sort numbers"
+  - `x = a + b` → "X is a plus b"
+  - `if x > 5, do: :ok` → "If x is greater than 5, then :ok"
+  - Pipeline support: `list |> Enum.map(&(&1 * 2)) |> Enum.sum()` → "map list to each element times 2, then sum list"
+
+- **API Functions**:
+  ```elixir
+  # Natural language → Code
+  {:ok, code} = English.to_code("Sort the numbers")
+  # => "Enum.sort(numbers)"
+  
+  # Code → Natural language
+  {:ok, explanation} = English.explain_code("Enum.filter(users, fn u -> u.age > 18 end)")
+  # => "filter users where u u age is greater than 18"
+  
+  # Get intent without generating code
+  {:ok, intent} = English.recognize_intent("Filter the users")
+  # => %Intent{type: :action, action: "filter", target: "users", confidence: 0.95}
+  
+  # Optional: Enhance with Ragex for context-aware suggestions
+  {:ok, code} = English.to_code("Sort the list", enhance_with_ragex: true)
+  ```
+
+- **Example Scripts**:
+  - `examples/code_generation.exs` - Natural language to code demos
+  - `examples/code_explanation.exs` - Code to natural language demos
+
 ## Testing
 
 ```bash
@@ -308,11 +349,11 @@ mix nasty.eval.pos \
 - [x] Coreference resolution (heuristic-based - done!)
 - [x] Question answering (extractive QA - done!)
 - [x] Information extraction (relations, events, templates - done!)
+- [x] Code ↔ NL bidirectional conversion (done!)
 - [ ] PCFG parser for phrase structure
 - [ ] CRF for named entity recognition  
 - [ ] Multi-language support (Spanish, Catalan)
 - [ ] Advanced coreference (neural models)
-- [ ] Code ↔ NL bidirectional conversion
 
 ## License
 
