@@ -16,12 +16,14 @@ defmodule Nasty.Language.English do
   alias Nasty.Language.English.{
     AnswerExtractor,
     CoreferenceResolver,
+    FeatureExtractor,
     Morphology,
     POSTagger,
     QuestionAnalyzer,
     SemanticRoleLabeler,
     SentenceParser,
     Summarizer,
+    TextClassifier,
     Tokenizer
   }
 
@@ -115,7 +117,8 @@ defmodule Nasty.Language.English do
         :morphology,
         :semantic_roles,
         :coreference,
-        :question_answering
+        :question_answering,
+        :text_classification
       ],
       version: "0.1.0"
     }
@@ -242,5 +245,74 @@ defmodule Nasty.Language.English do
       answers = AnswerExtractor.extract(document, analysis, opts)
       {:ok, answers}
     end
+  end
+
+  @doc """
+  Trains a text classifier on labeled documents.
+
+  ## Arguments
+
+  - `training_data` - List of `{document, class}` tuples
+  - `opts` - Training options
+
+  ## Options
+
+  - `:features` - Feature types to extract (default: `[:bow]`)
+  - `:smoothing` - Smoothing parameter (default: 1.0)
+  - `:min_frequency` - Minimum feature frequency (default: 2)
+
+  ## Examples
+
+      iex> training_data = [
+      ...>   {spam_doc, :spam},
+      ...>   {ham_doc, :ham}
+      ...> ]
+      iex> model = English.train_classifier(training_data)
+      iex> model.algorithm
+      :naive_bayes
+  """
+  @spec train_classifier([{Document.t(), atom()}], keyword()) ::
+          Nasty.AST.ClassificationModel.t()
+  def train_classifier(training_data, opts \\ []) do
+    TextClassifier.train(training_data, opts)
+  end
+
+  @doc """
+  Classifies a document using a trained model.
+
+  Returns classifications sorted by confidence.
+
+  ## Examples
+
+      iex> {:ok, document} = English.parse(tokens)
+      iex> {:ok, classifications} = English.classify(document, model)
+      iex> [top | _rest] = classifications
+      iex> top.class
+      :spam
+  """
+  @spec classify(Document.t(), Nasty.AST.ClassificationModel.t(), keyword()) ::
+          {:ok, [Nasty.AST.Classification.t()]} | {:error, term()}
+  def classify(%Document{} = document, model, opts \\ []) do
+    TextClassifier.predict(model, document, opts)
+  end
+
+  @doc """
+  Extracts classification features from a document.
+
+  ## Options
+
+  - `:features` - Feature types (default: `[:bow, :ngrams]`)
+  - `:ngram_size` - N-gram size (default: 2)
+  - `:min_frequency` - Minimum frequency (default: 1)
+
+  ## Examples
+
+      iex> features = English.extract_features(document)
+      iex> is_map(features)
+      true
+  """
+  @spec extract_features(Document.t(), keyword()) :: map()
+  def extract_features(%Document{} = document, opts \\ []) do
+    FeatureExtractor.extract(document, opts)
   end
 end
