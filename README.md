@@ -295,7 +295,7 @@ Convert between natural language and Elixir code bidirectionally:
   {:ok, intent} = English.recognize_intent("Filter the users")
   # => %Intent{type: :action, action: "filter", target: "users", confidence: 0.95}
   
-# Optional: Enhance with Ragex for context-aware suggestions
+  # Optional: Enhance with Ragex for context-aware suggestions
   {:ok, code} = English.to_code("Sort the list", enhance_with_ragex: true)
   ```
 
