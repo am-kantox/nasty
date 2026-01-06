@@ -296,3 +296,380 @@ defmodule Nasty.AST.Modality do
   @enforce_keys [:type, :marker, :strength, :span]
   defstruct [:type, :marker, :strength, :span]
 end
+
+defmodule Nasty.AST.SemanticRole do
+  @moduledoc """
+  Semantic role assigned to a phrase in relation to a predicate.
+
+  Represents the semantic function of a participant or circumstance
+  in a predicate-argument structure (e.g., Agent, Patient, Location).
+
+  Based on PropBank and VerbNet role inventories.
+  """
+
+  alias Nasty.AST.{Node, Phrase, Token}
+
+  @typedoc """
+  Semantic role types.
+
+  ## Core roles (arguments)
+  - `:agent` - Volitional causer/actor (typically subject of transitive)
+  - `:patient` - Entity acted upon (typically direct object)
+  - `:theme` - Entity undergoing action or in a state
+  - `:experiencer` - Entity experiencing a mental/perceptual state
+  - `:recipient` - Entity receiving something
+  - `:beneficiary` - Entity benefiting from action
+  - `:source` - Starting point of motion/transfer
+  - `:goal` - Endpoint of motion/transfer
+
+  ## Adjunct roles (modifiers)
+  - `:location` - Place where action occurs
+  - `:time` - Time when action occurs
+  - `:manner` - How action is performed
+  - `:instrument` - Tool/means used
+  - `:purpose` - Reason/goal for action
+  - `:cause` - Reason/cause of action
+  - `:comitative` - Accompanying entity ("with X")
+  """
+  # Core
+  @type role_type ::
+          :agent
+          | :patient
+          | :theme
+          | :experiencer
+          | :recipient
+          | :beneficiary
+          | :source
+          | :goal
+          # Adjunct
+          | :location
+          | :time
+          | :manner
+          | :instrument
+          | :purpose
+          | :cause
+          | :comitative
+
+  @type t :: %__MODULE__{
+          type: role_type(),
+          phrase: Phrase.t() | nil,
+          text: String.t(),
+          span: Node.span()
+        }
+
+  @enforce_keys [:type, :text, :span]
+  defstruct [:type, :phrase, :text, :span]
+
+  @doc """
+  Creates a new semantic role.
+  """
+  @spec new(role_type(), String.t(), Node.span(), keyword()) :: t()
+  def new(type, text, span, opts \\ []) do
+    %__MODULE__{
+      type: type,
+      text: text,
+      span: span,
+      phrase: Keyword.get(opts, :phrase)
+    }
+  end
+
+  @doc """
+  Checks if role is a core argument (not an adjunct).
+  """
+  @spec core_role?(t()) :: boolean()
+  def core_role?(%__MODULE__{type: type}) do
+    type in [:agent, :patient, :theme, :experiencer, :recipient, :beneficiary, :source, :goal]
+  end
+
+  @doc """
+  Checks if role is an adjunct (not a core argument).
+  """
+  @spec adjunct_role?(t()) :: boolean()
+  def adjunct_role?(%__MODULE__{} = role), do: not core_role?(role)
+end
+
+defmodule Nasty.AST.SemanticFrame do
+  @moduledoc """
+  Semantic frame representing a predicate with its arguments and adjuncts.
+
+  A frame captures the "who did what to whom, where, when, how" structure
+  of a clause. Each frame is anchored by a predicate (typically a verb)
+  and includes semantic roles for participants and circumstances.
+  """
+
+  alias Nasty.AST.{Node, SemanticRole, Token}
+
+  @type t :: %__MODULE__{
+          predicate: Token.t(),
+          roles: [SemanticRole.t()],
+          voice: :active | :passive | :unknown,
+          span: Node.span()
+        }
+
+  @enforce_keys [:predicate, :roles, :span]
+  defstruct [:predicate, :roles, :span, voice: :active]
+
+  @doc """
+  Creates a new semantic frame.
+  """
+  @spec new(Token.t(), [SemanticRole.t()], Node.span(), keyword()) :: t()
+  def new(predicate, roles, span, opts \\ []) do
+    %__MODULE__{
+      predicate: predicate,
+      roles: roles,
+      span: span,
+      voice: Keyword.get(opts, :voice, :active)
+    }
+  end
+
+  @doc """
+  Finds roles of a specific type in the frame.
+  """
+  @spec find_roles(t(), SemanticRole.role_type()) :: [SemanticRole.t()]
+  def find_roles(%__MODULE__{roles: roles}, type) do
+    Enum.filter(roles, fn role -> role.type == type end)
+  end
+
+  @doc """
+  Gets the agent role if present.
+  """
+  @spec agent(t()) :: SemanticRole.t() | nil
+  def agent(%__MODULE__{} = frame) do
+    frame
+    |> find_roles(:agent)
+    |> List.first()
+  end
+
+  @doc """
+  Gets the patient/theme role if present.
+  """
+  @spec patient(t()) :: SemanticRole.t() | nil
+  def patient(%__MODULE__{} = frame) do
+    case find_roles(frame, :patient) do
+      [p | _] -> p
+      [] -> frame |> find_roles(:theme) |> List.first()
+    end
+  end
+
+  @doc """
+  Returns core roles (arguments) only.
+  """
+  @spec core_roles(t()) :: [SemanticRole.t()]
+  def core_roles(%__MODULE__{roles: roles}) do
+    Enum.filter(roles, &SemanticRole.core_role?/1)
+  end
+
+  @doc """
+  Returns adjunct roles (modifiers) only.
+  """
+  @spec adjunct_roles(t()) :: [SemanticRole.t()]
+  def adjunct_roles(%__MODULE__{roles: roles}) do
+    Enum.filter(roles, &SemanticRole.adjunct_role?/1)
+  end
+end
+
+defmodule Nasty.AST.Mention do
+  @moduledoc """
+  Mention of an entity in text, used for coreference resolution.
+
+  A mention can be a pronoun, proper name, or definite noun phrase
+  that refers to an entity. Mentions are linked together into
+  coreference chains.
+  """
+
+  alias Nasty.AST.{Node, Phrase, Token}
+
+  @typedoc """
+  Mention types for coreference resolution.
+  """
+  @type mention_type ::
+          :pronoun
+          | :proper_name
+          | :definite_np
+          | :indefinite_np
+          | :demonstrative
+
+  @type gender :: :male | :female | :neutral | :plural | :unknown
+  @type grammatical_number :: :singular | :plural | :unknown
+
+  @type t :: %__MODULE__{
+          text: String.t(),
+          type: mention_type(),
+          tokens: [Token.t()],
+          phrase: Phrase.t() | nil,
+          sentence_idx: non_neg_integer(),
+          token_idx: non_neg_integer(),
+          gender: gender(),
+          number: grammatical_number(),
+          entity_type: atom() | nil,
+          span: Node.span()
+        }
+
+  @enforce_keys [:text, :type, :sentence_idx, :token_idx, :span]
+  defstruct [
+    :text,
+    :type,
+    :sentence_idx,
+    :token_idx,
+    :span,
+    :phrase,
+    tokens: [],
+    gender: :unknown,
+    number: :unknown,
+    entity_type: nil
+  ]
+
+  @doc """
+  Creates a new mention.
+  """
+  @spec new(
+          String.t(),
+          mention_type(),
+          non_neg_integer(),
+          non_neg_integer(),
+          Node.span(),
+          keyword()
+        ) ::
+          t()
+  def new(text, type, sentence_idx, token_idx, span, opts \\ []) do
+    %__MODULE__{
+      text: text,
+      type: type,
+      sentence_idx: sentence_idx,
+      token_idx: token_idx,
+      span: span,
+      tokens: Keyword.get(opts, :tokens, []),
+      phrase: Keyword.get(opts, :phrase),
+      gender: Keyword.get(opts, :gender, :unknown),
+      number: Keyword.get(opts, :number, :unknown),
+      entity_type: Keyword.get(opts, :entity_type)
+    }
+  end
+
+  @doc """
+  Checks if mention is pronominal.
+  """
+  @spec pronoun?(t()) :: boolean()
+  def pronoun?(%__MODULE__{type: :pronoun}), do: true
+  def pronoun?(_), do: false
+
+  @doc """
+  Checks if mention is a proper name.
+  """
+  @spec proper_name?(t()) :: boolean()
+  def proper_name?(%__MODULE__{type: :proper_name}), do: true
+  def proper_name?(_), do: false
+
+  @doc """
+  Checks if gender agreement holds between two mentions.
+  """
+  @spec gender_agrees?(t(), t()) :: boolean()
+  def gender_agrees?(%__MODULE__{gender: :unknown}, _), do: true
+  def gender_agrees?(_, %__MODULE__{gender: :unknown}), do: true
+  def gender_agrees?(%__MODULE__{gender: g1}, %__MODULE__{gender: g2}), do: g1 == g2
+
+  @doc """
+  Checks if number agreement holds between two mentions.
+  """
+  @spec number_agrees?(t(), t()) :: boolean()
+  def number_agrees?(%__MODULE__{number: :unknown}, _), do: true
+  def number_agrees?(_, %__MODULE__{number: :unknown}), do: true
+  def number_agrees?(%__MODULE__{number: n1}, %__MODULE__{number: n2}), do: n1 == n2
+end
+
+defmodule Nasty.AST.CorefChain do
+  @moduledoc """
+  Coreference chain linking mentions that refer to the same entity.
+
+  A chain contains all mentions of an entity throughout a document,
+  along with a representative mention (typically the first proper name
+  or most informative noun phrase).
+  """
+
+  alias Nasty.AST.Mention
+
+  @type t :: %__MODULE__{
+          id: pos_integer(),
+          mentions: [Mention.t()],
+          representative: String.t(),
+          entity_type: atom() | nil
+        }
+
+  @enforce_keys [:id, :mentions, :representative]
+  defstruct [:id, :mentions, :representative, entity_type: nil]
+
+  @doc """
+  Creates a new coreference chain.
+  """
+  @spec new(pos_integer(), [Mention.t()], String.t(), keyword()) :: t()
+  def new(id, mentions, representative, opts \\ []) do
+    %__MODULE__{
+      id: id,
+      mentions: mentions,
+      representative: representative,
+      entity_type: Keyword.get(opts, :entity_type)
+    }
+  end
+
+  @doc """
+  Returns the first mention in the chain.
+  """
+  @spec first_mention(t()) :: Mention.t() | nil
+  def first_mention(%__MODULE__{mentions: []}), do: nil
+  def first_mention(%__MODULE__{mentions: [first | _]}), do: first
+
+  @doc """
+  Returns the last mention in the chain.
+  """
+  @spec last_mention(t()) :: Mention.t() | nil
+  def last_mention(%__MODULE__{mentions: []}), do: nil
+  def last_mention(%__MODULE__{mentions: mentions}), do: List.last(mentions)
+
+  @doc """
+  Counts mentions in the chain.
+  """
+  @spec mention_count(t()) :: non_neg_integer()
+  def mention_count(%__MODULE__{mentions: mentions}), do: length(mentions)
+
+  @doc """
+  Finds mention at a specific sentence index.
+  """
+  @spec find_mention_at(t(), non_neg_integer()) :: [Mention.t()]
+  def find_mention_at(%__MODULE__{mentions: mentions}, sentence_idx) do
+    Enum.filter(mentions, fn m -> m.sentence_idx == sentence_idx end)
+  end
+
+  @doc """
+  Selects the best representative mention from a list.
+
+  Preference order:
+  1. First proper name
+  2. Longest definite NP
+  3. First mention
+  """
+  @spec select_representative([Mention.t()]) :: String.t()
+  def select_representative([]), do: ""
+
+  def select_representative(mentions) do
+    # Try to find proper name
+    case Enum.find(mentions, &Mention.proper_name?/1) do
+      %Mention{text: text} ->
+        text
+
+      nil ->
+        # Find longest definite NP
+        mentions
+        |> Enum.filter(fn m -> m.type == :definite_np end)
+        |> case do
+          [] ->
+            # Fall back to first mention
+            mentions |> List.first() |> Map.get(:text)
+
+          definite_nps ->
+            definite_nps
+            |> Enum.max_by(fn m -> String.length(m.text) end)
+            |> Map.get(:text)
+        end
+    end
+  end
+end

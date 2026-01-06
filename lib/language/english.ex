@@ -12,7 +12,15 @@ defmodule Nasty.Language.English do
   @behaviour Nasty.Language.Behaviour
 
   alias Nasty.AST.{Document, Paragraph}
-  alias Nasty.Language.English.{Morphology, POSTagger, SentenceParser, Tokenizer}
+
+  alias Nasty.Language.English.{
+    CoreferenceResolver,
+    Morphology,
+    POSTagger,
+    SemanticRoleLabeler,
+    SentenceParser,
+    Tokenizer
+  }
 
   @impl true
   def language_code, do: :en
@@ -28,7 +36,7 @@ defmodule Nasty.Language.English do
   end
 
   @impl true
-  def parse(tokens, _opts \\ []) do
+  def parse(tokens, opts \\ []) do
     # Parse takes already-tagged tokens per Language.Behaviour spec
     # Phase 3: Full phrase structure parsing
     with {:ok, analyzed} <- Morphology.analyze(tokens),
@@ -57,7 +65,7 @@ defmodule Nasty.Language.English do
         language: :en
       }
 
-      # Create document
+      # Create base document
       document = %Document{
         paragraphs: [paragraph],
         span: doc_span,
@@ -69,6 +77,12 @@ defmodule Nasty.Language.English do
           tokens: analyzed
         }
       }
+
+      # Optionally run semantic analysis
+      document =
+        document
+        |> maybe_add_semantic_frames(opts)
+        |> maybe_add_coreference_chains(opts)
 
       {:ok, document}
     end
@@ -95,9 +109,72 @@ defmodule Nasty.Language.English do
         :tokenization,
         :pos_tagging,
         :lemmatization,
-        :morphology
+        :morphology,
+        :semantic_roles,
+        :coreference
       ],
       version: "0.1.0"
     }
+  end
+
+  # Helper: Add semantic role labeling if requested
+  defp maybe_add_semantic_frames(document, opts) do
+    if Keyword.get(opts, :semantic_roles, false) do
+      {:ok, frames} = label_semantic_roles(document)
+      %{document | semantic_frames: frames}
+    else
+      document
+    end
+  end
+
+  # Helper: Add coreference resolution if requested
+  defp maybe_add_coreference_chains(document, opts) do
+    if Keyword.get(opts, :coreference, false) do
+      {:ok, chains} = resolve_coreference(document)
+      %{document | coref_chains: chains}
+    else
+      document
+    end
+  end
+
+  @doc """
+  Performs semantic role labeling on a document.
+
+  Extracts predicate-argument structure for all sentences.
+
+  ## Examples
+
+      iex> {:ok, frames} = English.label_semantic_roles(document)
+      iex> is_list(frames)
+      true
+  """
+  @spec label_semantic_roles(Document.t()) ::
+          {:ok, [Nasty.AST.SemanticFrame.t()]} | {:error, term()}
+  def label_semantic_roles(%Document{} = document) do
+    frames =
+      document
+      |> Document.all_sentences()
+      |> Enum.flat_map(fn sentence ->
+        {:ok, sentence_frames} = SemanticRoleLabeler.label(sentence)
+        sentence_frames
+      end)
+
+    {:ok, frames}
+  end
+
+  @doc """
+  Performs coreference resolution on a document.
+
+  Links mentions (pronouns, proper names, definite NPs) into coreference chains.
+
+  ## Examples
+
+      iex> {:ok, chains} = English.resolve_coreference(document)
+      iex> is_list(chains)
+      true
+  """
+  @spec resolve_coreference(Document.t()) :: {:ok, [Nasty.AST.CorefChain.t()]} | {:error, term()}
+  def resolve_coreference(%Document{} = document) do
+    CoreferenceResolver.resolve(document)
   end
 end

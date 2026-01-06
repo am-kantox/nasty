@@ -113,6 +113,8 @@ defmodule Nasty.AST.Document do
           paragraphs: [Paragraph.t()],
           language: Node.language(),
           metadata: metadata(),
+          semantic_frames: [Nasty.AST.SemanticFrame.t()] | nil,
+          coref_chains: [Nasty.AST.CorefChain.t()] | nil,
           span: Node.span()
         }
 
@@ -121,7 +123,9 @@ defmodule Nasty.AST.Document do
     :paragraphs,
     :language,
     :span,
-    metadata: %{}
+    metadata: %{},
+    semantic_frames: nil,
+    coref_chains: nil
   ]
 
   @doc """
