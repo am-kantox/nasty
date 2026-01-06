@@ -141,7 +141,7 @@ defmodule Nasty.Statistics.ModelRegistryTest do
       assert :ok = ModelRegistry.unregister(:en, :pos_tagging, "v1")
 
       assert {:error, :not_found} = ModelRegistry.lookup(:en, :pos_tagging, "v1")
-      assert {:ok, _, _} = ModelRegistry.lookup(:en, :pos_tagging, "v2")
+      assert {:ok, %{}, %{}} = ModelRegistry.lookup(:en, :pos_tagging, "v2")
     end
 
     test "returns ok even if model doesn't exist" do

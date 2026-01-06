@@ -101,9 +101,9 @@ defmodule Nasty.Language.English.FeatureExtractor do
 
     tokens
     |> Enum.map(&normalize_token/1)
-    |> Enum.reject(&is_nil/1)
-    |> Enum.reject(fn word ->
-      not include_stop_words and MapSet.member?(@stop_words, word)
+    |> Enum.reject(fn
+      nil -> true
+      word -> not include_stop_words and MapSet.member?(@stop_words, word)
     end)
     |> Enum.frequencies()
     |> Enum.filter(fn {_word, freq} -> freq >= min_freq end)
@@ -165,10 +165,10 @@ defmodule Nasty.Language.English.FeatureExtractor do
       clause_distribution: clause_counts,
       total_sentences: length(sentences),
       avg_clauses_per_sentence:
-        if(length(sentences) > 0,
-          do: Enum.sum(Map.values(clause_counts)) / length(sentences),
-          else: 0.0
-        )
+        case sentences do
+          [] -> 0.0
+          [_ | _] -> Enum.sum(Map.values(clause_counts)) / length(sentences)
+        end
     }
   end
 
@@ -183,7 +183,11 @@ defmodule Nasty.Language.English.FeatureExtractor do
     %{
       entity_counts: entity_counts,
       total_entities: total_entities,
-      entity_density: if(length(tokens) > 0, do: total_entities / length(tokens), else: 0.0)
+      entity_density:
+        case tokens do
+          [] -> 0.0
+          [_ | _] -> total_entities / length(tokens)
+        end
     }
   end
 
@@ -195,10 +199,16 @@ defmodule Nasty.Language.English.FeatureExtractor do
     sentences = Document.all_sentences(document)
 
     avg_sentence_length =
-      if length(sentences) > 0, do: length(tokens) / length(sentences), else: 0.0
+      case sentences do
+        [] -> 0.0
+        [_ | _] -> length(tokens) / length(sentences)
+      end
 
     type_token_ratio =
-      if length(words) > 0, do: MapSet.size(unique_words) / length(words), else: 0.0
+      case words do
+        [] -> 0.0
+        [_ | _] -> MapSet.size(unique_words) / length(words)
+      end
 
     %{
       total_tokens: length(tokens),

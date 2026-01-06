@@ -137,9 +137,7 @@ defmodule Nasty.Language.English.TextClassifier do
   @spec predict(ClassificationModel.t(), Document.t(), keyword()) ::
           {:ok, [Classification.t()]} | {:error, term()}
   def predict(%ClassificationModel{} = model, %Document{} = document, opts \\ []) do
-    if not ClassificationModel.trained?(model) do
-      {:error, :model_not_trained}
-    else
+    if ClassificationModel.trained?(model) do
       feature_types = model.metadata.feature_types || [:bow]
 
       # Extract features from document
@@ -200,6 +198,8 @@ defmodule Nasty.Language.English.TextClassifier do
         |> Classification.sort_by_confidence()
 
       {:ok, classifications}
+    else
+      {:error, :model_not_trained}
     end
   end
 

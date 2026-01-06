@@ -1,7 +1,7 @@
 defmodule Nasty.Language.English.QuestionAnsweringTest do
   use ExUnit.Case, async: true
 
-  alias Nasty.AST.{Answer, Document}
+  alias Nasty.AST.Answer
   alias Nasty.Language.English
   alias Nasty.Language.English.{AnswerExtractor, QuestionAnalyzer}
 

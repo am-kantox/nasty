@@ -1,5 +1,5 @@
 defmodule Nasty.Statistics.ModelLoaderTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   alias Nasty.Statistics.{ModelLoader, ModelRegistry}
 
   setup do
