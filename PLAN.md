@@ -458,42 +458,79 @@ Implement entity extraction:
 **Module**: `Nasty.Language.English.CoreferenceResolver`
 **API**: `CoreferenceResolver.resolve(document) -> {:ok, [CorefChain.t()]}`
 
-### Phase 5: NLP Operations (Week 6-7)
+### Phase 5: NLP Operations (COMPLETED - Week 11-12)
 
-#### 5.1 Text Summarization
+#### 5.1 Text Summarization ✅
 
-**Extractive Summarization**
+**Extractive Summarization Implementation Complete:**
 - Sentence scoring based on:
   - Position (first sentences of paragraphs)
   - Term frequency (important words)
   - Discourse markers ("in conclusion", "importantly")
   - Entity density (sentences with many named entities)
-- Sentence selection algorithm (greedy, MMR)
-- Summary coherence optimization
+  - Coreference participation
+  - Sentence length normalization
+- Sentence selection algorithms:
+  - `:greedy` - Top-N by score (default)
+  - `:mmr` - Maximal Marginal Relevance (reduces redundancy)
+- Flexible options: compression ratio or fixed sentence count
 
-**Abstractive Summarization (Basic)**
-- Sentence simplification (remove modifiers, subordinate clauses)
-- Sentence fusion (combine similar sentences)
-- Paraphrasing (lexical substitution)
-- Discourse-aware generation
+**Module**: `Nasty.Language.English.Summarizer`
+**API**: `English.summarize(document, ratio: 0.3)` or `English.summarize(document, max_sentences: 3)`
 
-#### 5.2 Question Answering (Basic)
+#### 5.2 Question Answering ✅
 
-- Parse question to extract:
-  - Question type (who, what, when, where, why, how)
-  - Expected answer type
-  - Key entities and relations
-- Match against document AST structure
-- Extract relevant spans
+**Extractive QA Implementation Complete:**
+- Question classification:
+  - WHO (person entities)
+  - WHAT (things, organizations)
+  - WHEN (temporal expressions)
+  - WHERE (locations)
+  - WHY (reasons, clauses)
+  - HOW (manner, quantity)
+  - YES/NO (boolean questions)
+- Answer extraction strategies:
+  - Keyword matching with lemmatization
+  - Entity type filtering (person, organization, location)
+  - Temporal expression recognition
+  - Confidence scoring and ranking
+- Multiple answer support with confidence scores
 
-#### 5.3 Text Classification
+**Modules**: `Nasty.Language.English.QuestionAnalyzer`, `Nasty.Language.English.AnswerExtractor`
+**API**: `English.answer_question(document, "Who works at Google?")`
 
+#### 5.3 Text Classification ✅
+
+**Multinomial Naive Bayes Implementation Complete:**
 - Feature extraction from AST:
-  - Bag of words (lemmatized)
-  - N-grams
-  - Syntactic patterns
-  - Entity types
-- Classification algorithms (Naive Bayes, SVM)
+  - `:bow` - Bag of words (lemmatized, stop word filtering)
+  - `:ngrams` - Word sequences (bigrams, trigrams, etc.)
+  - `:pos_patterns` - POS tag sequences
+  - `:syntactic` - Sentence structure statistics
+  - `:entities` - Named entity distributions
+  - `:lexical` - Vocabulary richness and text statistics
+- Multinomial Naive Bayes classifier:
+  - Laplace smoothing (alpha=1.0)
+  - Log-space computation to prevent underflow
+  - Softmax normalization for probabilities
+- Model training and prediction:
+  - Train on labeled documents: `{document, class}` tuples
+  - Multi-class classification support
+  - Confidence scores and probability distributions
+- Model evaluation:
+  - Accuracy, precision, recall, F1 metrics
+  - Per-class performance breakdowns
+- Use cases demonstrated:
+  - Sentiment analysis (positive/negative reviews)
+  - Spam detection (spam/ham classification)
+  - Topic classification (sports, tech, politics, business)
+  - Formality detection (formal/informal text)
+
+**Modules**: `Nasty.Language.English.FeatureExtractor`, `Nasty.Language.English.TextClassifier`
+**API**: `English.train_classifier(training_data, features: [:bow, :lexical])` and `English.classify(document, model)`
+**AST Nodes**: `Nasty.AST.Classification`, `Nasty.AST.ClassificationModel`
+**Tests**: 26 comprehensive tests covering all features
+**Examples**: `examples/text_classification.exs` with 4 real-world demonstrations
 
 #### 5.4 Information Extraction
 
