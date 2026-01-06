@@ -47,14 +47,9 @@ defmodule Nasty.Interop.IntentRecognizer do
     # Step 1: Determine intent type from sentence function
     intent_type = classify_intent_type(sentence)
 
-    # Step 2: Extract semantic frames if available
-    frames =
-      if sentence.main_clause && sentence.main_clause.semantic_frames do
-        sentence.main_clause.semantic_frames
-      else
-        # No pre-computed frames - extract from clause structure
-        extract_frames_from_clause(sentence.main_clause)
-      end
+    # Step 2: Extract semantic frames from clause structure
+    # [TODO] semantic_frames is not yet implemented in Clause struct
+    frames = extract_frames_from_clause(sentence.main_clause)
 
     # Step 3: Build intent from frames and sentence structure
     # [TODO] might be too simplified

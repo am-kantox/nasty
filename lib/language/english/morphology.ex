@@ -39,6 +39,38 @@ defmodule Nasty.Language.English.Morphology do
     {:ok, analyzed}
   end
 
+  @doc """
+  Lemmatizes a word based on its part-of-speech tag.
+
+  Returns the base form (lemma) of a word using dictionary lookup for irregular
+  forms and rule-based suffix removal for regular forms.
+
+  ## Parameters
+
+    - `word` - The word to lemmatize (lowercase string)
+    - `pos_tag` - Part-of-speech tag atom (`:verb`, `:noun`, `:adj`, etc.)
+
+  ## Returns
+
+    - `String.t()` - The lemmatized form of the word
+
+  ## Examples
+
+      iex> Nasty.Language.English.Morphology.lemmatize("running", :verb)
+      "run"
+
+      iex> Nasty.Language.English.Morphology.lemmatize("cats", :noun)
+      "cat"
+
+      iex> Nasty.Language.English.Morphology.lemmatize("better", :adj)
+      "good"
+  """
+  @spec lemmatize(String.t(), atom()) :: String.t()
+  def lemmatize(word, pos_tag) do
+    # Try irregular forms first
+    irregular_lemma(word, pos_tag) || rule_based_lemma(word, pos_tag) || word
+  end
+
   ## Private Functions
 
   # Analyze a single token
@@ -53,12 +85,6 @@ defmodule Nasty.Language.English.Morphology do
 
       %{token | lemma: lemma, morphology: morph}
     end
-  end
-
-  # Lemmatize a word based on its POS tag
-  defp lemmatize(word, pos_tag) do
-    # Try irregular forms first
-    irregular_lemma(word, pos_tag) || rule_based_lemma(word, pos_tag) || word
   end
 
   # Irregular verbs, nouns, adjectives

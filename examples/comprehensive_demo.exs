@@ -17,6 +17,7 @@ California. The company was founded by Larry Page and Sergey Brin in 1998.
 John loves working on natural language processing and machine learning projects.
 """
 
+alias Nasty.AST.{Sentence, Token}
 alias Nasty.Language.English
 alias Nasty.Utils.{Query, Traversal, Transform, Validator}
 alias Nasty.Rendering.{Text, PrettyPrint, Visualization}
@@ -152,21 +153,21 @@ IO.puts(String.duplicate("-", 80))
 
 IO.puts("\n6.1 Count nodes using traversal")
 token_count = Traversal.reduce(document, 0, fn
-  %Nasty.AST.Token{}, acc -> acc + 1
+  %{__struct__: Token}, acc -> acc + 1
   _, acc -> acc
 end)
 IO.puts("Tokens counted via traversal: #{token_count}")
 
 IO.puts("\n6.2 Collect specific nodes")
 proper_nouns = Traversal.collect(document, fn
-  %Nasty.AST.Token{pos_tag: :propn} -> true
+  %{__struct__: Token, pos_tag: :propn} -> true
   _ -> false
 end)
 IO.puts("Proper nouns: #{Enum.map(proper_nouns, & &1.text) |> Enum.join(", ")}")
 
 IO.puts("\n6.3 Find first interrogative sentence")
 question = Traversal.find(document, fn
-  %Nasty.AST.Sentence{function: :interrogative} -> true
+  %{__struct__: Sentence, function: :interrogative} -> true
   _ -> false
 end)
 IO.puts("Question found: #{if question, do: "Yes", else: "No (no questions in text)"}")
@@ -303,7 +304,7 @@ IO.puts(String.duplicate("-", 80))
 
 summary = English.summarize(document, max_sentences: 2)
 IO.puts("\nSummary (2 sentences):")
-IO.puts("  #{summary}")
+IO.puts("  #{inspect(summary)}")
 
 # ============================================================================
 # SECTION 13: Code Interoperability
