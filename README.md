@@ -16,6 +16,8 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **Complex Sentences** - Coordination, subordination
 - **Dependency Extraction** - Universal Dependencies relations
 - **Named Entity Recognition** - Person, place, organization
+- **Semantic Role Labeling** - Predicate-argument structure (who did what to whom)
+- **Coreference Resolution** - Link mentions across sentences
 - **Text Summarization** - Extractive summarization
 - **Statistical Models** - HMM POS tagger with 95% accuracy
 
@@ -46,6 +48,18 @@ entities = EntityRecognizer.recognize(tagged)
 alias Nasty.Language.English.DependencyExtractor
 sentences = document.paragraphs |> Enum.flat_map(& &1.sentences)
 deps = Enum.flat_map(sentences, &DependencyExtractor.extract/1)
+
+# Semantic role labeling
+{:ok, document_with_srl} = Nasty.Language.English.parse(tagged, semantic_roles: true)
+# Access semantic frames
+frames = document_with_srl.semantic_frames
+# => [%SemanticFrame{predicate: "works", roles: [%Role{type: :agent, text: "John Smith"}, ...]}]
+
+# Coreference resolution
+{:ok, document_with_coref} = Nasty.Language.English.parse(tagged, coreference: true)
+# Access coreference chains
+chains = document_with_coref.coref_chains
+# => [%CorefChain{representative: "John Smith", mentions: ["John Smith", "he"], ...}]
 
 # Summarize
 alias Nasty.Language.English.Summarizer
@@ -151,11 +165,12 @@ mix nasty.eval.pos \
 ## Future Enhancements
 
 - [x] Statistical models for improved accuracy (HMM POS tagger - done!)
+- [x] Semantic role labeling (rule-based SRL - done!)
+- [x] Coreference resolution (heuristic-based - done!)
 - [ ] PCFG parser for phrase structure
 - [ ] CRF for named entity recognition  
 - [ ] Multi-language support (Spanish, Catalan)
-- [ ] Coreference resolution
-- [ ] Semantic role labeling
+- [ ] Advanced coreference (neural models)
 - [ ] Code ↔ NL bidirectional conversion
 
 ## License

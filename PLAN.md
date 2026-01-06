@@ -415,9 +415,9 @@ end
 - **Sentence types**: Declarative, interrogative, imperative, exclamative
 - **Error recovery**: Detect fragments and run-ons with custom error handling
 
-### Phase 4: Semantic Analysis (Week 5-6)
+### Phase 4: Semantic Analysis (COMPLETED - Week 11)
 
-#### 4.1 Named Entity Recognition (NER)
+#### 4.1 Named Entity Recognition (NER) ✅
 
 Implement entity extraction:
 - Pattern-based rules for common entities (dates, numbers, emails)
@@ -425,20 +425,38 @@ Implement entity extraction:
 - Contextual disambiguation
 - Entity typing: PERSON, ORG, LOC, DATE, TIME, MONEY, PERCENT, etc.
 
-#### 4.2 Semantic Role Labeling (SRL)
+#### 4.2 Semantic Role Labeling (SRL) ✅
 
-Extract predicate-argument structure:
-- Identify semantic roles: Agent, Patient, Theme, Location, Time, Manner
-- Map syntactic subjects/objects to semantic roles
-- Handle passive voice and other transformations
+**Implementation Complete:**
+- Rule-based SRL using clause structure analysis
+- Maps syntactic arguments to semantic roles:
+  - Core roles: Agent, Patient, Theme, Recipient, Beneficiary
+  - Adjunct roles: Location, Time, Manner, Instrument, Purpose, Cause
+- Voice detection (active vs passive) for correct role assignment
+- Handles ditransitive constructions ("give X to Y")
+- Classifies prepositional phrases and adverbials by semantic function
 
-#### 4.3 Coreference Resolution
+**Module**: `Nasty.Language.English.SemanticRoleLabeler`
+**API**: `SemanticRoleLabeler.label(sentence) -> {:ok, [SemanticFrame.t()]}`
 
-Link referring expressions:
-- Pronoun resolution (anaphora)
-- Definite noun phrase resolution
-- Build entity chains across sentences
-- Handle different reference types (identity, bridging)
+#### 4.3 Coreference Resolution ✅
+
+**Implementation Complete:**
+- Mention detection:
+  - Pronouns (he, she, it, they) with gender/number classification
+  - Proper names (from entity recognition)
+  - Definite noun phrases ("the company", "the president")
+- Mention pair scoring with multiple heuristics:
+  - Distance/recency (prefer mentions within 3 sentences)
+  - Gender and number agreement checking
+  - String matching (exact and partial)
+  - Entity type consistency
+  - Pronoun-name affinity boost
+- Agglomerative clustering to build coreference chains
+- Representative mention selection (prefer proper names)
+
+**Module**: `Nasty.Language.English.CoreferenceResolver`
+**API**: `CoreferenceResolver.resolve(document) -> {:ok, [CorefChain.t()]}`
 
 ### Phase 5: NLP Operations (Week 6-7)
 
