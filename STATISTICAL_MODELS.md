@@ -27,7 +27,35 @@ Nasty now supports both **rule-based** and **statistical** approaches for NLP ta
 - ⏳ CRF for named entity recognition
 - ⏳ Pre-trained models for English
 
-## Quick Start
+## Quick Start: Using the Training Script
+
+The easiest way to train a model is using the provided script:
+
+```bash
+# 1. Download Universal Dependencies English-EWT
+mkdir -p data
+cd data
+wget https://github.com/UniversalDependencies/UD_English-EWT/archive/refs/tags/r2.13.tar.gz
+tar -xzf r2.13.tar.gz
+cd ..
+
+# 2. Train the model
+./scripts/train_pos_tagger.exs \
+  --corpus data/UD_English-EWT-r2.13/en_ewt-ud-train.conllu \
+  --dev data/UD_English-EWT-r2.13/en_ewt-ud-dev.conllu \
+  --test data/UD_English-EWT-r2.13/en_ewt-ud-test.conllu \
+  --output priv/models/en/pos_hmm.model
+
+# Expected: ~95% accuracy on test set in ~30 seconds
+
+# 3. Use your trained model
+{:ok, model} = Nasty.Statistics.POSTagging.HMMTagger.load("priv/models/en/pos_hmm.model")
+{:ok, ast} = Nasty.parse("The cat sat.", language: :en, model: :hmm, hmm_model: model)
+```
+
+For detailed training instructions, see [TRAINING_GUIDE.md](TRAINING_GUIDE.md).
+
+## Quick Start: Programmatic Training
 
 ### 1. Training an HMM POS Tagger
 
