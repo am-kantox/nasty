@@ -89,17 +89,15 @@ defmodule Nasty.Data.CoNLLU do
   """
   @spec parse_string(String.t()) :: {:ok, [sentence()]} | {:error, term()}
   def parse_string(content) do
-    try do
-      sentences =
-        content
-        |> String.split("\n\n", trim: true)
-        |> Enum.map(&parse_sentence/1)
-        |> Enum.reject(&is_nil/1)
+    sentences =
+      content
+      |> String.split("\n\n", trim: true)
+      |> Enum.map(&parse_sentence/1)
+      |> Enum.reject(&is_nil/1)
 
-      {:ok, sentences}
-    rescue
-      e -> {:error, {:parse_failed, e}}
-    end
+    {:ok, sentences}
+  rescue
+    e -> {:error, {:parse_failed, e}}
   end
 
   @doc """
@@ -115,9 +113,7 @@ defmodule Nasty.Data.CoNLLU do
   """
   @spec format([sentence()]) :: String.t()
   def format(sentences) do
-    sentences
-    |> Enum.map(&sentence_to_string/1)
-    |> Enum.join("\n\n")
+    Enum.map_join(sentences, "\n\n", &sentence_to_string/1)
   end
 
   ## Private Functions
@@ -242,15 +238,9 @@ defmodule Nasty.Data.CoNLLU do
 
   defp sentence_to_string(sentence) do
     metadata_lines =
-      sentence.metadata
-      |> Enum.map(fn {key, value} -> "# #{key} = #{value}" end)
-      |> Enum.join("\n")
+      Enum.map_join(sentence.metadata, "\n", fn {key, value} -> "# #{key} = #{value}" end)
 
-    token_lines =
-      sentence.tokens
-      |> Enum.map(&token_to_string/1)
-      |> Enum.join("\n")
-
+    token_lines = Enum.map_join(sentence.tokens, "\n", &token_to_string/1)
     metadata_lines <> "\n" <> token_lines
   end
 

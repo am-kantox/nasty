@@ -51,9 +51,11 @@ deps = Enum.flat_map(sentences, &DependencyExtractor.extract/1)
 alias Nasty.Language.English.Summarizer
 summary = Summarizer.summarize(document, ratio: 0.5)
 
-# Statistical POS tagging (optional, requires trained model)
-{:ok, model} = Nasty.Statistics.POSTagging.HMMTagger.load("models/pos_hmm.model")
-{:ok, tokens_hmm} = English.tag_pos(tokens, model: :hmm, hmm_model: model)
+# Statistical POS tagging (auto-loads from priv/models/)
+{:ok, tokens_hmm} = English.tag_pos(tokens, model: :hmm)
+
+# Or ensemble mode (combines statistical + rule-based)
+{:ok, tokens_ensemble} = English.tag_pos(tokens, model: :ensemble)
 ```
 
 ## Architecture
@@ -127,19 +129,23 @@ Nasty includes statistical machine learning models for improved accuracy:
 
 See [STATISTICAL_MODELS.md](STATISTICAL_MODELS.md) for implementation details and [TRAINING_GUIDE.md](TRAINING_GUIDE.md) for step-by-step training instructions.
 
-### Quick Start: Train a Model
+### Quick Start: Model Management
 
 ```bash
-# Get training data from Universal Dependencies
-wget https://github.com/UniversalDependencies/UD_English-EWT/archive/refs/tags/r2.13.tar.gz
-tar -xzf r2.13.tar.gz -C data/
+# List available models
+mix nasty.models list
 
-# Train HMM POS tagger
-./scripts/train_pos_tagger.exs \
-  --corpus data/UD_English-EWT-r2.13/en_ewt-ud-train.conllu \
-  --dev data/UD_English-EWT-r2.13/en_ewt-ud-dev.conllu \
-  --test data/UD_English-EWT-r2.13/en_ewt-ud-test.conllu \
-  --output priv/models/en/pos_hmm.model
+# Train a new model
+mix nasty.train.pos \
+  --corpus data/UD_English-EWT/en_ewt-ud-train.conllu \
+  --test data/UD_English-EWT/en_ewt-ud-test.conllu \
+  --output priv/models/en/pos_hmm_v1.model
+
+# Evaluate model
+mix nasty.eval.pos \
+  --model priv/models/en/pos_hmm_v1.model \
+  --test data/UD_English-EWT/en_ewt-ud-test.conllu \
+  --baseline
 ```
 
 ## Future Enhancements

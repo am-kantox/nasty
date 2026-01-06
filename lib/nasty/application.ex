@@ -11,7 +11,9 @@ defmodule Nasty.Application do
   def start(_type, _args) do
     children = [
       # Start the language registry
-      Nasty.Language.Registry
+      Nasty.Language.Registry,
+      # Start the model registry
+      Nasty.Statistics.ModelRegistry
     ]
 
     opts = [strategy: :one_for_one, name: Nasty.Supervisor]

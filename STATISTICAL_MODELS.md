@@ -25,9 +25,60 @@ Nasty now supports both **rule-based** and **statistical** approaches for NLP ta
 
 - ⏳ PCFG parser for phrase structure
 - ⏳ CRF for named entity recognition
-- ⏳ Pre-trained models for English
+- ⏳ Pre-trained models (downloadable via GitHub releases)
 
-## Quick Start: Using the Training Script
+## Quick Start: Using Pre-trained Models
+
+The easiest way to use statistical models is with the automatic model loading:
+
+```elixir
+# Parse with HMM model (auto-loads from priv/models/)
+{:ok, ast} = Nasty.parse("The cat sat.", language: :en, model: :hmm)
+
+# Ensemble mode (combines HMM + rule-based)
+{:ok, ast} = Nasty.parse("The cat sat.", language: :en, model: :ensemble)
+```
+
+If no model is available, the system falls back to rule-based tagging with a warning.
+
+## Model Management with Mix Tasks
+
+Nasty provides Mix tasks for managing models:
+
+```bash
+# List available models
+mix nasty.models list
+
+# Show model information
+mix nasty.models info en-pos-v1
+
+# Get model file path
+mix nasty.models path en-pos-v1
+
+# Clear model registry cache
+mix nasty.models clean
+```
+
+## Training Your Own Models
+
+### Using Mix Tasks (Recommended)
+
+```bash
+# Train a new model
+mix nasty.train.pos \
+  --corpus data/UD_English-EWT/en_ewt-ud-train.conllu \
+  --dev data/UD_English-EWT/en_ewt-ud-dev.conllu \
+  --test data/UD_English-EWT/en_ewt-ud-test.conllu \
+  --output priv/models/en/pos_hmm_v1.model
+
+# Evaluate a trained model
+mix nasty.eval.pos \
+  --model priv/models/en/pos_hmm_v1.model \
+  --test data/UD_English-EWT/en_ewt-ud-test.conllu \
+  --baseline
+```
+
+### Using the Training Script
 
 The easiest way to train a model is using the provided script:
 

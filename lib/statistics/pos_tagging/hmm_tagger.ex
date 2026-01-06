@@ -139,9 +139,11 @@ defmodule Nasty.Statistics.POSTagging.HMMTagger do
     - `{:ok, tags}` - Most likely tag sequence
   """
   @spec predict(t(), [String.t()], keyword()) :: {:ok, [atom()]} | {:error, term()}
-  def predict(model, words, _opts \\ []) do
-    tags = viterbi(model, words)
-    {:ok, tags}
+  def predict(model, words, opts \\ []) do
+    case Keyword.get(opts, :algorithm, :viterbi) do
+      :viterbi -> {:ok, viterbi(model, words)}
+      other -> {:error, {:unsupported_algorithm, other}}
+    end
   end
 
   @impl true

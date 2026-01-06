@@ -20,6 +20,8 @@ defmodule Nasty.Language.English.POSTagger do
   """
 
   alias Nasty.AST.Token
+  alias Nasty.Statistics.{ModelLoader, POSTagging.HMMTagger}
+  require Logger
 
   @doc """
   Tags a list of tokens with POS tags.
@@ -76,17 +78,42 @@ defmodule Nasty.Language.English.POSTagger do
   @doc """
   HMM-based POS tagging.
 
-  Requires a trained HMM model passed via `:hmm_model` option.
+  If no model is provided via `:hmm_model` option, attempts to load
+  the latest English POS tagging model from the registry. Falls back
+  to rule-based tagging if no model is available.
   """
   def tag_pos_hmm(tokens, opts) do
-    case Keyword.get(opts, :hmm_model) do
-      nil ->
-        {:error, :hmm_model_required}
+    hmm_model =
+      case Keyword.get(opts, :hmm_model) do
+        nil ->
+          # Try to load from registry
+          case ModelLoader.load_latest(:en, :pos_tagging) do
+            {:ok, model} ->
+              Logger.debug("Loaded HMM POS model from registry")
+              model
 
-      hmm_model ->
+            {:error, :not_found} ->
+              Logger.warning(
+                "No HMM POS model found. Falling back to rule-based tagging. " <>
+                  "Train a model using: mix nasty.train.pos"
+              )
+
+              nil
+          end
+
+        model ->
+          model
+      end
+
+    case hmm_model do
+      nil ->
+        # Fallback to rule-based
+        tag_pos_rule_based(tokens)
+
+      model ->
         words = Enum.map(tokens, & &1.text)
 
-        case Nasty.Statistics.POSTagging.HMMTagger.predict(hmm_model, words, []) do
+        case HMMTagger.predict(model, words, []) do
           {:ok, tags} ->
             tagged =
               Enum.zip(tokens, tags)
@@ -112,16 +139,12 @@ defmodule Nasty.Language.English.POSTagger do
       # Prefer rule-based for punctuation, numbers, and high-confidence cases
       ensemble_tokens =
         Enum.zip(rule_tokens, hmm_tokens)
-        |> Enum.map(fn {rule_token, hmm_token} ->
-          cond do
-            # Keep rule-based tags for punctuation and numbers
-            rule_token.pos_tag in [:punct, :num] ->
-              rule_token
+        |> Enum.map(fn
+          {%{pos_tag: pos_tag} = rule_token, _hmm_token} when pos_tag in [:punct, :num] ->
+            rule_token
 
-            # For other tags, prefer HMM
-            true ->
-              hmm_token
-          end
+          {_rule_token, hmm_token} ->
+            hmm_token
         end)
 
       {:ok, ensemble_tokens}

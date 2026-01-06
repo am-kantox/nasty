@@ -136,21 +136,19 @@ defmodule Nasty.Statistics.Model do
   """
   @spec deserialize(binary()) :: {:ok, model, metadata} | {:error, term()}
   def deserialize(binary) when is_binary(binary) do
-    try do
-      case :erlang.binary_to_term(binary, [:safe]) do
-        %{version: version, metadata: metadata, model: model} ->
-          if compatible_version?(version) do
-            {:ok, model, metadata}
-          else
-            {:error, {:incompatible_version, version}}
-          end
+    case :erlang.binary_to_term(binary, [:safe]) do
+      %{version: version, metadata: metadata, model: model} ->
+        if compatible_version?(version) do
+          {:ok, model, metadata}
+        else
+          {:error, {:incompatible_version, version}}
+        end
 
-        _ ->
-          {:error, :invalid_format}
-      end
-    rescue
-      e -> {:error, {:deserialization_failed, e}}
+      _ ->
+        {:error, :invalid_format}
     end
+  rescue
+    e -> {:error, {:deserialization_failed, e}}
   end
 
   defp compatible_version?("1.0"), do: true

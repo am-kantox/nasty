@@ -1,0 +1,109 @@
+name: Train and Release Models
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_version:
+        description: 'Model version (e.g., v1, v2)'
+        required: true
+        default: 'v1'
+      corpus_url:
+        description: 'URL to Universal Dependencies corpus'
+        required: true
+        default: 'https://github.com/UniversalDependencies/UD_English-EWT/archive/refs/tags/r2.13.tar.gz'
+
+jobs:
+  train-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.16'
+          otp-version: '26'
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+      
+      - name: Install dependencies
+        run: mix deps.get
+      
+      - name: Download corpus
+        run: |
+          mkdir -p data
+          cd data
+          wget ${{ github.event.inputs.corpus_url }}
+          tar -xzf *.tar.gz
+          ls -la
+      
+      - name: Train POS model
+        run: |
+          CORPUS_DIR=$(find data -name "UD_English-EWT*" -type d | head -1)
+          echo "Training with corpus: $CORPUS_DIR"
+          
+          mix nasty.train.pos \
+            --corpus "$CORPUS_DIR/en_ewt-ud-train.conllu" \
+            --dev "$CORPUS_DIR/en_ewt-ud-dev.conllu" \
+            --test "$CORPUS_DIR/en_ewt-ud-test.conllu" \
+            --output "priv/models/en/pos_hmm_${{ github.event.inputs.model_version }}.model" \
+            --smoothing 0.001
+      
+      - name: Verify model files
+        run: |
+          ls -lh priv/models/en/
+          cat priv/models/en/pos_hmm_${{ github.event.inputs.model_version }}.meta.json
+          cat priv/models/en/pos_hmm_${{ github.event.inputs.model_version }}.sha256
+      
+      - name: Create model archive
+        run: |
+          cd priv/models/en
+          tar -czf en-pos-hmm-${{ github.event.inputs.model_version }}.tar.gz \
+            pos_hmm_${{ github.event.inputs.model_version }}.model \
+            pos_hmm_${{ github.event.inputs.model_version }}.meta.json \
+            pos_hmm_${{ github.event.inputs.model_version }}.sha256
+          ls -lh en-pos-hmm-${{ github.event.inputs.model_version }}.tar.gz
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: models-${{ github.event.inputs.model_version }}
+          name: Pre-trained Models ${{ github.event.inputs.model_version }}
+          body: |
+            Pre-trained statistical models for Nasty NLP.
+            
+            ## Models Included
+            
+            - English POS Tagger (HMM)
+              - Trained on: Universal Dependencies English-EWT
+              - See metadata file for accuracy metrics
+            
+            ## Usage
+            
+            Download and extract to `priv/models/en/`:
+            
+            ```bash
+            cd priv/models/en
+            wget https://github.com/${{ github.repository }}/releases/download/models-${{ github.event.inputs.model_version }}/en-pos-hmm-${{ github.event.inputs.model_version }}.tar.gz
+            tar -xzf en-pos-hmm-${{ github.event.inputs.model_version }}.tar.gz
+            ```
+            
+            Then use in your code:
+            
+            ```elixir
+            {:ok, ast} = Nasty.parse("Your text here", language: :en, model: :hmm)
+            ```
+          files: |
+            priv/models/en/en-pos-hmm-${{ github.event.inputs.model_version }}.tar.gz
+            priv/models/en/pos_hmm_${{ github.event.inputs.model_version }}.meta.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
