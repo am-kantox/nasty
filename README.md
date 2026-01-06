@@ -63,14 +63,14 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
 
 ### Complete Pipeline
 
-1. **Tokenization** (`English.Tokenizer`) - Split text into tokens
-2. **POS Tagging** (`English.POSTagger`) - Assign grammatical categories
-3. **Morphology** (`English.Morphology`) - Lemmatization and features
-4. **Phrase Parsing** (`English.PhraseParser`) - Build NP, VP, PP structures
-5. **Sentence Parsing** (`English.SentenceParser`) - Detect clauses and structure
-6. **Dependency Extraction** (`English.DependencyExtractor`) - Grammatical relations
-7. **Entity Recognition** (`English.EntityRecognizer`) - Named entities
-8. **Summarization** (`English.Summarizer`) - Extract key sentences
+1. **Tokenization** (`English.Tokenizer`) → Split text into tokens
+2. **POS Tagging** (`English.POSTagger`) → Assign grammatical categories
+3. **Morphology** (`English.Morphology`) → Lemmatization and features
+4. **Phrase Parsing** (`English.PhraseParser`) → Build NP, VP, PP structures
+5. **Sentence Parsing** (`English.SentenceParser`) → Detect clauses and structure
+6. **Dependency Extraction** (`English.DependencyExtractor`) → Grammatical relations
+7. **Entity Recognition** (`English.EntityRecognizer`) → Named entities
+8. **Summarization** (`English.Summarizer`) → Extract key sentences
 
 ## Features
 
