@@ -18,7 +18,8 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **Named Entity Recognition** - Person, place, organization
 - **Semantic Role Labeling** - Predicate-argument structure (who did what to whom)
 - **Coreference Resolution** - Link mentions across sentences
-- **Text Summarization** - Extractive summarization
+- **Text Summarization** - Extractive summarization with MMR
+- **Question Answering** - Extractive QA for factoid questions
 - **Statistical Models** - HMM POS tagger with 95% accuracy
 
 ## Quick Start
@@ -69,6 +70,10 @@ summary = English.summarize(document, max_sentences: 3)  # Fixed count
 # MMR (Maximal Marginal Relevance) for reduced redundancy
 summary_mmr = English.summarize(document, max_sentences: 3, method: :mmr, mmr_lambda: 0.5)
 
+# Question answering
+{:ok, answers} = English.answer_question(document, "Who works at Google?")
+# => [%Answer{text: "John Smith", confidence: 0.85, ...}]
+
 # Statistical POS tagging (auto-loads from priv/models/)
 {:ok, tokens_hmm} = English.tag_pos(tokens, model: :hmm)
 
@@ -95,7 +100,10 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
 5. **Sentence Parsing** (`English.SentenceParser`) → Detect clauses and structure
 6. **Dependency Extraction** (`English.DependencyExtractor`) → Grammatical relations
 7. **Entity Recognition** (`English.EntityRecognizer`) → Named entities
-8. **Summarization** (`English.Summarizer`) → Extract key sentences
+8. **Semantic Role Labeling** (`English.SemanticRoleLabeler`) → Predicate-argument structure
+9. **Coreference Resolution** (`English.CoreferenceResolver`) → Link mentions
+10. **Summarization** (`English.Summarizer`) → Extract key sentences
+11. **Question Answering** (`English.QuestionAnalyzer`, `English.AnswerExtractor`) → Answer questions
 
 ## Features
 
@@ -134,6 +142,23 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
   - `:greedy` - Top-N by score (default)
   - `:mmr` - Maximal Marginal Relevance (reduces redundancy)
 - **Flexible options**: compression ratio or fixed sentence count
+
+### Question Answering
+- **Extractive QA** - Extract answer spans from documents
+- **Question classification**:
+  - WHO (person entities)
+  - WHAT (things, organizations)
+  - WHEN (temporal expressions)
+  - WHERE (locations)
+  - WHY (reasons, clauses)
+  - HOW (manner, quantity)
+  - YES/NO (boolean questions)
+- **Answer extraction strategies**:
+  - Keyword matching with lemmatization
+  - Entity type filtering (person, organization, location)
+  - Temporal expression recognition
+  - Confidence scoring and ranking
+- **Multiple answer support** with confidence scores
 
 ## Testing
 
@@ -185,6 +210,7 @@ mix nasty.eval.pos \
 - [x] Statistical models for improved accuracy (HMM POS tagger - done!)
 - [x] Semantic role labeling (rule-based SRL - done!)
 - [x] Coreference resolution (heuristic-based - done!)
+- [x] Question answering (extractive QA - done!)
 - [ ] PCFG parser for phrase structure
 - [ ] CRF for named entity recognition  
 - [ ] Multi-language support (Spanish, Catalan)

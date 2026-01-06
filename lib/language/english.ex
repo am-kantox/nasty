@@ -14,9 +14,11 @@ defmodule Nasty.Language.English do
   alias Nasty.AST.{Document, Paragraph}
 
   alias Nasty.Language.English.{
+    AnswerExtractor,
     CoreferenceResolver,
     Morphology,
     POSTagger,
+    QuestionAnalyzer,
     SemanticRoleLabeler,
     SentenceParser,
     Summarizer,
@@ -112,7 +114,8 @@ defmodule Nasty.Language.English do
         :lemmatization,
         :morphology,
         :semantic_roles,
-        :coreference
+        :coreference,
+        :question_answering
       ],
       version: "0.1.0"
     }
@@ -205,5 +208,39 @@ defmodule Nasty.Language.English do
   @spec summarize(Document.t(), keyword()) :: [Nasty.AST.Sentence.t()]
   def summarize(%Document{} = document, opts \\ []) do
     Summarizer.summarize(document, opts)
+  end
+
+  @doc """
+  Answers a question based on a document.
+
+  Takes a question as text, analyzes it to determine type and expected answer,
+  then searches the document for relevant passages and extracts answer spans.
+
+  ## Options
+
+  - `:max_answers` - Maximum number of answers to return (default: 3)
+  - `:min_confidence` - Minimum confidence threshold (default: 0.3)
+  - `:max_answer_length` - Maximum answer length in tokens (default: 20)
+
+  ## Examples
+
+      iex> {:ok, document} = English.parse(tagged_tokens)
+      iex> {:ok, answers} = English.answer_question(document, "Who founded Google?")
+      iex> is_list(answers)
+      true
+
+      iex> {:ok, answers} = English.answer_question(document, "When was the company founded?", max_answers: 1)
+      iex> hd(answers).answer_type
+      :time
+  """
+  @spec answer_question(Document.t(), String.t(), keyword()) ::
+          {:ok, [Nasty.AST.Answer.t()]} | {:error, term()}
+  def answer_question(%Document{} = document, question_text, opts \\ []) do
+    with {:ok, tokens} <- tokenize(question_text),
+         {:ok, tagged} <- tag_pos(tokens),
+         {:ok, analysis} <- QuestionAnalyzer.analyze(tagged) do
+      answers = AnswerExtractor.extract(document, analysis, opts)
+      {:ok, answers}
+    end
   end
 end
