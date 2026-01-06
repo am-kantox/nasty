@@ -60,7 +60,7 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       assert agent != nil
       assert String.contains?(agent.text, "Mary")
       # Should have at least 2 core arguments beyond agent
-      assert length(roles) >= 2
+      assert match?([_, _ | _], roles)
     end
 
     test "labels intransitive sentence (agent only)" do
@@ -200,7 +200,7 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       # May have manner, location, and time roles
       roles = frame.roles
       # At least the agent
-      assert length(roles) >= 1
+      assert match?([_ | _], roles)
     end
   end
 
@@ -323,10 +323,10 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       assert [%SemanticRole{type: :agent}] = agents
 
       themes = SemanticFrame.find_roles(frame, :theme)
-      assert length(themes) == 1
+      assert match?([_], themes)
 
       locations = SemanticFrame.find_roles(frame, :location)
-      assert length(locations) == 1
+      assert match?([_], locations)
     end
 
     test "agent/1 returns agent role" do
@@ -399,7 +399,7 @@ defmodule Nasty.Language.English.SemanticRoleLabelerTest do
       frame = SemanticFrame.new(predicate, roles, span)
 
       adjuncts = SemanticFrame.adjunct_roles(frame)
-      assert length(adjuncts) == 2
+      assert match?([_, _], adjuncts)
       assert Enum.all?(adjuncts, fn r -> r.type in [:location, :time] end)
     end
   end

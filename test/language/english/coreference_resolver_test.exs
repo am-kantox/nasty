@@ -46,7 +46,7 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
       assert is_list(chains)
 
       # If chains are found, verify structure
-      if length(chains) > 0 do
+      with [_ | _] <- chains do
         # Find chain containing "John" or "He"
         chain =
           Enum.find(chains, fn chain ->
@@ -56,7 +56,7 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
 
         if chain do
           # Should have at least 2 mentions in the chain
-          assert length(chain.mentions) >= 2
+          assert match?([_, _ | _], chain.mentions)
         end
       end
     end
@@ -111,7 +111,7 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
       # Chains should have different representatives
       representatives = Enum.map(chains, & &1.representative)
       # Should have at least some distinct representatives
-      assert length(Enum.uniq(representatives)) >= 1
+      assert match?([_ | _], Enum.uniq(representatives))
     end
   end
 
@@ -136,7 +136,7 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
 
       # Should find at least the pronoun "He"
       pronouns = Enum.filter(mentions, &(&1.type == :pronoun))
-      assert length(pronouns) >= 1
+      assert match?([_ | _], pronouns)
 
       he_mention = Enum.find(pronouns, fn m -> String.downcase(m.text) == "he" end)
 
@@ -190,14 +190,12 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
       assert is_list(chains)
 
       # Chains with matching gender/number should be merged
-      if length(chains) > 0 do
-        Enum.each(chains, fn chain ->
-          assert %CorefChain{} = chain
-          assert chain.id > 0
-          assert is_list(chain.mentions)
-          assert is_binary(chain.representative)
-        end)
-      end
+      Enum.each(chains, fn chain ->
+        assert %CorefChain{} = chain
+        assert chain.id > 0
+        assert is_list(chain.mentions)
+        assert is_binary(chain.representative)
+      end)
     end
 
     test "respects max distance parameter" do
@@ -229,13 +227,14 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
 
       # With high threshold, shouldn't merge
       # Either no chains or separate chains
-      if length(chains) > 0 do
+      with [_ | _] <- chains do
         # Check that mismatched genders aren't in same chain
         Enum.each(chains, fn chain ->
           genders =
             Enum.map(chain.mentions, & &1.gender) |> Enum.uniq() |> Enum.reject(&(&1 == :unknown))
 
-          assert length(genders) <= 1 or :unknown in Enum.map(chain.mentions, & &1.gender)
+          assert match?([], genders) or match?([_], genders) or
+                   :unknown in Enum.map(chain.mentions, & &1.gender)
         end)
       end
     end
@@ -324,7 +323,7 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
 
       assert %CorefChain{} = chain
       assert chain.id == 1
-      assert length(chain.mentions) == 2
+      assert match?([_, _], chain.mentions)
       assert chain.representative == "John"
     end
 
@@ -379,7 +378,7 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
       chain = CorefChain.new(1, mentions, "John")
 
       sent1_mentions = CorefChain.find_mention_at(chain, 1)
-      assert length(sent1_mentions) == 2
+      assert match?([_, _], sent1_mentions)
 
       sent2_mentions = CorefChain.find_mention_at(chain, 2)
       assert [mention] = sent2_mentions
@@ -452,7 +451,7 @@ defmodule Nasty.Language.English.CoreferenceResolverTest do
       Enum.each(chains, fn chain ->
         assert chain.id > 0
         # Chains should have at least 2 mentions
-        assert length(chain.mentions) >= 2
+        assert match?([_, _ | _], chain.mentions)
         assert is_binary(chain.representative)
       end)
     end
