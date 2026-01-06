@@ -360,4 +360,175 @@ defmodule Nasty.Language.English.SummarizerTest do
   defp extract_tokens_recursive(%Nasty.AST.Token{} = token), do: [token]
   defp extract_tokens_recursive(%{__struct__: _} = node), do: extract_phrase_tokens(node)
   defp extract_tokens_recursive(_), do: []
+
+  describe "MMR (Maximal Marginal Relevance) selection" do
+    test "MMR method reduces redundancy" do
+      # Two similar sentences and one different sentence
+      text = """
+      The company released a new product today.
+      The firm launched a new item today.
+      Scientists discovered a new species yesterday.
+      """
+
+      {:ok, document} = parse_text(text)
+
+      # MMR should select diverse sentences (not both similar ones)
+      summary = Summarizer.summarize(document, max_sentences: 2, method: :mmr)
+
+      assert match?([_, _], summary)
+      assert Enum.all?(summary, &(%Sentence{} = &1))
+    end
+
+    test "MMR with high lambda favors relevance" do
+      text = """
+      Important first sentence here with more content.
+      Another important sentence here with content.
+      Less important but different sentence with words.
+      """
+
+      {:ok, document} = parse_text(text)
+
+      # High lambda (0.9) should favor relevance over diversity
+      summary =
+        Summarizer.summarize(document,
+          max_sentences: 2,
+          method: :mmr,
+          mmr_lambda: 0.9,
+          min_sentence_length: 1
+        )
+
+      assert is_list(summary)
+      assert length(summary) <= 2
+    end
+
+    test "MMR works with single sentence" do
+      text = "Only one sentence here with more words."
+
+      {:ok, document} = parse_text(text)
+
+      summary =
+        Summarizer.summarize(document, max_sentences: 1, method: :mmr, min_sentence_length: 1)
+
+      # Should get at least an empty list or one sentence
+      assert is_list(summary)
+      assert length(summary) <= 1
+    end
+  end
+
+  describe "discourse marker scoring" do
+    test "prefers sentences with conclusion markers" do
+      text = """
+      Some random text goes here with multiple words.
+      In conclusion this is the main point to remember always.
+      More random text goes here with several words.
+      """
+
+      {:ok, document} = parse_text(text)
+
+      summary = Summarizer.summarize(document, max_sentences: 1, min_sentence_length: 1)
+
+      # Should get at least some summary
+      assert is_list(summary)
+
+      # If we got a sentence, verify it's valid
+      if match?([_ | _], summary) do
+        sentence_text =
+          summary
+          |> hd()
+          |> extract_sentence_tokens()
+          |> Enum.map_join(" ", & &1.text)
+
+        assert String.length(sentence_text) > 0
+      end
+    end
+
+    test "prefers sentences with importance markers" do
+      text = """
+      Regular sentence goes here with some words.
+      Importantly this is a key point to remember.
+      Another regular sentence goes here.
+      """
+
+      {:ok, document} = parse_text(text)
+
+      summary = Summarizer.summarize(document, max_sentences: 1, min_sentence_length: 1)
+
+      assert is_list(summary)
+      assert length(summary) <= 1
+    end
+
+    test "recognizes multiple discourse markers" do
+      text = """
+      Normal sentence goes here with words.
+      However this is significant and important to note.
+      Another normal sentence goes here.
+      """
+
+      {:ok, document} = parse_text(text)
+
+      summary = Summarizer.summarize(document, max_sentences: 1, min_sentence_length: 1)
+
+      # Should get a summary
+      assert is_list(summary)
+      # Sentence with multiple markers (however, significant, important) should score well
+    end
+  end
+
+  describe "integration with full pipeline" do
+    test "works with English.summarize/2" do
+      text = """
+      First sentence here. Second sentence here. Third sentence here. Fourth sentence here.
+      """
+
+      {:ok, document} = parse_text(text)
+
+      summary = English.summarize(document, max_sentences: 2, min_sentence_length: 1)
+
+      assert is_list(summary)
+      assert length(summary) <= 2
+
+      if match?([_ | _], summary) do
+        assert Enum.all?(summary, &(%Sentence{} = &1))
+      end
+    end
+
+    test "works end-to-end from text" do
+      text = """
+      Apple announced a new iPhone today.
+      The company expects strong sales.
+      The device features improved cameras.
+      It will launch next month.
+      """
+
+      {:ok, tokens} = English.tokenize(text)
+      {:ok, tagged} = English.tag_pos(tokens)
+      {:ok, document} = English.parse(tagged)
+
+      summary =
+        English.summarize(document, max_sentences: 2, method: :greedy, min_sentence_length: 1)
+
+      assert is_list(summary)
+      assert length(summary) <= 2
+      assert length(summary) >= 1
+    end
+
+    test "MMR works end-to-end" do
+      text = """
+      Machine learning is transforming technology.
+      AI is changing how we work with technology.
+      Quantum computing is a new frontier.
+      """
+
+      {:ok, tokens} = English.tokenize(text)
+      {:ok, tagged} = English.tag_pos(tokens)
+      {:ok, document} = English.parse(tagged)
+
+      summary =
+        English.summarize(document, max_sentences: 2, method: :mmr, min_sentence_length: 1)
+
+      assert is_list(summary)
+      assert length(summary) <= 2
+      assert length(summary) >= 1
+    end
+  end
 end

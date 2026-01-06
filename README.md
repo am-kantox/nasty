@@ -62,8 +62,12 @@ chains = document_with_coref.coref_chains
 # => [%CorefChain{representative: "John Smith", mentions: ["John Smith", "he"], ...}]
 
 # Summarize
-alias Nasty.Language.English.Summarizer
-summary = Summarizer.summarize(document, ratio: 0.5)
+summary = English.summarize(document, ratio: 0.3)  # 30% compression
+# or
+summary = English.summarize(document, max_sentences: 3)  # Fixed count
+
+# MMR (Maximal Marginal Relevance) for reduced redundancy
+summary_mmr = English.summarize(document, max_sentences: 3, method: :mmr, mmr_lambda: 0.5)
 
 # Statistical POS tagging (auto-loads from priv/models/)
 {:ok, tokens_hmm} = English.tag_pos(tokens, model: :hmm)
@@ -116,6 +120,20 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
 ### Entity Types
 - Person, Organization, Place (GPE)
 - With confidence scores and multi-word support
+
+### Text Summarization
+- **Extractive summarization** - Select important sentences from document
+- **Multiple scoring features**:
+  - Position weight (early sentences score higher)
+  - Entity density (sentences with named entities)
+  - Discourse markers ("in conclusion", "importantly", etc.)
+  - Keyword frequency (TF scoring)
+  - Sentence length (prefer moderate length)
+  - Coreference participation (sentences in coref chains)
+- **Selection methods**:
+  - `:greedy` - Top-N by score (default)
+  - `:mmr` - Maximal Marginal Relevance (reduces redundancy)
+- **Flexible options**: compression ratio or fixed sentence count
 
 ## Testing
 
