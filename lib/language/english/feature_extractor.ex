@@ -279,8 +279,21 @@ defmodule Nasty.Language.English.FeatureExtractor do
     |> Enum.flat_map(fn type ->
       case Map.get(features, type) do
         map when is_map(map) ->
-          Enum.map(map, fn {key, value} ->
-            {"#{type}:#{inspect(key)}", value}
+          map
+          |> Enum.flat_map(fn {key, value} ->
+            cond do
+              is_number(value) ->
+                [{"#{type}:#{inspect(key)}", value}]
+
+              is_map(value) ->
+                # Flatten nested maps (e.g., entity_counts)
+                Enum.map(value, fn {k, v} ->
+                  {"#{type}:#{inspect(key)}:#{inspect(k)}", v}
+                end)
+
+              true ->
+                []
+            end
           end)
 
         _ ->

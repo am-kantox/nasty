@@ -228,7 +228,7 @@ defmodule Nasty.Language.English.TextClassifier do
       end)
 
     # Calculate overall accuracy
-    correct = Enum.count(predictions, fn {pred, true} -> pred == true end)
+    correct = Enum.count(predictions, fn {pred, actual} -> pred == actual end)
     accuracy = correct / length(predictions)
 
     # Calculate per-class metrics
@@ -238,13 +238,14 @@ defmodule Nasty.Language.English.TextClassifier do
       classes
       |> Enum.map(fn class ->
         # True positives: predicted class and actual class both match
-        tp = Enum.count(predictions, fn {pred, true} -> pred == class and true == class end)
+        tp = Enum.count(predictions, fn {pred, actual} -> pred == class and actual == class end)
 
         # False positives: predicted class but different actual
-        fp = Enum.count(predictions, fn {pred, true} -> pred == class and true != class end)
+        fp = Enum.count(predictions, fn {pred, actual} -> pred == class and actual != class end)
 
         # False negatives: didn't predict class but was actual
-        fn_count = Enum.count(predictions, fn {pred, true} -> pred != class and true == class end)
+        fn_count =
+          Enum.count(predictions, fn {pred, actual} -> pred != class and actual == class end)
 
         precision = if tp + fp > 0, do: tp / (tp + fp), else: 0.0
         recall = if tp + fn_count > 0, do: tp / (tp + fn_count), else: 0.0

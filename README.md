@@ -20,6 +20,7 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **Coreference Resolution** - Link mentions across sentences
 - **Text Summarization** - Extractive summarization with MMR
 - **Question Answering** - Extractive QA for factoid questions
+- **Text Classification** - Multinomial Naive Bayes classifier with multiple feature types
 - **Statistical Models** - HMM POS tagger with 95% accuracy
 
 ## Quick Start
@@ -79,6 +80,20 @@ summary_mmr = English.summarize(document, max_sentences: 3, method: :mmr, mmr_la
 
 # Or ensemble mode (combines statistical + rule-based)
 {:ok, tokens_ensemble} = English.tag_pos(tokens, model: :ensemble)
+
+# Text classification
+# Train a sentiment classifier
+training_data = [
+  {positive_doc1, :positive},
+  {positive_doc2, :positive},
+  {negative_doc1, :negative},
+  {negative_doc2, :negative}
+]
+model = English.train_classifier(training_data, features: [:bow, :lexical])
+
+# Classify new documents
+{:ok, predictions} = English.classify(test_doc, model)
+# => [%Classification{class: :positive, confidence: 0.85, ...}, ...]
 ```
 
 ## Architecture
@@ -104,6 +119,7 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
 9. **Coreference Resolution** (`English.CoreferenceResolver`) → Link mentions
 10. **Summarization** (`English.Summarizer`) → Extract key sentences
 11. **Question Answering** (`English.QuestionAnalyzer`, `English.AnswerExtractor`) → Answer questions
+12. **Text Classification** (`English.FeatureExtractor`, `English.TextClassifier`) → Train and classify documents
 
 ## Features
 
@@ -159,6 +175,28 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
   - Temporal expression recognition
   - Confidence scoring and ranking
 - **Multiple answer support** with confidence scores
+
+### Text Classification
+- **Multinomial Naive Bayes** - Probabilistic classifier with Laplace smoothing
+- **Multiple feature types**:
+  - `:bow` - Bag of words (lemmatized, stop word filtering)
+  - `:ngrams` - Word sequences (bigrams, trigrams, etc.)
+  - `:pos_patterns` - POS tag sequences
+  - `:syntactic` - Sentence structure statistics
+  - `:entities` - Named entity distributions
+  - `:lexical` - Vocabulary richness and text statistics
+- **Training and prediction**:
+  - Train on labeled documents: `{document, class}` tuples
+  - Multi-class classification support
+  - Confidence scores and probability distributions
+- **Model evaluation**:
+  - Accuracy, precision, recall, F1 metrics
+  - Per-class performance breakdowns
+- **Use cases**:
+  - Sentiment analysis (positive/negative reviews)
+  - Spam detection (spam/ham classification)
+  - Topic classification (sports, tech, politics, etc.)
+  - Formality detection (formal/informal text)
 
 ## Testing
 

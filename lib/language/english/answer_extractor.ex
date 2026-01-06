@@ -6,21 +6,8 @@ defmodule Nasty.Language.English.AnswerExtractor do
   to identify relevant passages and extract concise answers.
   """
 
-  alias Nasty.AST.{Answer, Document, Paragraph, Sentence, Token}
+  alias Nasty.AST.{Answer, Document, Paragraph, Sentence}
   alias Nasty.Language.English.{EntityRecognizer, QuestionAnalyzer}
-
-  # Stop words for TF calculation
-  @stop_words ~w(
-    a an the this that these those
-    is are was were be been being
-    have has had having
-    do does did doing
-    will would shall should may might can could must
-    i me my mine you your yours he him his she her hers it its
-    we us our ours they them their theirs
-    in on at by for with from to of about
-    and or but nor
-  )
 
   @doc """
   Extracts answers from a document based on question analysis.
