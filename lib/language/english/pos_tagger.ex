@@ -195,7 +195,7 @@ defmodule Nasty.Language.English.POSTagger do
   end
 
   # Morphological tagging based on suffixes
-  # credo:disable-for-lines:68
+  # credo:disable-for-lines:84
   defp morphological_tag(word) do
     cond do
       # Nouns (check specific noun suffixes first before other patterns)
@@ -226,6 +226,13 @@ defmodule Nasty.Language.English.POSTagger do
         :verb
 
       String.ends_with?(word, "ed") and String.length(word) > 3 ->
+        :verb
+
+      # Third-person singular present tense
+      # Verbs ending in -s/-es: walks, runs, sleeps, goes, does, watches
+      # Only tag as verb if stem is in common verbs list or has verb markers
+      # This avoids mistagging plural nouns as verbs
+      third_person_singular_verb?(word) ->
         :verb
 
       # Adjectives
@@ -294,6 +301,61 @@ defmodule Nasty.Language.English.POSTagger do
       true ->
         nil
     end
+  end
+
+  # Check if word ends with a clear noun suffix that should not be treated as verb
+  defp ends_with_noun_suffix?(word) do
+    String.ends_with?(word, "tions") or
+      String.ends_with?(word, "sions") or
+      String.ends_with?(word, "ments") or
+      String.ends_with?(word, "nesses") or
+      String.ends_with?(word, "ities") or
+      String.ends_with?(word, "isms") or
+      String.ends_with?(word, "ers") or
+      String.ends_with?(word, "ors") or
+      String.ends_with?(word, "ists")
+  end
+
+  # Check if word is likely a third-person singular verb (ends in -s/-es)
+  # Conservative approach: check if stem is in common verbs list
+  defp third_person_singular_verb?(word) do
+    cond do
+      # Exclude capitalized words (proper nouns)
+      String.first(word) == String.upcase(String.first(word)) ->
+        false
+
+      # Exclude words with clear noun suffixes
+      ends_with_noun_suffix?(word) ->
+        false
+
+      # Check if stem (word without -s/-es) is in common verbs
+      String.ends_with?(word, "es") and String.length(word) > 3 ->
+        stem = String.slice(word, 0..(String.length(word) - 3))
+        stem in common_verb_stems()
+
+      String.ends_with?(word, "s") and String.length(word) > 2 ->
+        stem = String.slice(word, 0..(String.length(word) - 2))
+        stem in common_verb_stems()
+
+      true ->
+        false
+    end
+  end
+
+  # Common verb stems (base forms) for 3sg detection
+  defp common_verb_stems do
+    ~w(
+      go come see get make know think take find give tell
+      work call try ask need feel become leave put mean keep
+      let begin seem help show hear play run move like live
+      believe bring happen write sit stand lose pay meet
+      include continue set learn change lead understand watch
+      follow stop create speak read spend grow open walk win
+      teach offer remember consider appear buy serve die send
+      build stay fall cut reach kill raise pass sell decide
+      return explain hope develop carry break receive agree
+      support hit produce eat cover catch draw sleep
+    )
   end
 
   ## Word Lists (Closed-class words)

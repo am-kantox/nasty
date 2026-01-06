@@ -97,7 +97,8 @@ defmodule Nasty.Language.English.SemanticRoleLabeler do
       case vp do
         %VerbPhrase{auxiliaries: aux} ->
           Enum.any?(aux, fn a ->
-            a.text in ["was", "were", "is", "are", "been", "being"]
+            # Passive auxiliaries: be forms
+            String.downcase(a.text) in ["was", "were", "is", "are", "been", "being", "be"]
           end)
 
         _ ->
@@ -105,9 +106,14 @@ defmodule Nasty.Language.English.SemanticRoleLabeler do
       end
 
     # Check if verb is past participle
+    # For regular verbs: ends in -ed or morphology indicates :past_participle
+    # For irregular verbs: if there's a passive auxiliary, assume passive
+    # If we have passive aux, likely passive even for irregular verbs
     is_past_participle =
       Map.get(predicate.morphology, :tense) == :past_participle or
-        String.ends_with?(predicate.text, "ed")
+        String.ends_with?(predicate.text, "ed") or
+        String.ends_with?(predicate.text, "en") or
+        (has_passive_aux and not String.ends_with?(predicate.text, "ing"))
 
     if has_passive_aux and is_past_participle do
       :passive
