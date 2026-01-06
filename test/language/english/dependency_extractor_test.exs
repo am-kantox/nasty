@@ -12,7 +12,7 @@ defmodule Nasty.Language.English.DependencyExtractorTest do
       deps = DependencyExtractor.extract(sentence)
 
       # Should have: det→cat, nsubj→sat
-      assert length(deps) >= 2
+      assert match?([_, _ | _], deps)
 
       # Find nsubj relation
       nsubj = Enum.find(deps, fn d -> d.relation == :nsubj end)
@@ -163,7 +163,7 @@ defmodule Nasty.Language.English.DependencyExtractorTest do
 
       # Should have nsubj for both clauses
       nsubj_deps = Enum.filter(deps, fn d -> d.relation == :nsubj end)
-      assert length(nsubj_deps) == 2
+      assert match?([_, _], nsubj_deps)
 
       # One for "cat sat"
       assert Enum.any?(nsubj_deps, fn d ->
@@ -209,7 +209,7 @@ defmodule Nasty.Language.English.DependencyExtractorTest do
       # 5. det: the → mat
       # 6. obl: sat → mat
 
-      assert length(deps) == 6
+      assert match?([_, _, _, _, _, _], deps)
 
       # Verify each type exists
       assert Enum.any?(deps, fn d -> d.relation == :det end)
@@ -217,6 +217,92 @@ defmodule Nasty.Language.English.DependencyExtractorTest do
       assert Enum.any?(deps, fn d -> d.relation == :nsubj end)
       assert Enum.any?(deps, fn d -> d.relation == :case end)
       assert Enum.any?(deps, fn d -> d.relation == :obl end)
+    end
+  end
+
+  describe "passive voice constructions" do
+    test "correctly identifies dependencies in passive voice with 'by' phrase" do
+      # "The book was written by the author."
+      # In passive voice: subject is "book" (patient), auxiliary "was", verb "written", agent "author"
+      {:ok, tokens} = Tokenizer.tokenize("The book was written by the author.")
+      {:ok, tagged} = POSTagger.tag_pos(tokens)
+      {:ok, [sentence]} = SentenceParser.parse_sentences(tagged)
+
+      deps = DependencyExtractor.extract(sentence)
+
+      # Should extract:
+      # - det: The → book
+      # - nsubj: book → written (or nsubj:pass in full UD)
+      # - aux: was → written (auxiliary for passive)
+      # - case: by → author
+      # - det: the → author
+      # - obl: written → author (or obl:agent for agent phrase)
+
+      # Find subject relation
+      nsubj = Enum.find(deps, fn d -> d.relation == :nsubj end)
+      assert nsubj != nil
+      assert nsubj.dependent.text == "book"
+      assert nsubj.head.text == "written"
+
+      # Find auxiliary
+      aux = Enum.find(deps, fn d -> d.relation == :aux end)
+      assert aux != nil
+      assert aux.dependent.text == "was"
+      assert aux.head.text == "written"
+
+      # Find agent phrase ("by the author")
+      # The preposition "by" should have a case relation to "author"
+      case_dep = Enum.find(deps, fn d -> d.relation == :case && d.dependent.text == "by" end)
+      assert case_dep != nil
+      assert case_dep.head.text == "author"
+
+      # Find oblique relation for agent
+      obl = Enum.find(deps, fn d -> d.relation == :obl && d.dependent.text == "author" end)
+      assert obl != nil
+      assert obl.head.text == "written"
+    end
+
+    test "identifies dependencies in simple passive without agent" do
+      # "The door was closed."
+      {:ok, tokens} = Tokenizer.tokenize("The door was closed.")
+      {:ok, tagged} = POSTagger.tag_pos(tokens)
+      {:ok, [sentence]} = SentenceParser.parse_sentences(tagged)
+
+      deps = DependencyExtractor.extract(sentence)
+
+      # Should have:
+      # - det: The → door
+      # - nsubj: door → closed
+      # - aux: was → closed
+
+      nsubj = Enum.find(deps, fn d -> d.relation == :nsubj end)
+      assert nsubj != nil
+      assert nsubj.dependent.text == "door"
+
+      aux = Enum.find(deps, fn d -> d.relation == :aux end)
+      assert aux != nil
+      assert aux.dependent.text == "was"
+    end
+
+    test "handles passive voice with perfect aspect" do
+      # "The letter has been sent."
+      {:ok, tokens} = Tokenizer.tokenize("The letter has been sent.")
+      {:ok, tagged} = POSTagger.tag_pos(tokens)
+      {:ok, [sentence]} = SentenceParser.parse_sentences(tagged)
+
+      deps = DependencyExtractor.extract(sentence)
+
+      # Should identify subject
+      nsubj = Enum.find(deps, fn d -> d.relation == :nsubj end)
+      assert nsubj != nil
+      assert nsubj.dependent.text == "letter"
+
+      # Should have multiple auxiliaries: "has" and "been"
+      aux_deps = Enum.filter(deps, fn d -> d.relation == :aux end)
+      assert match?([_ | _], aux_deps)
+
+      aux_words = Enum.map(aux_deps, & &1.dependent.text)
+      assert "has" in aux_words or "been" in aux_words
     end
   end
 end
