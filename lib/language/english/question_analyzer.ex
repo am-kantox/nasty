@@ -197,12 +197,12 @@ defmodule Nasty.Language.English.QuestionAnalyzer do
       word = String.downcase(token.text)
       # Include nouns, verbs, adjectives, proper nouns
       # Exclude stop words and punctuation
-      is_content_word?(token.pos_tag) and word not in @stop_words
+      content_word?(token.pos_tag) and word not in @stop_words
     end)
   end
 
-  defp is_content_word?(pos) when pos in [:noun, :verb, :adj, :propn, :adv], do: true
-  defp is_content_word?(_), do: false
+  defp content_word?(pos) when pos in [:noun, :verb, :adj, :propn, :adv], do: true
+  defp content_word?(_), do: false
 
   @doc """
   Checks if a question expects a specific entity type.

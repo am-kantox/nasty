@@ -28,7 +28,7 @@ defmodule Nasty.Language.English.AnswerExtractor do
   ## Options
 
   - `:max_answers` - Maximum number of answers to return (default: 3)
-  - `:min_confidence` - Minimum confidence threshold (default: 0.3)
+  - `:min_confidence` - Minimum confidence threshold (default: 0.2)
   - `:max_answer_length` - Maximum answer length in tokens (default: 20)
 
   ## Examples
@@ -41,7 +41,7 @@ defmodule Nasty.Language.English.AnswerExtractor do
   @spec extract(Document.t(), QuestionAnalyzer.t(), keyword()) :: [Answer.t()]
   def extract(%Document{paragraphs: paragraphs} = document, question_analysis, opts \\ []) do
     max_answers = Keyword.get(opts, :max_answers, 3)
-    min_confidence = Keyword.get(opts, :min_confidence, 0.3)
+    min_confidence = Keyword.get(opts, :min_confidence, 0.1)
 
     # Extract all sentences with indices
     sentences =
@@ -56,9 +56,8 @@ defmodule Nasty.Language.English.AnswerExtractor do
         score = score_sentence(sentence, question_analysis, sentences)
         {sentence, idx, score}
       end)
-      |> Enum.filter(fn {_sent, _idx, score} -> score > 0.1 end)
       |> Enum.sort_by(fn {_sent, _idx, score} -> -score end)
-      |> Enum.take(5)
+      |> Enum.take(10)
 
     # Extract answer candidates from top sentences
     answers =
@@ -79,8 +78,10 @@ defmodule Nasty.Language.English.AnswerExtractor do
     entity_score = entity_type_score(sentence, question_analysis)
     position_score = position_score(sentence, all_sentences)
 
-    # Weighted combination
-    keyword_score * 0.5 + entity_score * 0.3 + position_score * 0.2
+    # Weighted combination - keyword matching is most important
+    # Give base score even with no keyword matches to allow fallback
+    base = 0.1
+    base + keyword_score * 0.6 + entity_score * 0.2 + position_score * 0.2
   end
 
   # Score based on keyword overlap
@@ -142,33 +143,40 @@ defmodule Nasty.Language.English.AnswerExtractor do
          base_score,
          document
        ) do
-    case question_analysis.answer_type do
-      :person ->
-        extract_entity_answers(sentence, sent_idx, :person, base_score, document)
+    # Try specific extractors first, then fallback to NPs
+    answers =
+      case question_analysis.answer_type do
+        :person ->
+          extract_entity_answers(sentence, sent_idx, :person, base_score, document)
 
-      :location ->
-        extract_entity_answers(sentence, sent_idx, :gpe, base_score, document) ++
-          extract_entity_answers(sentence, sent_idx, :loc, base_score, document)
+        :location ->
+          extract_entity_answers(sentence, sent_idx, :gpe, base_score, document) ++
+            extract_entity_answers(sentence, sent_idx, :loc, base_score, document)
 
-      :thing ->
-        extract_entity_answers(sentence, sent_idx, :org, base_score, document) ++
-          extract_noun_phrase_answers(sentence, sent_idx, base_score, document)
+        :thing ->
+          extract_entity_answers(sentence, sent_idx, :org, base_score, document)
 
-      :time ->
-        extract_temporal_answers(sentence, sent_idx, base_score, document)
+        :time ->
+          extract_temporal_answers(sentence, sent_idx, base_score, document)
 
-      :reason ->
-        extract_clause_answers(sentence, sent_idx, base_score, document, :reason)
+        :reason ->
+          extract_clause_answers(sentence, sent_idx, base_score, document, :reason)
 
-      :manner ->
-        extract_clause_answers(sentence, sent_idx, base_score, document, :manner)
+        :manner ->
+          extract_clause_answers(sentence, sent_idx, base_score, document, :manner)
 
-      :quantity ->
-        extract_number_answers(sentence, sent_idx, base_score, document)
+        :quantity ->
+          extract_number_answers(sentence, sent_idx, base_score, document)
 
-      _ ->
-        # Default: extract NPs
-        extract_noun_phrase_answers(sentence, sent_idx, base_score, document)
+        _ ->
+          []
+      end
+
+    # If no specific answers found, fallback to noun phrases
+    if answers == [] do
+      extract_noun_phrase_answers(sentence, sent_idx, base_score, document)
+    else
+      answers
     end
   end
 
@@ -177,17 +185,44 @@ defmodule Nasty.Language.English.AnswerExtractor do
     tokens = extract_sentence_tokens(sentence)
     entities = EntityRecognizer.recognize(tokens)
 
-    entities
-    |> Enum.filter(&(&1.type == entity_type))
-    |> Enum.map(fn entity ->
-      confidence = base_score * (entity.confidence || 0.8)
+    entity_answers =
+      entities
+      |> Enum.filter(&(&1.type == entity_type))
+      |> Enum.map(fn entity ->
+        confidence = base_score * (entity.confidence || 0.8)
 
-      Answer.new(entity.text, confidence, document.language,
-        span: {sent_idx, 0, 0},
-        source_sentence: sentence,
-        reasoning: "Entity match: #{entity.type}"
-      )
-    end)
+        Answer.new(entity.text, confidence, document.language,
+          span: {sent_idx, 0, 0},
+          source_sentence: sentence,
+          reasoning: "Entity match: #{entity.type}"
+        )
+      end)
+
+    # Always add proper nouns as potential answers for person/location
+    proper_noun_answers =
+      if entity_type in [:person, :gpe, :loc] do
+        tokens
+        |> Enum.filter(&(&1.pos_tag == :propn))
+        |> Enum.take(5)
+        |> Enum.map(fn token ->
+          # Boost confidence if it's also an entity
+          conf =
+            if entity_answers != [] and
+                 Enum.any?(entity_answers, &String.contains?(&1.text, token.text)),
+               do: base_score * 0.9,
+               else: base_score * 0.7
+
+          Answer.new(token.text, conf, document.language,
+            span: {sent_idx, 0, 0},
+            source_sentence: sentence,
+            reasoning: "Proper noun (#{entity_type})"
+          )
+        end)
+      else
+        []
+      end
+
+    entity_answers ++ proper_noun_answers
   end
 
   # Extract noun phrase answers
@@ -215,21 +250,46 @@ defmodule Nasty.Language.English.AnswerExtractor do
   defp extract_temporal_answers(sentence, sent_idx, base_score, document) do
     tokens = extract_sentence_tokens(sentence)
 
-    # Look for years, dates, temporal nouns
+    # Look for years, dates, temporal nouns, numbers that could be years
     temporal_tokens =
       Enum.filter(tokens, fn token ->
+        # Match 4-digit years or common temporal words
         String.match?(token.text, ~r/^\d{4}$/) or
-          String.downcase(token.lemma) in ~w(year month day today yesterday tomorrow)
+          String.match?(token.text, ~r/^\d{1,2}$/) or
+          String.downcase(token.lemma) in ~w(year month day today yesterday tomorrow week monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december)
       end)
 
-    temporal_tokens
-    |> Enum.map(fn token ->
-      Answer.new(token.text, base_score * 0.6, document.language,
-        span: {sent_idx, 0, 0},
-        source_sentence: sentence,
-        reasoning: "Temporal expression"
-      )
-    end)
+    answers =
+      temporal_tokens
+      |> Enum.map(fn token ->
+        # Higher confidence for 4-digit years
+        conf =
+          if String.match?(token.text, ~r/^\d{4}$/),
+            do: base_score * 0.8,
+            else: base_score * 0.5
+
+        Answer.new(token.text, conf, document.language,
+          span: {sent_idx, 0, 0},
+          source_sentence: sentence,
+          reasoning: "Temporal expression"
+        )
+      end)
+
+    # Fallback: if no temporal tokens, return numbers as potential dates
+    if answers == [] do
+      tokens
+      |> Enum.filter(fn token -> String.match?(token.text, ~r/^\d+$/) end)
+      |> Enum.take(2)
+      |> Enum.map(fn token ->
+        Answer.new(token.text, base_score * 0.4, document.language,
+          span: {sent_idx, 0, 0},
+          source_sentence: sentence,
+          reasoning: "Number (potential date)"
+        )
+      end)
+    else
+      answers
+    end
   end
 
   # Extract clause-based answers (for WHY, HOW)
