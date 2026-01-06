@@ -1,0 +1,172 @@
+# WARP.md
+
+This file provides guidance to WARP (warp.dev) when working with code in this repository.
+
+## Project Overview
+
+Nasty (Natural Abstract Syntax Treey) is a comprehensive NLP library for Elixir that treats natural language with the same rigor as programming languages. It provides a complete grammatical Abstract Syntax Tree (AST) for English, with a behaviour-based architecture designed to support multiple languages in the future.
+
+## Core Commands
+
+### Building and Dependencies
+```bash
+# Install/update dependencies
+mix deps.get
+
+# Compile the project
+mix compile
+```
+
+### Testing
+```bash
+# Run all tests
+mix test
+
+# Run tests for a specific module
+mix test test/language/english/tokenizer_test.exs
+mix test test/language/english/phrase_parser_test.exs
+mix test test/language/english/dependency_extractor_test.exs
+
+# Run tests with coverage
+mix coveralls
+
+# Generate HTML coverage report
+mix coveralls.html
+```
+
+### Code Quality
+```bash
+# Format code (ALWAYS run before committing)
+mix format
+
+# Run Credo linter
+mix credo
+
+# Run Credo strict analysis (used in CI)
+mix credo --strict
+```
+
+### Demo and Examples
+```bash
+# Run the complete NLP pipeline demo
+./demo.exs
+
+# Run example scripts
+elixir examples/tokenizer_example.exs
+```
+
+## Architecture
+
+### Behaviour-Based Language System
+The project uses Elixir behaviours to define a language-agnostic interface. All language implementations must implement `Nasty.Language.Behaviour`:
+
+- `language_code/0` - Returns ISO 639-1 code (e.g., `:en`)
+- `tokenize/2` - Splits text into tokens
+- `tag_pos/2` - Assigns part-of-speech tags
+- `parse/2` - Builds AST from tokens
+- `render/2` - Generates text from AST
+- `metadata/0` - Optional language metadata
+
+Languages are registered at runtime with `Nasty.Language.Registry`.
+
+### NLP Pipeline Flow
+```
+Text → Tokenization → POS Tagging → Morphology → Phrase Parsing → Sentence Parsing → Document AST
+                                                                                         ↓
+                                                                    Entity Recognition, Dependencies, Summarization
+```
+
+The pipeline is modular:
+1. **Tokenization** (`English.Tokenizer`) - NimbleParsec-based text segmentation
+2. **POS Tagging** (`English.POSTagger`) - Rule-based Universal Dependencies tagging
+3. **Morphology** (`English.Morphology`) - Lemmatization and feature extraction
+4. **Phrase Parsing** (`English.PhraseParser`) - Builds NP, VP, PP structures
+5. **Sentence Parsing** (`English.SentenceParser`) - Clause detection and coordination
+6. **Dependency Extraction** (`English.DependencyExtractor`) - Grammatical relations
+7. **Entity Recognition** (`English.EntityRecognizer`) - Named entity detection
+8. **Summarization** (`English.Summarizer`) - Extractive summarization
+
+### AST Structure
+The AST is hierarchical and linguistically rigorous:
+
+- `Document` - Top level, contains paragraphs
+- `Paragraph` - Contains sentences
+- `Sentence` - Contains clauses (main + subordinate/relative)
+- `Clause` - Contains subject and predicate phrases
+- `Phrase` nodes - `NounPhrase`, `VerbPhrase`, `PrepositionalPhrase`, etc.
+- `Token` - Atomic unit with text, POS tag, lemma, morphology
+
+All nodes include:
+- `span` - Position tracking (line/column + byte offsets)
+- `language` - Language code (`:en`, `:es`, `:ca`, etc.)
+
+### Key Design Principles
+1. **Universal Dependencies** - Use UD tag set and dependency relations
+2. **Position Tracking** - Every node has precise source location via `span`
+3. **Language Markers** - All nodes carry language metadata for multilingual support
+4. **Pure Elixir** - No external NLP dependencies; uses NimbleParsec for parsing
+5. **Composable** - Small, focused modules that compose into full pipeline
+
+## Testing Conventions
+
+- Tests use `ExUnit.Case` with `async: true` for parallel execution
+- Test files mirror source structure: `test/language/english/foo_test.exs` tests `lib/language/english/foo.ex`
+- Use descriptive `describe` blocks for different test scenarios
+- Include position tracking tests for tokenization/parsing
+- Test both success and error paths
+
+## Code Structure Notes
+
+### Module Organization
+```
+lib/
+├── nasty.ex                    # Public API and entry point
+├── ast/                        # AST node definitions
+│   ├── node.ex                 # Base types and utilities
+│   ├── document.ex             # Document and Paragraph
+│   ├── sentence.ex             # Sentence and Clause
+│   ├── token.ex                # Token with POS/morphology
+│   ├── dependency.ex           # Dependency relations
+│   └── semantic.ex             # Entities and semantic nodes
+├── language/
+│   ├── behaviour.ex            # Language interface
+│   ├── registry.ex             # Language registry (Agent)
+│   └── english/                # English implementation
+│       ├── tokenizer.ex        # NimbleParsec tokenization
+│       ├── pos_tagger.ex       # Rule-based POS tagging
+│       ├── morphology.ex       # Lemmatization
+│       ├── phrase_parser.ex    # Phrase structure
+│       ├── sentence_parser.ex  # Sentence/clause parsing
+│       ├── dependency_extractor.ex
+│       ├── entity_recognizer.ex
+│       └── summarizer.ex
+```
+
+### Application Startup
+The application is supervised (`Nasty.Application`) and automatically registers the English language module at startup. When adding new languages, register them in `application.ex`.
+
+### NimbleParsec Usage
+Tokenization uses NimbleParsec combinators for efficient parsing. Key patterns:
+- `defparsec :parse_name, combinator` defines a parser
+- Return format: `{:ok, result, rest, context, position, byte_offset}` or `{:error, ...}`
+- Position tracking is automatic via context
+
+## CI/CD
+
+GitHub Actions runs three jobs on push/PR:
+1. **Format Check** - `mix format --check-formatted`
+2. **Credo Analysis** - `mix credo --strict`
+3. **Tests & Coverage** - `mix test` with coverage reporting to Codecov
+
+All jobs must pass for CI to succeed.
+
+## Future Enhancements (from PLAN.md)
+
+The project is designed for extensibility:
+- Multi-language support (Spanish, Catalan) via behaviour implementations
+- Statistical models for improved accuracy
+- Coreference resolution
+- Semantic role labeling
+- Bidirectional code ↔ natural language conversion
+
+When implementing new features, maintain the grammar-first, AST-based approach and ensure all nodes carry position and language metadata.
