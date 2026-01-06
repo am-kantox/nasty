@@ -632,39 +632,83 @@ Implement entity extraction:
 - **Examples**: `examples/code_generation.exs`, `examples/code_explanation.exs`
 - **Documentation**: Complete README section with API examples
 
-### Phase 7: Rendering & Utilities (Week 8-9)
+### Phase 7: Rendering & Utilities (COMPLETED - Week 12)
 
-#### 7.1 AST → Text Renderer
+#### 7.1 AST → Text Renderer ✅
 
-Generate natural text from AST:
+**Implementation Complete:**
 - Surface realization (choose word forms)
-- Agreement (subject-verb, determiner-noun)
+- Agreement (subject-verb, determiner-noun) with helper functions
 - Word order (handle variations)
-- Punctuation insertion
+- Punctuation insertion based on sentence type
 - Formatting (capitalization, spacing)
+- Flexible rendering options (capitalize_sentences, add_punctuation, paragraph_separator)
 
-#### 7.2 AST Traversal & Queries
+**Module**: `Nasty.Rendering.Text`
+**API**: `Text.render(node, opts)`, `Text.render!(node, opts)`, `Text.apply_agreement/3`
 
-Implement utilities:
-- **Visitor pattern** for tree traversal
-- **Pattern matching** for node queries
-- **Transformation pipelines** (AST → AST)
-- **Pretty printing** for debugging
+#### 7.2 AST Traversal & Queries ✅
 
-#### 7.3 Visualization
+**Implementation Complete:**
+- **Visitor pattern** for tree traversal with `:cont`, `:halt`, `:skip` controls
+- **Multiple traversal strategies**: pre-order, post-order, breadth-first
+- **High-level operations**: `walk/3`, `collect/2`, `find/2`, `map/2`, `reduce/3`
+- **Query API** for common patterns:
+  - Find by type, POS tag, text pattern, lemma
+  - Extract entities with filtering
+  - Find subjects, verbs, objects
+  - Count nodes, check predicates
+  - Content vs function words
+  - Custom filtering and span extraction
 
-Create visual representations:
-- **Parse trees**: Hierarchical phrase structure
-- **Dependency graphs**: Arc diagrams
-- **Entity graphs**: Coreference chains
-- Export to DOT/Graphviz format
+**Modules**: `Nasty.Utils.Traversal`, `Nasty.Utils.Query`
+**APIs**: 
+- `Traversal.walk/3`, `Traversal.walk_post/3`, `Traversal.walk_breadth/3`
+- `Query.find_all/2`, `Query.find_by_pos/2`, `Query.extract_entities/2`
 
-#### 7.4 Validation & Testing
+#### 7.3 Visualization ✅
 
-- AST schema validation
-- Grammar rule consistency checks
-- Round-trip testing (Text → AST → Text)
-- Regression test suite with linguistic phenomena
+**Implementation Complete:**
+- **Parse trees**: DOT format export with hierarchical phrase structure
+- **Dependency graphs**: Arc diagrams with grammatical relations
+- **Entity graphs**: Named entity visualization with type-based coloring
+- **DOT/Graphviz format**: Complete graph export for `dot` tool
+- **JSON export**: d3.js-compatible format for web visualization
+- **Pretty printing**: 
+  - Indented AST output with ANSI colors
+  - Tree-style rendering with box-drawing characters
+  - Statistics summary (node counts)
+  - Configurable depth and span display
+
+**Modules**: `Nasty.Rendering.Visualization`, `Nasty.Rendering.PrettyPrint`
+**APIs**: 
+- `Visualization.to_dot/2` (types: `:parse_tree`, `:dependencies`, `:entities`)
+- `Visualization.to_json/2`
+- `PrettyPrint.print/2`, `PrettyPrint.tree/2`, `PrettyPrint.stats/1`
+
+#### 7.4 Validation & Testing ✅
+
+**Implementation Complete:**
+- **AST schema validation**: Validate all node types conform to expected structure
+- **Span validation**: Ensure position tracking is consistent
+- **Language consistency**: Check all nodes have matching language markers
+- **POS tag validation**: Verify tags are valid Universal Dependencies tags
+- **Transformation utilities**: 
+  - Case normalization (lower/upper/title)
+  - Punctuation removal
+  - Stop word filtering
+  - Token replacement and filtering
+  - Lemmatization
+  - Transformation pipelines
+  - Round-trip testing support
+
+**Modules**: `Nasty.Utils.Validator`, `Nasty.Utils.Transform`
+**APIs**: 
+- `Validator.validate/1`, `Validator.validate!/1`, `Validator.valid?/1`
+- `Validator.validate_spans/1`, `Validator.validate_language/1`
+- `Transform.normalize_case/2`, `Transform.remove_punctuation/1`
+- `Transform.remove_stop_words/2`, `Transform.lemmatize/1`
+- `Transform.pipeline/2`, `Transform.round_trip_test/2`
 
 ## Phase 8: Statistical Models (COMPLETED - Week 9-10)
 
@@ -820,22 +864,22 @@ nasty/
 │   │   ├── question_answering.ex      # QA system
 │   │   ├── classification.ex          # Text classification
 │   │   └── extraction.ex              # Information extraction
-│   ├── interop/
-│   │   ├── code_gen/
-│   │   │   ├── elixir.ex              # NL → Elixir AST
-│   │   │   ├── erlang.ex              # NL → Erlang AST
-│   │   │   └── explain.ex             # Code AST → NL
-│   │   ├── intent.ex                  # Intent representation
-│   │   └── bridge.ex                  # Semantic bridge
-│   ├── rendering/
-│   │   ├── text.ex                    # AST → Text
-│   │   ├── pretty_print.ex            # Human-readable AST
-│   │   └── visualization.ex           # DOT/Graphviz export
-│   └── utils/
-│       ├── traversal.ex               # AST traversal
-│       ├── query.ex                   # AST queries
-│       ├── transform.ex               # AST transformations
-│       └── validator.ex               # AST validation
+|   ├── interop/
+|   │   ├── code_gen/
+|   │   │   ├── elixir.ex              # NL → Elixir AST
+|   │   │   └── explain.ex             # Code AST → NL
+|   │   ├── intent.ex                  # Intent representation
+|   │   ├── intent_recognizer.ex       # Intent extraction
+|   │   └── ragex_bridge.ex            # Ragex integration
+|   ├── rendering/                     # ✅ Phase 7 complete
+|   │   ├── text.ex                    # ✅ AST → Text with surface realization
+|   │   ├── pretty_print.ex            # ✅ Human-readable AST with colors
+|   │   └── visualization.ex           # ✅ DOT/Graphviz and JSON export
+|   └── utils/                         # ✅ Phase 7 complete
+|       ├── traversal.ex               # ✅ AST traversal with visitor pattern
+|       ├── query.ex                   # ✅ High-level AST queries
+|       ├── transform.ex               # ✅ AST transformations and pipelines
+|       └── validator.ex               # ✅ AST validation and consistency
 ├── priv/
 │   ├── models/                        # ✅ Trained model files
 │   │   └── en/

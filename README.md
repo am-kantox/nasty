@@ -24,6 +24,9 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **Information Extraction** - Relation extraction, event extraction, and template-based extraction
 - **Statistical Models** - HMM POS tagger with 95% accuracy
 - **Code Interoperability** - Bidirectional NL ↔ Code conversion (Natural language commands to Elixir code and vice versa)
+- **AST Rendering** - Convert AST back to natural language text
+- **AST Utilities** - Traversal, queries, validation, and transformations
+- **Visualization** - Export to DOT/Graphviz and JSON formats
 
 ## Quick Start
 
@@ -137,6 +140,9 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
 11. **Question Answering** (`English.QuestionAnalyzer`, `English.AnswerExtractor`) → Answer questions
 12. **Text Classification** (`English.FeatureExtractor`, `English.TextClassifier`) → Train and classify documents
 13. **Information Extraction** (`English.RelationExtractor`, `English.EventExtractor`, `English.TemplateExtractor`) → Extract structured information
+14. **AST Rendering** (`Rendering.Text`) → Convert AST back to natural language
+15. **AST Utilities** (`Utils.Traversal`, `Utils.Query`, `Utils.Validator`, `Utils.Transform`) → Traverse, query, validate, and transform trees
+16. **Visualization** (`Rendering.Visualization`, `Rendering.PrettyPrint`) → Export to DOT/JSON and debug output
 
 ## Features
 
@@ -289,13 +295,151 @@ Convert between natural language and Elixir code bidirectionally:
   {:ok, intent} = English.recognize_intent("Filter the users")
   # => %Intent{type: :action, action: "filter", target: "users", confidence: 0.95}
   
-  # Optional: Enhance with Ragex for context-aware suggestions
+# Optional: Enhance with Ragex for context-aware suggestions
   {:ok, code} = English.to_code("Sort the list", enhance_with_ragex: true)
   ```
 
 - **Example Scripts**:
   - `examples/code_generation.exs` - Natural language to code demos
   - `examples/code_explanation.exs` - Code to natural language demos
+
+### AST Rendering & Utilities
+
+Convert AST back to text, traverse and query trees, validate structures, and export visualizations:
+
+- **Text Rendering** - Regenerate natural language from AST
+  ```elixir
+  alias Nasty.Rendering.Text
+  
+  # Render AST to text
+  {:ok, text} = Text.render(document)
+  # => "The cat sat on the mat."
+  
+  # Custom rendering options
+  {:ok, text} = Text.render(document, 
+    capitalize_sentences: false,
+    add_punctuation: false,
+    paragraph_separator: "\n\n"
+  )
+  ```
+
+- **AST Traversal** - Walk the tree with visitor pattern
+  ```elixir
+  alias Nasty.Utils.Traversal
+  
+  # Count all tokens
+  token_count = Traversal.reduce(document, 0, fn
+    %Token{}, acc -> acc + 1
+    _, acc -> acc
+  end)
+  
+  # Collect all nouns
+  nouns = Traversal.collect(document, fn
+    %Token{pos_tag: :noun} -> true
+    _ -> false
+  end)
+  
+  # Transform tree (lowercase all text)
+  lowercased = Traversal.map(document, fn
+    %Token{} = token -> %{token | text: String.downcase(token.text)}
+    node -> node
+  end)
+  ```
+
+- **AST Queries** - High-level query API
+  ```elixir
+  alias Nasty.Utils.Query
+  
+  # Find all noun phrases
+  noun_phrases = Query.find_all(document, :noun_phrase)
+  
+  # Find tokens by POS tag
+  verbs = Query.find_by_pos(document, :verb)
+  
+  # Extract entities
+  people = Query.extract_entities(document, type: :PERSON)
+  
+  # Find sentence subject
+  subject = Query.find_subject(sentence)
+  
+  # Count nodes
+  token_count = Query.count(document, :token)
+  ```
+
+- **Pretty Printing** - Debug AST structures
+  ```elixir
+  alias Nasty.Rendering.PrettyPrint
+  
+  # Indented output
+  IO.puts(PrettyPrint.print(document, color: true))
+  
+  # Tree-style output with box characters
+  IO.puts(PrettyPrint.tree(document))
+  
+  # Statistics
+  IO.puts(PrettyPrint.stats(document))
+  # => AST Statistics:
+  #      Paragraphs: 3
+  #      Sentences: 12
+  #      Tokens: 127
+  ```
+
+- **Visualization** - Export for graphical rendering
+  ```elixir
+  alias Nasty.Rendering.Visualization
+  
+  # Export to DOT format (Graphviz)
+  dot = Visualization.to_dot(document, type: :parse_tree)
+  File.write("tree.dot", dot)
+  # Then: dot -Tpng tree.dot -o tree.png
+  
+  # Dependency graph
+  deps_dot = Visualization.to_dot(sentence, type: :dependencies)
+  
+  # Entity graph
+  entity_dot = Visualization.to_dot(document, type: :entities)
+  
+  # JSON export for d3.js
+  json = Visualization.to_json(document)
+  ```
+
+- **Validation** - Ensure AST integrity
+  ```elixir
+  alias Nasty.Utils.Validator
+  
+  # Validate structure
+  {:ok, document} = Validator.validate(document)
+  
+  # Check spans
+  :ok = Validator.validate_spans(document)
+  
+  # Check language consistency
+  :ok = Validator.validate_language(document)
+  ```
+
+- **Transformations** - Modify AST structures
+  ```elixir
+  alias Nasty.Utils.Transform
+  
+  # Normalize case
+  lowercased = Transform.normalize_case(document, :lower)
+  
+  # Remove punctuation
+  no_punct = Transform.remove_punctuation(document)
+  
+  # Remove stop words
+  no_stops = Transform.remove_stop_words(document)
+  
+  # Lemmatize all tokens
+  lemmatized = Transform.lemmatize(document)
+  
+  # Apply pipeline of transformations
+  processed = Transform.pipeline(document, [
+    &Transform.normalize_case(&1, :lower),
+    &Transform.remove_punctuation/1,
+    &Transform.remove_stop_words/1
+  ])
+  ```
 
 ## Testing
 
