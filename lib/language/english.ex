@@ -16,13 +16,16 @@ defmodule Nasty.Language.English do
   alias Nasty.Language.English.{
     AnswerExtractor,
     CoreferenceResolver,
+    EventExtractor,
     FeatureExtractor,
     Morphology,
     POSTagger,
     QuestionAnalyzer,
+    RelationExtractor,
     SemanticRoleLabeler,
     SentenceParser,
     Summarizer,
+    TemplateExtractor,
     TextClassifier,
     Tokenizer
   }
@@ -118,7 +121,8 @@ defmodule Nasty.Language.English do
         :semantic_roles,
         :coreference,
         :question_answering,
-        :text_classification
+        :text_classification,
+        :information_extraction
       ],
       version: "0.1.0"
     }
@@ -314,5 +318,74 @@ defmodule Nasty.Language.English do
   @spec extract_features(Document.t(), keyword()) :: map()
   def extract_features(%Document{} = document, opts \\ []) do
     FeatureExtractor.extract(document, opts)
+  end
+
+  @doc """
+  Extracts semantic relations between entities in a document.
+
+  ## Options
+
+  - `:min_confidence` - Minimum confidence threshold (default: 0.5)
+  - `:max_relations` - Maximum relations to return (default: unlimited)
+  - `:relation_types` - List of relation types to extract (default: all)
+
+  ## Examples
+
+      iex> {:ok, document} = English.parse(tokens)
+      iex> {:ok, relations} = English.extract_relations(document)
+      iex> hd(relations).type
+      :works_at
+  """
+  @spec extract_relations(Document.t(), keyword()) :: {:ok, [Nasty.AST.Relation.t()]}
+  def extract_relations(%Document{} = document, opts \\ []) do
+    RelationExtractor.extract(document, opts)
+  end
+
+  @doc """
+  Extracts events from a document.
+
+  ## Options
+
+  - `:min_confidence` - Minimum confidence threshold (default: 0.5)
+  - `:max_events` - Maximum events to return (default: unlimited)
+  - `:event_types` - List of event types to extract (default: all)
+
+  ## Examples
+
+      iex> {:ok, document} = English.parse(tokens)
+      iex> {:ok, events} = English.extract_events(document)
+      iex> hd(events).type
+      :business_acquisition
+  """
+  @spec extract_events(Document.t(), keyword()) :: {:ok, [Nasty.AST.Event.t()]}
+  def extract_events(%Document{} = document, opts \\ []) do
+    EventExtractor.extract(document, opts)
+  end
+
+  @doc """
+  Extracts information using templates.
+
+  ## Arguments
+
+  - `document` - Document to extract from
+  - `templates` - List of template definitions
+  - `opts` - Options
+
+  ## Options
+
+  - `:min_confidence` - Minimum confidence threshold (default: 0.5)
+  - `:max_results` - Maximum results to return (default: unlimited)
+
+  ## Examples
+
+      iex> templates = [TemplateExtractor.employment_template()]
+      iex> {:ok, results} = English.extract_templates(document, templates)
+      iex> hd(results).template
+      "employment"
+  """
+  @spec extract_templates(Document.t(), [TemplateExtractor.template()], keyword()) ::
+          {:ok, [TemplateExtractor.extraction_result()]}
+  def extract_templates(%Document{} = document, templates, opts \\ []) do
+    TemplateExtractor.extract(document, templates, opts)
   end
 end
