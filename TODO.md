@@ -56,10 +56,7 @@ Currently, operations are in `lib/language/english/`. Need to extract:
 
 From PLAN.md lines 932-943, the following documents don't exist:
 
-- `docs/ARCHITECTURE.md` - Language-agnostic architecture
-- `docs/LANGUAGE_GUIDE.md` - Adding new languages
 - `docs/PARSING_GUIDE.md` - Parsing algorithm details
-- `docs/INTEROP_GUIDE.md` - Code interoperability guide
 - `docs/STATISTICAL_MODELS.md` - Statistical models guide
 - `docs/TRAINING_GUIDE.md` - Model training guide
 - `docs/languages/ENGLISH_GRAMMAR.md` - English grammar specification
@@ -68,12 +65,9 @@ From PLAN.md lines 932-943, the following documents don't exist:
 
 ### 5. Resource Files Missing
 
-From PLAN.md lines 888-897, the entire `priv/languages/` directory structure doesn't exist:
+From PLAN.md lines 888-897:
 
 #### English Resources
-- `priv/languages/english/lexicons/irregular_verbs.txt` - Irregular verb forms
-- `priv/languages/english/lexicons/irregular_nouns.txt` - Irregular noun plurals
-- `priv/languages/english/lexicons/stop_words.txt` - Common stop words
 - `priv/languages/english/grammars/phrase_rules.ex` - CFG phrase rules
 - `priv/languages/english/grammars/dependency_rules.ex` - Dependency templates
 
@@ -159,6 +153,10 @@ Missing from `examples/`:
 - **Multiple constraints in code generation** (filter predicates now support multiple AND-ed constraints) ✅ NEW
 - **API documentation** (`docs/API.md` with complete public API reference) ✅ NEW
 - **AST reference documentation** (`docs/AST_REFERENCE.md` with all node types) ✅ NEW
+- **Architecture documentation** (`docs/ARCHITECTURE.md` with system design) ✅ NEW
+- **Language guide** (`docs/LANGUAGE_GUIDE.md` for adding new languages) ✅ NEW
+- **Interop guide** (`docs/INTEROP_GUIDE.md` for code interoperability) ✅ NEW
+- **English lexicon resources** (irregular verbs, nouns, stop words in `priv/`) ✅ NEW
 
 ### Not Yet Implemented ❌
 
@@ -166,8 +164,8 @@ Missing from `examples/`:
 - Word sense disambiguation
 - Abstractive summarization
 - Advanced statistical models (PCFG, CRF, neural)
-- Remaining documentation (7 of 13 docs missing)
-- Resource files (lexicons, grammars in priv/)
+- Remaining documentation (3 of 13 docs missing)
+- Grammar resource files in priv/ (phrase rules, dependency rules)
 - Generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` module structure
 - Dialogue systems
 - Formal semantics / Lambda calculus
@@ -181,11 +179,11 @@ Missing from `examples/`:
 3. ~~Create `docs/API.md` and `docs/AST_REFERENCE.md`~~ ✅
 4. ~~Support multiple constraints in code generation~~ ✅
 
-### Medium Priority (Architecture Improvements)
+### Medium Priority (Architecture Improvements) - ⚡ PARTIALLY COMPLETED (2026-01-07)
 1. Refactor to create generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` layers
 2. Extract language-agnostic logic from English implementation
-3. Create resource files in `priv/languages/english/`
-4. Complete documentation suite
+3. ~~Create resource files in `priv/languages/english/`~~ ✅ (lexicons done, grammars remain)
+4. ~~Complete documentation suite~~ ✅ (core docs done, 3 advanced docs remain)
 
 ### Low Priority (Future Features)
 1. Spanish language implementation

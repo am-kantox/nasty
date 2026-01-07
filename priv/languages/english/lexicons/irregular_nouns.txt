@@ -1,0 +1,72 @@
+# English Irregular Nouns
+# Format: singular plural
+# One noun per line, tab-separated
+
+# People
+man	men
+woman	women
+child	children
+person	people
+tooth	teeth
+foot	feet
+
+# Animals
+mouse	mice
+goose	geese
+ox	oxen
+sheep	sheep
+deer	deer
+fish	fish
+moose	moose
+
+# Body parts
+tooth	teeth
+foot	feet
+
+# Objects
+knife	knives
+leaf	leaves
+life	lives
+wife	wives
+half	halves
+shelf	shelves
+loaf	loaves
+wolf	wolves
+calf	calves
+thief	thieves
+scarf	scarves
+
+# Abstract
+crisis	crises
+thesis	theses
+analysis	analyses
+basis	bases
+hypothesis	hypotheses
+oasis	oases
+parenthesis	parentheses
+synopsis	synopses
+
+# Scientific
+datum	data
+medium	media
+bacterium	bacteria
+curriculum	curricula
+memorandum	memoranda
+stratum	strata
+phenomenon	phenomena
+criterion	criteria
+
+# Latin/Greek origins
+cactus	cacti
+focus	foci
+fungus	fungi
+nucleus	nuclei
+radius	radii
+stimulus	stimuli
+syllabus	syllabi
+terminus	termini
+alumnus	alumni
+index	indices
+appendix	appendices
+matrix	matrices
+vertex	vertices
