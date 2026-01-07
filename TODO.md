@@ -56,16 +56,16 @@ Currently, operations are in `lib/language/english/`. Need to extract:
 - NL(English) ↔ NL(Catalan) via shared AST representation
 - Multi-language rendering: `Nasty.render(ast, target_language: :es)` (PLAN.md line 1018-1019)
 
-### 4. Documentation Missing
+### Documentation Missing
 
-From PLAN.md lines 932-943, the following documents don't exist:
+From PLAN.md lines 932-943, the following documents status:
 
-- `docs/PARSING_GUIDE.md` - Parsing algorithm details
-- `docs/STATISTICAL_MODELS.md` - Statistical models guide
-- `docs/TRAINING_GUIDE.md` - Model training guide
-- `docs/languages/ENGLISH_GRAMMAR.md` - English grammar specification
-- `docs/languages/SPANISH_GRAMMAR.md` - Spanish grammar (future)
-- `docs/languages/CATALAN_GRAMMAR.md` - Catalan grammar (future)
+- ✅ `docs/PARSING_GUIDE.md` - Parsing algorithm details - EXISTS
+- ✅ `docs/STATISTICAL_MODELS.md` - Statistical models guide - EXISTS (includes PCFG and CRF)
+- ❌ `docs/TRAINING_GUIDE.md` - Model training guide - (covered in STATISTICAL_MODELS.md and TRAINING_NEURAL.md)
+- ✅ `docs/languages/ENGLISH_GRAMMAR.md` - English grammar specification - EXISTS
+- ❌ `docs/languages/SPANISH_GRAMMAR.md` - Spanish grammar (future)
+- ❌ `docs/languages/CATALAN_GRAMMAR.md` - Catalan grammar (future)
 
 ### 5. Resource Files Missing
 
@@ -96,8 +96,23 @@ From PLAN.md lines 888-897:
   - Axon/EXLA for GPU acceleration
   - `mix nasty.train.neural_pos` - Training task
   - Documented in `docs/NEURAL_MODELS.md`, `docs/TRAINING_NEURAL.md`, `docs/PRETRAINED_MODELS.md`
-- **PCFG parser** for phrase structure (line 1053) - documented in `docs/FUTURE_FEATURES.md`
-- **CRF for named entity recognition** (line 1054) - documented in `docs/FUTURE_FEATURES.md`
+- ✅ **PCFG parser** IMPLEMENTED (2026-01-07)
+  - `lib/statistics/parsing/pcfg.ex` - Main PCFG model
+  - `lib/statistics/parsing/grammar.ex` - Rule representation and CNF conversion
+  - `lib/statistics/parsing/cyk_parser.ex` - CYK parsing algorithm
+  - Integration: `English.parse(tokens, model: :pcfg)` and `SentenceParser.parse_sentences(tokens, model: :pcfg)`
+  - Mix tasks: `mix nasty.train.pcfg`, `mix nasty.eval --type pcfg`
+  - Comprehensive test suite in `test/statistics/parsing/pcfg_test.exs`
+  - Documented in `docs/STATISTICAL_MODELS.md`
+- ✅ **CRF for named entity recognition** IMPLEMENTED (2026-01-07)
+  - `lib/statistics/sequence_labeling/crf.ex` - Main CRF model
+  - `lib/statistics/sequence_labeling/features.ex` - Feature extraction
+  - `lib/statistics/sequence_labeling/viterbi.ex` - Viterbi decoding
+  - `lib/statistics/sequence_labeling/optimizer.ex` - Gradient descent optimization
+  - Integration: `EntityRecognizer.recognize(tokens, model: :crf)`
+  - Mix tasks: `mix nasty.train.crf`, `mix nasty.eval --type crf`
+  - Comprehensive test suite in `test/statistics/sequence_labeling/crf_test.exs`
+  - Documented in `docs/STATISTICAL_MODELS.md`
 - **Pre-trained transformers (BERT, RoBERTa)** - planned, documented in `docs/PRETRAINED_MODELS.md`
 
 #### Additional NLP Capabilities
@@ -206,10 +221,11 @@ Missing from `examples/`:
 
 - Multi-language support (Spanish, Catalan)
 - Advanced statistical models:
-  - PCFG parser - documented in `docs/FUTURE_FEATURES.md`
-  - CRF for NER - documented in `docs/FUTURE_FEATURES.md`
   - Pre-trained transformers (BERT, RoBERTa) - documented in `docs/PRETRAINED_MODELS.md` (planned)
-- Remaining documentation (4 docs missing: PARSING_GUIDE, ENGLISH_GRAMMAR, SPANISH_GRAMMAR, CATALAN_GRAMMAR)
+- Remaining documentation (2 docs missing: SPANISH_GRAMMAR, CATALAN_GRAMMAR)
+  - `docs/PARSING_GUIDE.md` - ✅ EXISTS
+  - `docs/STATISTICAL_MODELS.md` - ✅ EXISTS
+  - `docs/languages/ENGLISH_GRAMMAR.md` - ✅ EXISTS
 - Grammar resource files in priv/ (phrase rules, dependency rules)
 - Complete generic algorithm extraction (remaining modules: coreference, SRL, QA, classification)
 - Dialogue systems - documented in `docs/FUTURE_FEATURES.md`
