@@ -4,29 +4,67 @@ defmodule Nasty.Language.English.SentenceParser do
 
   Builds Clause and Sentence structures from phrases.
 
-  ## Approach
+  ## Approaches
 
-  - Parse simple clauses: Subject (NP) + Predicate (VP)
-  - Identify sentence boundaries using punctuation
-  - Handle basic sentence types (declarative, interrogative, imperative)
+  - Rule-based parsing (default): Subject (NP) + Predicate (VP)
+  - PCFG parsing: Statistical phrase structure parsing
 
   ## Examples
 
+      # Rule-based (default)
       iex> tokens = [...]  # "The cat sat."
       iex> SentenceParser.parse_sentences(tokens)
+      {:ok, [sentence]}
+
+      # PCFG-based
+      iex> SentenceParser.parse_sentences(tokens, model: :pcfg)
       {:ok, [sentence]}
   """
 
   alias Nasty.AST.{Clause, Node, Sentence, Token}
   alias Nasty.Language.English.PhraseParser
+  alias Nasty.Statistics.{ModelLoader, Parsing.PCFG}
+
+  require Logger
 
   @doc """
   Parses tokens into a list of sentences.
 
   Identifies sentence boundaries and parses each sentence separately.
+
+  ## Options
+
+    - `:model` - Model type: `:rule_based` (default) or `:pcfg`
+    - `:pcfg_model` - Trained PCFG model (optional, will load from registry if not provided)
+
+  ## Returns
+
+    - `{:ok, sentences}` - List of parsed sentences
+    - `{:error, reason}` - Parsing failed
   """
-  @spec parse_sentences([Token.t()]) :: {:ok, [Sentence.t()]} | {:error, term()}
-  def parse_sentences(tokens) do
+  @spec parse_sentences([Token.t()], keyword()) :: {:ok, [Sentence.t()]} | {:error, term()}
+  def parse_sentences(tokens, opts \\ []) do
+    model_type = Keyword.get(opts, :model, :rule_based)
+
+    case model_type do
+      :rule_based ->
+        parse_sentences_rule_based(tokens)
+
+      :pcfg ->
+        parse_sentences_pcfg(tokens, opts)
+
+      _ ->
+        # Unknown model type, fallback to rule-based
+        Logger.warning("Unknown parser model type: #{inspect(model_type)}, using rule-based")
+        parse_sentences_rule_based(tokens)
+    end
+  end
+
+  @doc """
+  Rule-based sentence parsing (original implementation).
+  """
+  @spec parse_sentences_rule_based([Token.t()]) :: {:ok, [Sentence.t()]} | {:error, term()}
+  def parse_sentences_rule_based(tokens) do
     # Split on sentence-ending punctuation
     sentence_groups = split_sentences(tokens)
 
@@ -36,6 +74,122 @@ defmodule Nasty.Language.English.SentenceParser do
       |> Enum.reject(&is_nil/1)
 
     {:ok, sentences}
+  end
+
+  @doc """
+  PCFG-based sentence parsing using statistical phrase structure grammar.
+
+  If no model is provided via `:pcfg_model` option, attempts to load
+  the latest PCFG model from the registry. Falls back to rule-based
+  parsing if no model is available.
+  """
+  @spec parse_sentences_pcfg([Token.t()], keyword()) :: {:ok, [Sentence.t()]} | {:error, term()}
+  def parse_sentences_pcfg(tokens, opts) do
+    pcfg_model =
+      case Keyword.get(opts, :pcfg_model) do
+        nil ->
+          # Try to load from registry
+          case ModelLoader.load_latest(:en, :pcfg) do
+            {:ok, model} ->
+              Logger.debug("Loaded PCFG model from registry")
+              model
+
+            {:error, :not_found} ->
+              Logger.warning(
+                "No PCFG model found. Falling back to rule-based parsing. " <>
+                  "Train a model using: mix nasty.train.pcfg"
+              )
+
+              nil
+          end
+
+        model ->
+          model
+      end
+
+    case pcfg_model do
+      nil ->
+        # Fallback to rule-based
+        parse_sentences_rule_based(tokens)
+
+      model ->
+        # Split on sentence-ending punctuation
+        sentence_groups = split_sentences(tokens)
+
+        sentences =
+          sentence_groups
+          |> Enum.map(fn sentence_tokens ->
+            parse_sentence_pcfg(sentence_tokens, model)
+          end)
+          |> Enum.reject(&is_nil/1)
+
+        {:ok, sentences}
+    end
+  end
+
+  # Parse a single sentence using PCFG
+  defp parse_sentence_pcfg(tokens, pcfg_model) do
+    {sentence_tokens, punct} = strip_trailing_punct(tokens)
+
+    if Enum.empty?(sentence_tokens) do
+      nil
+    else
+      case PCFG.predict(pcfg_model, sentence_tokens, []) do
+        {:ok, parse_tree} ->
+          # Convert PCFG parse tree to Sentence AST
+          pcfg_tree_to_sentence(parse_tree, tokens, punct)
+
+        {:error, reason} ->
+          Logger.debug("PCFG parsing failed: #{inspect(reason)}, using fallback")
+          # Fallback to rule-based for this sentence
+          parse_sentence(tokens)
+      end
+    end
+  end
+
+  # Convert PCFG parse tree to Sentence AST structure
+  defp pcfg_tree_to_sentence(_parse_tree, original_tokens, punct) do
+    # For now, create a simplified sentence structure from the PCFG parse
+    # In a full implementation, you would traverse the parse tree and
+    # extract proper clause structures
+
+    function = infer_function(punct)
+
+    first_token = hd(original_tokens)
+    last_token = List.last(original_tokens)
+
+    span =
+      Node.make_span(
+        first_token.span.start_pos,
+        first_token.span.start_offset,
+        last_token.span.end_pos,
+        last_token.span.end_offset
+      )
+
+    # Create a simplified clause from the parse tree
+    # Note: We need a predicate to create a proper Clause
+    # For now, create a minimal VerbPhrase as placeholder
+    predicate = %Nasty.AST.VerbPhrase{
+      head: List.first(Enum.reject(original_tokens, &(&1.pos_tag == :punct))),
+      language: :en,
+      span: span
+    }
+
+    clause = %Clause{
+      type: :independent,
+      subject: nil,
+      predicate: predicate,
+      language: :en,
+      span: span
+    }
+
+    %Sentence{
+      function: function,
+      structure: :simple,
+      main_clause: clause,
+      language: :en,
+      span: span
+    }
   end
 
   @doc """

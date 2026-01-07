@@ -32,7 +32,6 @@ defmodule Mix.Tasks.Nasty.Train.Pcfg do
 
   use Mix.Task
 
-  alias Nasty.Statistics.Parsing.Grammar
   alias Nasty.Statistics.Parsing.PCFG
 
   @shortdoc "Trains a PCFG model from treebank data"
@@ -152,7 +151,7 @@ defmodule Mix.Tasks.Nasty.Train.Pcfg do
         %Nasty.AST.Token{
           text: form,
           lemma: lemma,
-          pos: String.to_atom(String.downcase(upos)),
+          pos_tag: String.to_atom(String.downcase(upos)),
           span: nil,
           language: :en
         }

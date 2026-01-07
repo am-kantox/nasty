@@ -51,8 +51,9 @@ defmodule Nasty.Language.English do
   def parse(tokens, opts \\ []) do
     # Parse takes already-tagged tokens per Language.Behaviour spec
     # Phase 3: Full phrase structure parsing
+    # Options can include :model => :pcfg for statistical parsing
     with {:ok, analyzed} <- Morphology.analyze(tokens),
-         {:ok, sentences} <- SentenceParser.parse_sentences(analyzed) do
+         {:ok, sentences} <- SentenceParser.parse_sentences(analyzed, opts) do
       # Calculate document span
       doc_span =
         if Enum.empty?(sentences) do

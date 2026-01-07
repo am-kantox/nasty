@@ -1,16 +1,23 @@
 defmodule Nasty.Language.English.EntityRecognizer do
   @moduledoc """
-  Rule-based Named Entity Recognition (NER) for English.
+  Named Entity Recognition (NER) for English.
 
-  This module provides English-specific configuration for the generic
-  rule-based entity recognition algorithm. It implements the callbacks
-  required by `Nasty.Semantic.EntityRecognition.RuleBased` and delegates
-  the actual recognition logic to that generic module.
+  Supports multiple approaches:
+  - Rule-based NER (default)
+  - CRF-based NER (statistical sequence labeling)
 
   ## Examples
 
+      # Rule-based (default)
       iex> tokens = tag_pos("John Smith lives in New York")
       iex> entities = EntityRecognizer.recognize(tokens)
+      [
+        %Entity{type: :person, text: "John Smith", ...},
+        %Entity{type: :gpe, text: "New York", ...}
+      ]
+
+      # CRF-based
+      iex> entities = EntityRecognizer.recognize(tokens, model: :crf)
       [
         %Entity{type: :person, text: "John Smith", ...},
         %Entity{type: :gpe, text: "New York", ...}
@@ -19,8 +26,11 @@ defmodule Nasty.Language.English.EntityRecognizer do
 
   @behaviour Nasty.Semantic.EntityRecognition.RuleBased
 
-  alias Nasty.AST.Token
+  alias Nasty.AST.{Semantic.Entity, Token}
   alias Nasty.Semantic.EntityRecognition.RuleBased
+  alias Nasty.Statistics.{ModelLoader, SequenceLabeling.CRF}
+
+  require Logger
 
   # Callbacks for RuleBased behaviour
 
@@ -64,12 +74,132 @@ defmodule Nasty.Language.English.EntityRecognizer do
   @doc """
   Recognizes named entities in a list of POS-tagged tokens.
 
-  Returns a list of Entity structs.
+  ## Options
+
+    - `:model` - Model type: `:rule_based` (default) or `:crf`
+    - `:crf_model` - Trained CRF model (optional, will load from registry if not provided)
+
+  ## Returns
+
+    - List of Entity structs
   """
-  @spec recognize([Token.t()]) :: [Nasty.AST.Semantic.Entity.t()]
-  def recognize(tokens) do
+  @spec recognize([Token.t()], keyword()) :: [Entity.t()]
+  def recognize(tokens, opts \\ []) do
+    model_type = Keyword.get(opts, :model, :rule_based)
+
+    case model_type do
+      :rule_based ->
+        recognize_rule_based(tokens)
+
+      :crf ->
+        recognize_crf(tokens, opts)
+
+      _ ->
+        # Unknown model type, fallback to rule-based
+        Logger.warning("Unknown NER model type: #{inspect(model_type)}, using rule-based")
+        recognize_rule_based(tokens)
+    end
+  end
+
+  @doc """
+  Rule-based entity recognition (original implementation).
+  """
+  @spec recognize_rule_based([Token.t()]) :: [Entity.t()]
+  def recognize_rule_based(tokens) do
     # Delegate to generic rule-based algorithm
     RuleBased.recognize(__MODULE__, tokens)
+  end
+
+  @doc """
+  CRF-based entity recognition using statistical sequence labeling.
+
+  If no model is provided via `:crf_model` option, attempts to load
+  the latest NER CRF model from the registry. Falls back to rule-based
+  recognition if no model is available.
+  """
+  @spec recognize_crf([Token.t()], keyword()) :: [Entity.t()]
+  def recognize_crf(tokens, opts) do
+    crf_model =
+      case Keyword.get(opts, :crf_model) do
+        nil ->
+          # Try to load from registry
+          case ModelLoader.load_latest(:en, :ner_crf) do
+            {:ok, model} ->
+              Logger.debug("Loaded CRF NER model from registry")
+              model
+
+            {:error, :not_found} ->
+              Logger.warning(
+                "No CRF NER model found. Falling back to rule-based recognition. " <>
+                  "Train a model using: mix nasty.train.crf --task ner"
+              )
+
+              nil
+          end
+
+        model ->
+          model
+      end
+
+    case crf_model do
+      nil ->
+        # Fallback to rule-based
+        recognize_rule_based(tokens)
+
+      model ->
+        case CRF.predict(model, tokens, []) do
+          {:ok, labels} ->
+            # Convert CRF labels to Entity structs
+            labels_to_entities(tokens, labels)
+
+          {:error, reason} ->
+            Logger.warning(
+              "CRF prediction failed: #{inspect(reason)}, falling back to rule-based"
+            )
+
+            recognize_rule_based(tokens)
+        end
+    end
+  end
+
+  # Convert CRF labels to Entity structs
+  defp labels_to_entities(tokens, labels) do
+    tokens
+    |> Enum.zip(labels)
+    |> Enum.chunk_by(fn {_token, label} -> label end)
+    |> Enum.filter(fn chunk ->
+      {_token, label} = hd(chunk)
+      label != :none and label != :o
+    end)
+    |> Enum.map(fn chunk ->
+      entity_tokens = Enum.map(chunk, fn {token, _label} -> token end)
+      {_first_token, label} = hd(chunk)
+
+      first = hd(entity_tokens)
+      last = List.last(entity_tokens)
+
+      text = Enum.map_join(entity_tokens, " ", & &1.text)
+
+      span =
+        if first.span && last.span do
+          Nasty.AST.Node.make_span(
+            first.span.start_pos,
+            first.span.start_offset,
+            last.span.end_pos,
+            last.span.end_offset
+          )
+        else
+          nil
+        end
+
+      %Entity{
+        type: label,
+        text: text,
+        tokens: entity_tokens,
+        span: span,
+        confidence: 0.85
+      }
+    end)
   end
 
   # English-specific pattern matching functions

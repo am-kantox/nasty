@@ -182,7 +182,7 @@ defmodule Mix.Tasks.Nasty.Train.Crf do
         token = %Nasty.AST.Token{
           text: form,
           lemma: lemma,
-          pos: String.to_atom(String.downcase(upos)),
+          pos_tag: String.to_atom(String.downcase(upos)),
           span: nil,
           language: :en
         }
