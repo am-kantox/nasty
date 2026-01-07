@@ -166,6 +166,17 @@ Missing from `examples/`:
   - `lib/language/english/adapters/coreference_resolver_adapter.ex` ✅
   - Comprehensive adapter test suite (`test/language/english/adapters_test.exs`) ✅
 - **Nasty module integration** (uses adapters for behaviour-based operations) ✅ NEW
+- **Generic extractive summarization** (Phase 3-4: language-agnostic algorithm extraction) ✅ NEW
+  - `lib/operations/summarization/extractive.ex` (440 lines) ✅
+  - Position, length, TF-IDF, entity, discourse, coreference scoring ✅
+  - Greedy and MMR selection algorithms ✅
+  - Jaccard similarity for redundancy reduction ✅
+  - Refactored `English.Summarizer` to delegate (69% code reduction) ✅
+- **Generic rule-based NER** (Phase 3-4: language-agnostic NER framework) ✅ NEW
+  - `lib/semantic/entity_recognition/rule_based.ex` (237 lines) ✅
+  - Sequence detection and classification framework ✅
+  - Configurable lexicons, patterns, and heuristics ✅
+  - Refactored `English.EntityRecognizer` to delegate (23% code reduction) ✅
 
 ### Not Yet Implemented ❌
 
@@ -175,7 +186,7 @@ Missing from `examples/`:
 - Advanced statistical models (PCFG, CRF, neural)
 - Remaining documentation (3 of 13 docs missing)
 - Grammar resource files in priv/ (phrase rules, dependency rules)
-- Generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` module structure
+- Complete generic algorithm extraction (remaining modules: coreference, SRL, QA, classification)
 - Dialogue systems
 - Formal semantics / Lambda calculus
 - Full Ragex integration
@@ -188,7 +199,7 @@ Missing from `examples/`:
 3. ~~Create `docs/API.md` and `docs/AST_REFERENCE.md`~~ ✅
 4. ~~Support multiple constraints in code generation~~ ✅
 
-### Medium Priority (Architecture Improvements) - ✅ PHASE 1-2 COMPLETED (2026-01-07)
+### Medium Priority (Architecture Improvements) - ✅ PHASE 1-4 COMPLETED (2026-01-07)
 1. ~~Refactor to create generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` layers~~ ✅
    - Phase 1: Created behaviour modules (`Operations.Summarization`, `Operations.Classification`, `Semantic.EntityRecognition`, `Semantic.CoreferenceResolution`) ✅
    - Phase 2: Created adapter modules for English implementations ✅
@@ -197,11 +208,19 @@ Missing from `examples/`:
      - `English.Adapters.CoreferenceResolverAdapter` ✅
    - Updated `Nasty.summarize/2` to use adapter architecture ✅
    - All 360 tests passing with adapters ✅
-2. Extract language-agnostic logic from English implementation (Phase 1-2 complete, Phase 3-4 remain)
-   - Next: Gradually extract generic algorithms from adapters
-   - Next: Continue evolution without breaking changes
+   - Phase 3-4: Extracted generic algorithms for Summarization and Entity Recognition ✅
+     - `Operations.Summarization.Extractive` (440 lines, all scoring + selection algorithms) ✅
+     - `Semantic.EntityRecognition.RuleBased` (237 lines, sequence detection + classification) ✅
+     - Refactored English modules to delegate to generic implementations ✅
+     - 69% code reduction in Summarizer, 23% in EntityRecognizer ✅
+     - No breaking changes, all 360 tests passing ✅
+2. ~~Extract language-agnostic logic from English implementation~~ ✅ (Phase 1-4 complete for 2 modules)
+   - ✅ Summarization: fully extracted and refactored
+   - ✅ Entity Recognition: fully extracted and refactored
+   - Remaining: Coreference Resolution, Question Answering, Classification, SRL (future)
 3. ~~Create resource files in `priv/languages/english/`~~ ✅ (lexicons done, grammars remain)
 4. ~~Complete documentation suite~~ ✅ (core docs done, 3 advanced docs remain)
+   - Updated `docs/REFACTORING.md` with Phase 3-4 completion ✅
 
 ### Low Priority (Future Features)
 1. Spanish language implementation
@@ -215,7 +234,10 @@ Missing from `examples/`:
 ## Notes
 
 - The architecture is well-designed for multi-language support via behaviours
-- Most language-specific logic is currently in `lib/language/english/`
-- Refactoring to extract generic layers would make adding new languages easier
+- Generic algorithms extracted for Summarization and Entity Recognition (Phase 3-4 complete)
+- Language-specific config (lexicons, stop words, patterns) remains in `lib/language/english/`
+- Adding new languages is now significantly easier (just implement 4 callbacks per module)
+- Example: Spanish summarization would reuse 440 lines of generic algorithm
 - The statistical model infrastructure is solid and ready for additional models
 - Code interoperability is functional but could be more sophisticated
+- Refactoring demonstrates clean separation: 677 lines of generic code, 394 lines removed from English
