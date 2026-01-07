@@ -221,3 +221,19 @@ The project is designed for extensibility:
 - Enhanced coreference and semantic analysis
 
 When implementing new features, maintain the grammar-first, AST-based approach and ensure all nodes carry position and language metadata.
+
+## Documentation References
+
+Key documentation files for understanding the codebase:
+
+- **[PARSING_GUIDE.md](docs/PARSING_GUIDE.md)** - Complete reference for all parsing algorithms (tokenization, POS tagging, morphology, phrase/sentence parsing, dependencies). Essential reading for understanding how text is processed.
+
+- **[ENGLISH_GRAMMAR.md](docs/languages/ENGLISH_GRAMMAR.md)** - Formal English grammar specification with CFG rules, dependency relations, morphological features, and lexical categories. The authoritative reference for the English parser implementation.
+
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture overview, design patterns, and module organization.
+
+- **[NEURAL_MODELS.md](docs/NEURAL_MODELS.md)** - Neural network architecture details for BiLSTM-CRF POS tagger.
+
+- **[TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md)** - Guide for training neural models on custom datasets.
+
+- **[ROADMAP.md](docs/ROADMAP.md)** - Feature roadmap with priorities, timelines, and implementation strategies.

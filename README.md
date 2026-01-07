@@ -459,7 +459,15 @@ mix test test/language/english/dependency_extractor_test.exs
 
 ## Documentation
 
-For detailed documentation on the original vision and architecture, see [PLAN.md](PLAN.md).
+Comprehensive documentation is available in the `docs/` directory:
+
+- [PLAN.md](PLAN.md) - Original vision and architectural design
+- [PARSING_GUIDE.md](docs/PARSING_GUIDE.md) - Complete parsing algorithms reference (tokenization, POS tagging, morphology, phrase/sentence parsing, dependencies)
+- [ENGLISH_GRAMMAR.md](docs/languages/ENGLISH_GRAMMAR.md) - Formal English grammar specification (CFG rules, dependencies, morphology)
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture and design patterns
+- [USER_GUIDE.md](docs/USER_GUIDE.md) - User guide with examples and API reference
+- [AST_REFERENCE.md](docs/AST_REFERENCE.md) - Complete AST node reference
+- [ROADMAP.md](docs/ROADMAP.md) - Feature roadmap with priorities and timelines
 
 ## Statistical & Neural Models
 
