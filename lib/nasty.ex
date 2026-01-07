@@ -60,7 +60,7 @@ defmodule Nasty do
   """
 
   alias Nasty.Interop.CodeGen.Explain
-  alias Nasty.Language.{English, English.Summarizer}
+  alias Nasty.Language.English
 
   @doc """
   Returns the version and implementation status.
@@ -172,7 +172,8 @@ defmodule Nasty do
   def summarize(%Nasty.AST.Document{language: language} = document, opts) do
     case Nasty.Language.Registry.get(language) do
       {:ok, Nasty.Language.English} ->
-        {:ok, Summarizer.summarize(document, opts)}
+        # Use adapter for new behaviour-based interface
+        Nasty.Language.English.Adapters.SummarizerAdapter.summarize(document, opts)
 
       {:ok, _module} ->
         {:error, :summarization_not_supported}

@@ -1,12 +1,12 @@
 defmodule Nasty.Operations.Summarization do
   @moduledoc """
   Behaviour for language-agnostic text summarization.
-  
+
   This behaviour defines the interface for extractive and abstractive summarization
   that can be implemented for any language.
-  
+
   ## Example Implementation
-  
+
       defmodule Nasty.Language.English.Summarizer do
         @behaviour Nasty.Operations.Summarization
         
@@ -25,7 +25,7 @@ defmodule Nasty.Operations.Summarization do
 
   @typedoc """
   Summarization options.
-  
+
   Common options:
   - `:ratio` - Compression ratio (0.0 to 1.0), default 0.3
   - `:max_sentences` - Maximum sentences in summary
@@ -37,7 +37,7 @@ defmodule Nasty.Operations.Summarization do
 
   @typedoc """
   Summarization methods supported.
-  
+
   - `:extractive` - Extract sentences from document
   - `:mmr` - Maximal Marginal Relevance for diversity
   - `:abstractive` - Generate new summary text
@@ -46,20 +46,20 @@ defmodule Nasty.Operations.Summarization do
 
   @doc """
   Summarizes a document by selecting important content.
-  
+
   ## Parameters
-  
+
     - `document` - Document AST to summarize
     - `opts` - Summarization options
-  
+
   ## Returns
-  
+
     - `{:ok, sentences}` - List of selected sentences (extractive)
     - `{:ok, text}` - Generated summary text (abstractive)
     - `{:error, reason}` - Summarization error
-  
+
   ## Examples
-  
+
       iex> Summarizer.summarize(document, ratio: 0.3, method: :extractive)
       {:ok, [sentence1, sentence2]}
       
@@ -71,13 +71,13 @@ defmodule Nasty.Operations.Summarization do
 
   @doc """
   Returns the summarization methods supported by this implementation.
-  
+
   ## Returns
-  
+
     - List of supported method atoms
-  
+
   ## Examples
-  
+
       iex> Summarizer.methods()
       [:extractive, :mmr]
   """
