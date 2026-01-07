@@ -157,6 +157,9 @@ Missing from `examples/`:
 - **Language guide** (`docs/LANGUAGE_GUIDE.md` for adding new languages) ✅ NEW
 - **Interop guide** (`docs/INTEROP_GUIDE.md` for code interoperability) ✅ NEW
 - **English lexicon resources** (irregular verbs, nouns, stop words in `priv/`) ✅ NEW
+- **Generic operations layer** (`lib/operations/` with Summarization, Classification behaviours) ✅ NEW
+- **Generic semantic layer** (`lib/semantic/` with EntityRecognition, Coreference behaviours) ✅ NEW
+- **Refactoring guide** (`docs/REFACTORING.md` for architecture evolution strategy) ✅ NEW
 
 ### Not Yet Implemented ❌
 
@@ -180,8 +183,8 @@ Missing from `examples/`:
 4. ~~Support multiple constraints in code generation~~ ✅
 
 ### Medium Priority (Architecture Improvements) - ⚡ PARTIALLY COMPLETED (2026-01-07)
-1. Refactor to create generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` layers
-2. Extract language-agnostic logic from English implementation
+1. ~~Refactor to create generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` layers~~ ✅ (behaviours defined, adapters next)
+2. Extract language-agnostic logic from English implementation (in progress - phase 1 complete)
 3. ~~Create resource files in `priv/languages/english/`~~ ✅ (lexicons done, grammars remain)
 4. ~~Complete documentation suite~~ ✅ (core docs done, 3 advanced docs remain)
 
