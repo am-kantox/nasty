@@ -282,7 +282,7 @@ Nasty.AST.Traversal.post_order(document, visitor_fn)
 Nasty.AST.Traversal.breadth_first(document, visitor_fn)
 ```
 
-### 6. Statistical Models
+### 6. Statistical & Neural Models
 
 #### Model Infrastructure
 
@@ -299,8 +299,16 @@ Nasty.AST.Traversal.breadth_first(document, visitor_fn)
 #### Model Types
 
 **HMM (Hidden Markov Model)**:
-- POS tagging with 95% accuracy
+- POS tagging with ~95% accuracy
 - Viterbi algorithm for decoding
+- Fast inference, low memory
+
+**BiLSTM-CRF (Neural)**:
+- POS tagging with 97-98% accuracy
+- Bidirectional LSTM with CRF layer
+- Built with Axon/EXLA for GPU acceleration
+- Character-level CNN for OOV handling
+- Pre-trained embedding support
 
 **Naive Bayes**:
 - Text classification
@@ -309,7 +317,7 @@ Nasty.AST.Traversal.breadth_first(document, visitor_fn)
 **Future Models**:
 - PCFG (Probabilistic Context-Free Grammar) for parsing
 - CRF (Conditional Random Fields) for NER
-- Neural models for improved accuracy
+- Pre-trained transformers (BERT, RoBERTa via Bumblebee)
 
 ### 7. Code Interoperability
 

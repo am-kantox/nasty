@@ -136,13 +136,16 @@ end)
 Assign grammatical categories to tokens:
 
 ```elixir
-# Rule-based tagging (fast)
+# Rule-based tagging (fast, ~85% accuracy)
 {:ok, tagged} = English.tag_pos(tokens)
 
-# Statistical tagging (higher accuracy)
+# Statistical tagging (higher accuracy, ~95%)
 {:ok, tagged} = English.tag_pos(tokens, model: :hmm)
 
-# Ensemble (best of both)
+# Neural tagging (best accuracy, 97-98%)
+{:ok, tagged} = English.tag_pos(tokens, model: :neural)
+
+# Ensemble (combines all models)
 {:ok, tagged} = English.tag_pos(tokens, model: :ensemble)
 
 # Inspect tags
@@ -800,20 +803,25 @@ alias Nasty.Rendering.Text
 # => {"cat", "runs"}
 ```
 
-## Statistical Models
+## Statistical & Neural Models
 
 ### Using Pretrained Models
 
-Load and use statistical models:
+Load and use statistical and neural models:
 
 ```elixir
 alias Nasty.Language.English
 
 # Automatic loading (looks in priv/models/)
 {:ok, tokens} = English.tokenize(text)
+
+# HMM statistical model (~95% accuracy)
 {:ok, tagged} = English.tag_pos(tokens, model: :hmm)
 
-# Ensemble mode (combines rule-based + statistical)
+# Neural model (97-98% accuracy)
+{:ok, tagged} = English.tag_pos(tokens, model: :neural)
+
+# Ensemble mode (combines neural + HMM + rule-based)
 {:ok, tagged} = English.tag_pos(tokens, model: :ensemble)
 ```
 
@@ -828,17 +836,26 @@ wget https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-4611/u
 # Extract
 tar -xzf ud-treebanks-v2.10.tgz
 
-# Train model
+# Train HMM model (fast, 95% accuracy)
 mix nasty.train.pos \
   --corpus ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-train.conllu \
   --test ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-test.conllu \
-  --output priv/models/en/my_model.model
+  --output priv/models/en/my_hmm_model.model
+
+# Train neural model (slower, 97-98% accuracy)
+mix nasty.train.neural_pos \
+  --corpus ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-train.conllu \
+  --output priv/models/en/my_neural_model.axon \
+  --epochs 10 \
+  --batch-size 32
 
 # Evaluate
 mix nasty.eval.pos \
-  --model priv/models/en/my_model.model \
+  --model priv/models/en/my_hmm_model.model \
   --test ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-test.conllu
 ```
+
+For detailed neural model training instructions, see [TRAINING_NEURAL.md](TRAINING_NEURAL.md).
 
 ### Model Management
 

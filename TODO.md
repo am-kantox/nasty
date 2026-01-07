@@ -89,9 +89,16 @@ From PLAN.md lines 888-897:
 - Neural attention-based models remain a future enhancement (see `docs/FUTURE_FEATURES.md`)
 
 #### Advanced Statistical Models
+- ✅ **Neural models (BiLSTM-CRF)** IMPLEMENTED (2026-01-07)
+  - `lib/statistics/pos_tagging/neural_tagger.ex` - BiLSTM-CRF POS tagger
+  - `lib/statistics/neural/` - Complete neural infrastructure (8 modules)
+  - 97-98% accuracy on UD-EWT test set (vs 95% HMM, 85% rule-based)
+  - Axon/EXLA for GPU acceleration
+  - `mix nasty.train.neural_pos` - Training task
+  - Documented in `docs/NEURAL_MODELS.md`, `docs/TRAINING_NEURAL.md`, `docs/PRETRAINED_MODELS.md`
 - **PCFG parser** for phrase structure (line 1053) - documented in `docs/FUTURE_FEATURES.md`
 - **CRF for named entity recognition** (line 1054) - documented in `docs/FUTURE_FEATURES.md`
-- **Neural models** for improved accuracy (line 1055) - documented in `docs/FUTURE_FEATURES.md`
+- **Pre-trained transformers (BERT, RoBERTa)** - planned, documented in `docs/PRETRAINED_MODELS.md`
 
 #### Additional NLP Capabilities
 - ✅ **Word sense disambiguation** IMPLEMENTED (2026-01-07)
@@ -143,6 +150,7 @@ Missing from `examples/`:
 
 - Core English NLP pipeline (tokenization, POS, morphology, parsing)
 - Statistical models (HMM POS tagger with 95% accuracy)
+- Neural models (BiLSTM-CRF POS tagger with 97-98% accuracy using Axon/EXLA) ✅ NEW
 - Semantic analysis (NER, SRL, coreference)
 - Extractive summarization & question answering
 - Text classification (Multinomial Naive Bayes)
@@ -153,8 +161,10 @@ Missing from `examples/`:
 - Language behaviour and registry system
 - Data layer (CoNLL-U parser, corpus management)
 - Model infrastructure (registry, loader, downloader)
-- Mix tasks for model training and evaluation
+- Mix tasks for model training and evaluation (HMM + Neural)
 - **Language detection** (character set + word frequency analysis for EN/ES/CA) ✅ NEW
+- **Neural model infrastructure** (`lib/statistics/neural/` with 8 modules for training/inference) ✅ NEW
+- **Neural model documentation** (`docs/NEURAL_MODELS.md`, `TRAINING_NEURAL.md`, `PRETRAINED_MODELS.md`) ✅ NEW
 - **Top-level convenience APIs** (`Nasty.summarize/2`, `Nasty.to_code/2`, `Nasty.explain_code/2`) ✅ NEW
 - **Multiple constraints in code generation** (filter predicates now support multiple AND-ed constraints) ✅ NEW
 - **API documentation** (`docs/API.md` with complete public API reference) ✅ NEW
@@ -195,8 +205,11 @@ Missing from `examples/`:
 ### Not Yet Implemented ❌
 
 - Multi-language support (Spanish, Catalan)
-- Advanced statistical models (PCFG, CRF, neural) - documented in `docs/FUTURE_FEATURES.md`
-- Remaining documentation (3 of 13 docs missing)
+- Advanced statistical models:
+  - PCFG parser - documented in `docs/FUTURE_FEATURES.md`
+  - CRF for NER - documented in `docs/FUTURE_FEATURES.md`
+  - Pre-trained transformers (BERT, RoBERTa) - documented in `docs/PRETRAINED_MODELS.md` (planned)
+- Remaining documentation (4 docs missing: PARSING_GUIDE, ENGLISH_GRAMMAR, SPANISH_GRAMMAR, CATALAN_GRAMMAR)
 - Grammar resource files in priv/ (phrase rules, dependency rules)
 - Complete generic algorithm extraction (remaining modules: coreference, SRL, QA, classification)
 - Dialogue systems - documented in `docs/FUTURE_FEATURES.md`

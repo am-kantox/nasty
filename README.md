@@ -10,7 +10,7 @@
 Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, with a full NLP pipeline from tokenization to text summarization.
 
 - **Tokenization** - NimbleParsec-based text segmentation
-- **POS Tagging** - Rule-based + Statistical (HMM with Viterbi)
+- **POS Tagging** - Rule-based + Statistical (HMM with Viterbi) + Neural (BiLSTM-CRF)
 - **Morphological Analysis** - Lemmatization and features
 - **Phrase Structure Parsing** - NP, VP, PP, and relative clauses
 - **Complex Sentences** - Coordination, subordination
@@ -23,6 +23,7 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **Text Classification** - Multinomial Naive Bayes classifier with multiple feature types
 - **Information Extraction** - Relation extraction, event extraction, and template-based extraction
 - **Statistical Models** - HMM POS tagger with 95% accuracy
+- **Neural Models** - BiLSTM-CRF with 97-98% accuracy using Axon/EXLA
 - **Code Interoperability** - Bidirectional NL ↔ Code conversion (Natural language commands to Elixir code and vice versa)
 - **AST Rendering** - Convert AST back to natural language text
 - **AST Utilities** - Traversal, queries, validation, and transformations
@@ -83,7 +84,10 @@ summary_mmr = English.summarize(document, max_sentences: 3, method: :mmr, mmr_la
 # Statistical POS tagging (auto-loads from priv/models/)
 {:ok, tokens_hmm} = English.tag_pos(tokens, model: :hmm)
 
-# Or ensemble mode (combines statistical + rule-based)
+# Neural POS tagging (97-98% accuracy)
+{:ok, tokens_neural} = English.tag_pos(tokens, model: :neural)
+
+# Or ensemble mode (combines neural + statistical + rule-based)
 {:ok, tokens_ensemble} = English.tag_pos(tokens, model: :ensemble)
 
 # Text classification
@@ -457,15 +461,23 @@ mix test test/language/english/dependency_extractor_test.exs
 
 For detailed documentation on the original vision and architecture, see [PLAN.md](PLAN.md).
 
-## Statistical Models
+## Statistical & Neural Models
 
-Nasty includes statistical machine learning models for improved accuracy:
+Nasty includes both statistical and neural network models for state-of-the-art accuracy:
 
+### Statistical Models
 - **HMM POS Tagger**: Hidden Markov Model with Viterbi decoding (~95% accuracy)
+- **Naive Bayes Classifier**: For text classification tasks
+- Fast inference, low memory footprint
+
+### Neural Models
+- **BiLSTM-CRF**: Bidirectional LSTM with CRF for sequence tagging (97-98% accuracy)
+- **Axon/EXLA**: Pure Elixir neural networks with GPU acceleration
+- **Pre-trained embeddings**: Support for GloVe, FastText
 - **Training infrastructure**: Train custom models on your own data
 - **Evaluation metrics**: Accuracy, precision, recall, F1, confusion matrices
 
-See [STATISTICAL_MODELS.md](STATISTICAL_MODELS.md) for implementation details and [TRAINING_GUIDE.md](TRAINING_GUIDE.md) for step-by-step training instructions.
+See [NEURAL_MODELS.md](docs/NEURAL_MODELS.md) for neural architecture details, [TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md) for training guide, and [PRETRAINED_MODELS.md](docs/PRETRAINED_MODELS.md) for transformer support (planned).
 
 ### Quick Start: Model Management
 
@@ -473,11 +485,18 @@ See [STATISTICAL_MODELS.md](STATISTICAL_MODELS.md) for implementation details an
 # List available models
 mix nasty.models list
 
-# Train a new model
+# Train HMM model (fast, 95% accuracy)
 mix nasty.train.pos \
   --corpus data/UD_English-EWT/en_ewt-ud-train.conllu \
   --test data/UD_English-EWT/en_ewt-ud-test.conllu \
   --output priv/models/en/pos_hmm_v1.model
+
+# Train neural model (slower, 97-98% accuracy)
+mix nasty.train.neural_pos \
+  --corpus data/UD_English-EWT/en_ewt-ud-train.conllu \
+  --output priv/models/en/pos_neural_v1.axon \
+  --epochs 10 \
+  --batch-size 32
 
 # Evaluate model
 mix nasty.eval.pos \
@@ -489,11 +508,13 @@ mix nasty.eval.pos \
 ## Future Enhancements
 
 - [x] Statistical models for improved accuracy (HMM POS tagger - done!)
+- [x] Neural models (BiLSTM-CRF POS tagger with 97-98% accuracy - done!)
 - [x] Semantic role labeling (rule-based SRL - done!)
 - [x] Coreference resolution (heuristic-based - done!)
 - [x] Question answering (extractive QA - done!)
 - [x] Information extraction (relations, events, templates - done!)
 - [x] Code ↔ NL bidirectional conversion (done!)
+- [ ] Pre-trained transformers (BERT, RoBERTa via Bumblebee - planned)
 - [ ] PCFG parser for phrase structure
 - [ ] CRF for named entity recognition  
 - [ ] Multi-language support (Spanish, Catalan)

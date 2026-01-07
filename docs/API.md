@@ -363,20 +363,22 @@ Render AST to text.
 {:ok, text} = Nasty.Rendering.Text.render(document)
 ```
 
-## Statistical Models
+## Statistical & Neural Models
 
 ### Model Registry
 
 #### `Nasty.Statistics.ModelRegistry`
 
-Manage statistical models.
+Manage statistical and neural models.
 
 ```elixir
 # Register a model
 Nasty.Statistics.ModelRegistry.register(:hmm_pos_tagger, model)
+Nasty.Statistics.ModelRegistry.register(:neural_pos_tagger, neural_model)
 
 # Get a model
 {:ok, model} = Nasty.Statistics.ModelRegistry.get(:hmm_pos_tagger)
+{:ok, neural} = Nasty.Statistics.ModelRegistry.get(:neural_pos_tagger)
 
 # List models
 models = Nasty.Statistics.ModelRegistry.list_models()
@@ -386,17 +388,53 @@ models = Nasty.Statistics.ModelRegistry.list_models()
 
 #### `Nasty.Statistics.ModelLoader`
 
-Load and save statistical models.
+Load and save statistical and neural models.
 
 ```elixir
-# Load model from file
-{:ok, model} = Nasty.Statistics.ModelLoader.load("path/to/model.bin")
+# Load HMM model from file
+{:ok, model} = Nasty.Statistics.ModelLoader.load("path/to/model.model")
+
+# Load neural model from file
+{:ok, neural} = Nasty.Statistics.POSTagging.NeuralTagger.load("path/to/model.axon")
 
 # Save model to file
-:ok = Nasty.Statistics.ModelLoader.save(model, "path/to/model.bin")
+:ok = Nasty.Statistics.ModelLoader.save(model, "path/to/model.model")
+:ok = NeuralTagger.save(neural, "path/to/model.axon")
 
 # Load from project
-{:ok, model} = Nasty.Statistics.ModelLoader.load_from_priv("models/hmm.bin")
+{:ok, model} = Nasty.Statistics.ModelLoader.load_from_priv("models/hmm.model")
+```
+
+### Neural Models
+
+#### `Nasty.Statistics.POSTagging.NeuralTagger`
+
+Train and use BiLSTM-CRF neural models for POS tagging.
+
+```elixir
+# Train a neural model
+alias Nasty.Statistics.POSTagging.NeuralTagger
+
+tagger = NeuralTagger.new(
+  vocab: vocab,
+  tag_vocab: tag_vocab,
+  embedding_dim: 300,
+  hidden_size: 256,
+  num_layers: 2
+)
+
+{:ok, trained} = NeuralTagger.train(tagger, training_data,
+  epochs: 10,
+  batch_size: 32,
+  learning_rate: 0.001
+)
+
+# Use neural model for prediction
+{:ok, tags} = NeuralTagger.predict(trained, ["The", "cat", "sat"], [])
+
+# Save/load neural models
+NeuralTagger.save(trained, "model.axon")
+{:ok, loaded} = NeuralTagger.load("model.axon")
 ```
 
 ## Data Layer

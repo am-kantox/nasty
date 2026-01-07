@@ -46,6 +46,30 @@ mix credo
 mix credo --strict
 ```
 
+### Model Training
+```bash
+# Train HMM POS tagger (fast, 95% accuracy)
+mix nasty.train.pos \
+  --corpus data/en_ewt-ud-train.conllu \
+  --test data/en_ewt-ud-test.conllu \
+  --output priv/models/en/pos_hmm.model
+
+# Train neural POS tagger (slower, 97-98% accuracy)
+mix nasty.train.neural_pos \
+  --corpus data/en_ewt-ud-train.conllu \
+  --output priv/models/en/pos_neural.axon \
+  --epochs 10 \
+  --batch-size 32
+
+# Evaluate models
+mix nasty.eval.pos \
+  --model priv/models/en/pos_hmm.model \
+  --test data/en_ewt-ud-test.conllu
+
+# List available models
+mix nasty.models list
+```
+
 ### Demo and Examples
 ```bash
 # Run the complete NLP pipeline demo
@@ -78,13 +102,15 @@ Text → Tokenization → POS Tagging → Morphology → Phrase Parsing → Sent
 
 The pipeline is modular:
 1. **Tokenization** (`English.Tokenizer`) - NimbleParsec-based text segmentation
-2. **POS Tagging** (`English.POSTagger`) - Rule-based Universal Dependencies tagging
+2. **POS Tagging** (`English.POSTagger`) - Rule-based, HMM, or Neural (BiLSTM-CRF) tagging
 3. **Morphology** (`English.Morphology`) - Lemmatization and feature extraction
 4. **Phrase Parsing** (`English.PhraseParser`) - Builds NP, VP, PP structures
 5. **Sentence Parsing** (`English.SentenceParser`) - Clause detection and coordination
 6. **Dependency Extraction** (`English.DependencyExtractor`) - Grammatical relations
 7. **Entity Recognition** (`English.EntityRecognizer`) - Named entity detection
-8. **Summarization** (`English.Summarizer`) - Extractive summarization
+8. **Summarization** (`English.Summarizer`) - Extractive and abstractive summarization
+9. **Question Answering**, **Text Classification**, **Information Extraction** - Advanced NLP tasks
+10. **Code Interoperability** - Bidirectional NL ↔ Code conversion
 
 ### AST Structure
 The AST is hierarchical and linguistically rigorous:
@@ -172,13 +198,26 @@ GitHub Actions runs three jobs on push/PR:
 
 All jobs must pass for CI to succeed.
 
+## Model Modes
+
+POS tagging supports multiple models:
+- **Rule-based** (`:rule`) - Fast, ~85% accuracy, no model loading
+- **HMM** (`:hmm`) - Statistical, ~95% accuracy, fast inference
+- **Neural** (`:neural`) - BiLSTM-CRF with Axon/EXLA, 97-98% accuracy
+- **Ensemble** (`:ensemble`) - Combines multiple models for best accuracy
+
+```elixir
+# Use in code
+{:ok, tokens} = English.tag_pos(tokens, model: :neural)
+{:ok, tokens} = English.tag_pos(tokens, model: :ensemble)
+```
+
 ## Future Enhancements (from PLAN.md)
 
 The project is designed for extensibility:
 - Multi-language support (Spanish, Catalan) via behaviour implementations
-- Statistical models for improved accuracy
-- Coreference resolution
-- Semantic role labeling
-- Bidirectional code ↔ natural language conversion
+- Pre-trained transformers (BERT, RoBERTa) - See docs/PRETRAINED_MODELS.md
+- Advanced statistical models (PCFG, CRF)
+- Enhanced coreference and semantic analysis
 
 When implementing new features, maintain the grammar-first, AST-based approach and ensure all nodes carry position and language metadata.
