@@ -136,26 +136,42 @@ defmodule Nasty.Language.English.SummarizerAdapter do
 end
 ```
 
-### Phase 3: Refactor Implementations (FUTURE)
+### Phase 3: Refactor Implementations (COMPLETED)
+
+✅ **Status**: Complete for Summarization and Entity Recognition
 
 **Goal**: Move language-agnostic logic out of language modules
 
-**Steps for each module**:
-1. Identify truly language-specific code (e.g., English stop words)
-2. Extract generic algorithms to `lib/operations/` or `lib/semantic/`
-3. Keep only language-specific adaptations in language modules
-4. Update adapters to use generic implementations
+**Completed Work**:
+1. ✅ Created `Nasty.Operations.Summarization.Extractive` - Generic extractive summarization
+2. ✅ Created `Nasty.Semantic.EntityRecognition.RuleBased` - Generic rule-based NER
+3. ✅ Refactored `English.Summarizer` to delegate to generic module (69% code reduction)
+4. ✅ Refactored `English.EntityRecognizer` to delegate to generic module (23% code reduction)
+5. ✅ All language-specific logic (lexicons, stop words, patterns) remains in English modules
+6. ✅ All 360 tests passing with no breaking changes
 
-### Phase 4: Extract Generic Algorithms (FUTURE)
+### Phase 4: Extract Generic Algorithms (COMPLETED for 2 modules)
 
-**Goal**: Create reusable algorithm implementations
+✅ **Status**: Complete for Summarization and Entity Recognition
 
-**Examples**:
-- `Nasty.Operations.Summarization.MMR` - MMR algorithm
-- `Nasty.Operations.Summarization.TFIDFScorer` - TF-IDF scoring
-- `Nasty.Semantic.EntityRecognition.RuleBased` - Rule-based NER
+**Extracted Algorithms**:
+- ✅ `Nasty.Operations.Summarization.Extractive` (440 lines)
+  - Position scoring, length scoring, TF-IDF keyword scoring
+  - Entity scoring, discourse marker scoring, coreference scoring
+  - Greedy and MMR selection algorithms
+  - Jaccard similarity for redundancy reduction
+  
+- ✅ `Nasty.Semantic.EntityRecognition.RuleBased` (237 lines)
+  - Sequence detection (finds capitalized token sequences)
+  - Configurable classification framework
+  - Lexicon matching, pattern matching, heuristic classification
+  - Generic entity creation with proper span calculation
 
-These can be mixed into language-specific implementations.
+**Remaining modules** for future phases:
+- [ ] Coreference Resolution
+- [ ] Semantic Role Labeling  
+- [ ] Question Answering
+- [ ] Text Classification
 
 ## Benefits of Refactoring
 
@@ -216,19 +232,24 @@ Nasty.Operations.Summarization.summarize(doc, language: :en)
 ### Operations Layer
 - [x] Create `lib/operations/summarization.ex` behaviour
 - [x] Create `lib/operations/classification.ex` behaviour
+- [x] Create English adapters for operations
+- [x] Extract generic algorithms
+  - [x] `Nasty.Operations.Summarization.Extractive`
 - [ ] Create `lib/operations/question_answering.ex` behaviour
-- [ ] Create English adapters for operations
-- [ ] Extract generic algorithms
+- [ ] Extract remaining generic algorithms
 
 ### Semantic Layer
 - [x] Create `lib/semantic/entity_recognition.ex` behaviour
 - [x] Create `lib/semantic/coreference_resolution.ex` behaviour
+- [x] Create English adapters for semantic operations
+- [x] Extract generic algorithms
+  - [x] `Nasty.Semantic.EntityRecognition.RuleBased`
 - [ ] Create `lib/semantic/semantic_role_labeling.ex` behaviour
-- [ ] Create English adapters for semantic operations
-- [ ] Extract generic algorithms
+- [ ] Extract remaining generic algorithms
 
 ### Documentation
 - [x] Create REFACTORING.md guide
+- [x] Update REFACTORING.md with Phase 3-4 completion
 - [ ] Update ARCHITECTURE.md with new layers
 - [ ] Add migration examples
 - [ ] Document adapter pattern
