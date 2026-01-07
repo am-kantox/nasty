@@ -27,7 +27,7 @@ defmodule Nasty.Statistics.ModelLoader do
       models = ModelLoader.discover_models()
   """
 
-  alias Nasty.Statistics.{ModelRegistry, POSTagging.HMMTagger}
+  alias Nasty.Statistics.{ModelRegistry, POSTagging.HMMTagger, POSTagging.NeuralTagger}
   require Logger
 
   @models_dir "priv/models"
@@ -151,15 +151,19 @@ defmodule Nasty.Statistics.ModelLoader do
     language = String.to_atom(language_dir)
 
     File.ls!(language_path)
-    |> Enum.filter(&String.ends_with?(&1, ".model"))
+    |> Enum.filter(&(String.ends_with?(&1, ".model") or String.ends_with?(&1, ".axon")))
     |> Enum.map(fn model_file ->
       relative_model_path = Path.join([@models_dir, language_dir, model_file])
 
-      # Parse filename: {task}_{model_type}_{version}.model
+      # Parse filename: {task}_{model_type}_{version}.model or .axon
       case parse_model_filename(model_file) do
         {:ok, task, version} ->
           # Check for metadata file
-          meta_file = String.replace(model_file, ".model", ".meta.json")
+          meta_file =
+            model_file
+            |> String.replace(".model", ".meta.json")
+            |> String.replace(".axon", ".meta.json")
+
           meta_path = Path.join(language_path, meta_file)
           relative_meta_path = Path.join([@models_dir, language_dir, meta_file])
 
@@ -180,11 +184,15 @@ defmodule Nasty.Statistics.ModelLoader do
   end
 
   defp parse_model_filename(filename) do
-    # Expected format: {task}_{model_type}_{version}.model
-    # Examples: pos_hmm_v1.model, ner_crf_v2.model
+    # Expected format: {task}_{model_type}_{version}.model or .axon
+    # Examples: pos_hmm_v1.model, pos_neural_v1.axon, ner_crf_v2.model
     case String.split(filename, "_") do
       [task_str, _model_type, version_with_ext] ->
-        version = String.replace(version_with_ext, ".model", "")
+        version =
+          version_with_ext
+          |> String.replace(".model", "")
+          |> String.replace(".axon", "")
+
         task = task_to_atom(task_str)
         {:ok, task, version}
 
@@ -196,6 +204,8 @@ defmodule Nasty.Statistics.ModelLoader do
   defp task_to_atom("pos"), do: :pos_tagging
   defp task_to_atom("ner"), do: :ner
   defp task_to_atom("parsing"), do: :parsing
+  # pos_neural -> pos_tagging_neural
+  defp task_to_atom("pos" <> _), do: :pos_tagging_neural
   defp task_to_atom(other), do: String.to_atom(other)
 
   defp load_and_register(language, task, version) do
@@ -215,11 +225,26 @@ defmodule Nasty.Statistics.ModelLoader do
   defp load_model_from_path(language, task, version, model_path, meta_path) do
     expanded_path = Path.expand(model_path)
 
-    # Determine model loader based on task
+    # Determine model loader based on task and file extension
     loader_module =
-      case task do
-        :pos_tagging -> HMMTagger
-        _ -> nil
+      cond do
+        String.ends_with?(expanded_path, ".axon") ->
+          # Neural model
+          case task do
+            :pos_tagging -> NeuralTagger
+            :pos_tagging_neural -> NeuralTagger
+            _ -> nil
+          end
+
+        String.ends_with?(expanded_path, ".model") ->
+          # Statistical model (HMM, etc.)
+          case task do
+            :pos_tagging -> HMMTagger
+            _ -> nil
+          end
+
+        true ->
+          nil
       end
 
     do_load_model_from_path(loader_module, language, task, version, expanded_path, meta_path)
