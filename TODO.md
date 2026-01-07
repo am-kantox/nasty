@@ -160,6 +160,12 @@ Missing from `examples/`:
 - **Generic operations layer** (`lib/operations/` with Summarization, Classification behaviours) ✅ NEW
 - **Generic semantic layer** (`lib/semantic/` with EntityRecognition, Coreference behaviours) ✅ NEW
 - **Refactoring guide** (`docs/REFACTORING.md` for architecture evolution strategy) ✅ NEW
+- **English adapter modules** (Phase 2: bridge implementations to generic behaviours) ✅ NEW
+  - `lib/language/english/adapters/summarizer_adapter.ex` ✅
+  - `lib/language/english/adapters/entity_recognizer_adapter.ex` ✅
+  - `lib/language/english/adapters/coreference_resolver_adapter.ex` ✅
+  - Comprehensive adapter test suite (`test/language/english/adapters_test.exs`) ✅
+- **Nasty module integration** (uses adapters for behaviour-based operations) ✅ NEW
 
 ### Not Yet Implemented ❌
 
@@ -182,9 +188,18 @@ Missing from `examples/`:
 3. ~~Create `docs/API.md` and `docs/AST_REFERENCE.md`~~ ✅
 4. ~~Support multiple constraints in code generation~~ ✅
 
-### Medium Priority (Architecture Improvements) - ⚡ PARTIALLY COMPLETED (2026-01-07)
-1. ~~Refactor to create generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` layers~~ ✅ (behaviours defined, adapters next)
-2. Extract language-agnostic logic from English implementation (in progress - phase 1 complete)
+### Medium Priority (Architecture Improvements) - ✅ PHASE 1-2 COMPLETED (2026-01-07)
+1. ~~Refactor to create generic `lib/parsing/`, `lib/semantic/`, `lib/operations/` layers~~ ✅
+   - Phase 1: Created behaviour modules (`Operations.Summarization`, `Operations.Classification`, `Semantic.EntityRecognition`, `Semantic.CoreferenceResolution`) ✅
+   - Phase 2: Created adapter modules for English implementations ✅
+     - `English.Adapters.SummarizerAdapter` ✅
+     - `English.Adapters.EntityRecognizerAdapter` ✅
+     - `English.Adapters.CoreferenceResolverAdapter` ✅
+   - Updated `Nasty.summarize/2` to use adapter architecture ✅
+   - All 360 tests passing with adapters ✅
+2. Extract language-agnostic logic from English implementation (Phase 1-2 complete, Phase 3-4 remain)
+   - Next: Gradually extract generic algorithms from adapters
+   - Next: Continue evolution without breaking changes
 3. ~~Create resource files in `priv/languages/english/`~~ ✅ (lexicons done, grammars remain)
 4. ~~Complete documentation suite~~ ✅ (core docs done, 3 advanced docs remain)
 
