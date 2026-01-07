@@ -1,4 +1,5 @@
-# Nasty - Natural Abstract Syntax Treey
+# <img width="96" height="96" alt="logo-96x96" src="https://github.com/user-attachments/assets/c9f17ebf-d426-407d-986f-2cb4d6fb75c4" />
+Nasty → Natural Abstract Syntax Treey
 
 [![CI](https://github.com/am-kantox/nasty/workflows/CI/badge.svg)](https://github.com/am-kantox/nasty/actions)
 [![codecov](https://codecov.io/gh/am-kantox/nasty/branch/main/graph/badge.svg)](https://codecov.io/gh/am-kantox/nasty)
