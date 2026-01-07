@@ -1,19 +1,11 @@
 defmodule Nasty.Language.English.EntityRecognizer do
   @moduledoc """
-  Basic rule-based Named Entity Recognition (NER) for English.
+  Rule-based Named Entity Recognition (NER) for English.
 
-  Uses simple heuristics to identify entities:
-  - Proper nouns (PROPN) as potential entities
-  - Consecutive proper nouns as multi-word entities
-  - Pattern matching for common entity indicators
-  - Lexicon-based classification for known entities
-
-  ## Approach
-
-  This is a simplified, rule-based approach. Production NER systems typically use:
-  - Machine learning models (CRF, LSTM, Transformers)
-  - Large training corpora
-  - Contextual embeddings
+  This module provides English-specific configuration for the generic
+  rule-based entity recognition algorithm. It implements the callbacks
+  required by `Nasty.Semantic.EntityRecognition.RuleBased` and delegates
+  the actual recognition logic to that generic module.
 
   ## Examples
 
@@ -25,105 +17,43 @@ defmodule Nasty.Language.English.EntityRecognizer do
       ]
   """
 
-  alias Nasty.AST.{Node, Token}
-  alias Nasty.AST.Semantic.Entity
+  @behaviour Nasty.Semantic.EntityRecognition.RuleBased
 
-  @doc """
-  Recognizes named entities in a list of POS-tagged tokens.
+  alias Nasty.AST.Token
+  alias Nasty.Semantic.EntityRecognition.RuleBased
 
-  Returns a list of Entity structs.
-  """
-  @spec recognize([Token.t()]) :: [Entity.t()]
-  def recognize(tokens) do
-    tokens
-    |> find_proper_noun_sequences()
-    |> Enum.map(&classify_entity/1)
-    |> Enum.reject(&is_nil/1)
+  # Callbacks for RuleBased behaviour
+
+  @impl true
+  def excluded_pos_tags, do: [:punct, :det, :adp, :verb, :aux]
+
+  @impl true
+  def classification_rules do
+    [
+      {:person, &has_title_prefix?/1},
+      {:gpe, &has_location_suffix?/1},
+      {:org, &has_org_suffix?/1}
+    ]
   end
 
-  # Find sequences of consecutive capitalized words (potential entities)
-  defp find_proper_noun_sequences(tokens) do
-    tokens
-    |> Enum.with_index()
-    # Group by capitalized words (not just PROPN)
-    |> Enum.chunk_by(fn {token, _idx} ->
-      capitalized?(token) && token.pos_tag not in [:punct, :det, :adp, :verb, :aux]
-    end)
-    |> Enum.filter(fn chunk ->
-      case chunk do
-        [{token, _} | _] ->
-          capitalized?(token) && token.pos_tag not in [:punct, :det, :adp, :verb, :aux]
-
-        _ ->
-          false
-      end
-    end)
-    |> Enum.map(fn chunk ->
-      tokens = Enum.map(chunk, fn {token, _idx} -> token end)
-      text = Enum.map_join(tokens, " ", & &1.text)
-
-      first = hd(tokens)
-      last = List.last(tokens)
-
-      span =
-        Node.make_span(
-          first.span.start_pos,
-          first.span.start_offset,
-          last.span.end_pos,
-          last.span.end_offset
-        )
-
-      {text, tokens, span}
-    end)
+  @impl true
+  def lexicon_matchers do
+    %{
+      person: &person_name?/1,
+      gpe: &place_name?/1,
+      org: &organization_name?/1
+    }
   end
 
-  # Check if a token is capitalized
-  defp capitalized?(%Token{text: text}) do
-    first_char = String.first(text)
-    first_char == String.upcase(first_char) && first_char =~ ~r/[A-Z]/
-  end
-
-  # Classify entity type based on heuristics
-  defp classify_entity({text, tokens, span}) do
-    type = determine_entity_type(text, tokens)
-
-    if type do
-      Entity.new(type, text, tokens, span, confidence: 0.7)
-    else
-      nil
-    end
-  end
-
-  # Determine entity type using heuristics
-  defp determine_entity_type(text, tokens) do
+  @impl true
+  def default_classification(tokens) do
     cond do
-      # Check known entity lexicons
-      person_name?(text) ->
-        :person
-
-      place_name?(text) ->
-        :gpe
-
-      organization_name?(text) ->
-        :org
-
-      # Pattern-based heuristics
-      has_title_prefix?(tokens) ->
-        :person
-
-      has_location_suffix?(text) ->
-        :gpe
-
-      has_org_suffix?(text) ->
-        :org
-
-      # Default heuristics based on word count and capitalization
-      length(tokens) >= 2 && all_capitalized?(tokens) ->
-        # Multi-word capitalized phrase - likely person or org
+      # Multi-word capitalized phrase - likely person or org
+      length(tokens) >= 2 && RuleBased.all_capitalized?(tokens) ->
         if looks_like_person_name?(tokens), do: :person, else: :org
 
+      # Single proper noun - could be anything, default to person
       length(tokens) == 1 ->
-        # Single proper noun - could be anything, default to person
         :person
 
       true ->
@@ -131,15 +61,28 @@ defmodule Nasty.Language.English.EntityRecognizer do
     end
   end
 
+  @doc """
+  Recognizes named entities in a list of POS-tagged tokens.
+
+  Returns a list of Entity structs.
+  """
+  @spec recognize([Token.t()]) :: [Nasty.AST.Semantic.Entity.t()]
+  def recognize(tokens) do
+    # Delegate to generic rule-based algorithm
+    RuleBased.recognize(__MODULE__, tokens)
+  end
+
+  # English-specific pattern matching functions
+
   # Check if tokens have title prefix (Mr., Dr., etc.)
-  defp has_title_prefix?([first | _rest]) do
+  defp has_title_prefix?({_text, [first | _rest]}) do
     String.downcase(first.text) in ~w(mr mrs ms dr prof sir)
   end
 
   defp has_title_prefix?(_), do: false
 
   # Check if text ends with location suffix
-  defp has_location_suffix?(text) do
+  defp has_location_suffix?({text, _tokens}) do
     String.ends_with?(String.downcase(text), [
       " city",
       " town",
@@ -156,7 +99,7 @@ defmodule Nasty.Language.English.EntityRecognizer do
   end
 
   # Check if text ends with organization suffix
-  defp has_org_suffix?(text) do
+  defp has_org_suffix?({text, _tokens}) do
     String.ends_with?(String.downcase(text), [
       " inc",
       " corp",
@@ -173,14 +116,6 @@ defmodule Nasty.Language.English.EntityRecognizer do
       " committee",
       " department"
     ])
-  end
-
-  # Check if all tokens are capitalized
-  defp all_capitalized?(tokens) do
-    Enum.all?(tokens, fn token ->
-      first_char = String.first(token.text)
-      first_char == String.upcase(first_char)
-    end)
   end
 
   # Heuristic: person names typically have 2-3 words
