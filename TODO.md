@@ -17,11 +17,15 @@ Currently, parsing logic is in `lib/language/english/`. Need to extract:
 - `sentence_parser.ex` - Sentence parsing (exists in `language/english/` instead)
 
 #### `lib/semantic/` - Language-agnostic semantic layer
-Currently, semantic logic is in `lib/language/english/`. Need to extract:
-- `ner.ex` - Named entity recognition (exists in `language/english/entity_recognizer.ex` instead)
-- `srl.ex` - Semantic role labeling (exists in `language/english/semantic_role_labeler.ex` instead)
-- `coref.ex` - Coreference resolution (exists in `language/english/coreference_resolver.ex` instead)
-- `disambiguation.ex` - **Word sense disambiguation (NOT IMPLEMENTED)**
+Partially implemented:
+- `entity_recognition.ex` - Behaviour and `RuleBased` implementation ✅
+- `coreference_resolution.ex` - Behaviour (generic extraction pending)
+- `word_sense_disambiguation.ex` - Lesk algorithm implementation ✅
+- Language-specific implementations remain in `lib/language/english/`:
+  - `entity_recognizer.ex` (delegates to generic)
+  - `semantic_role_labeler.ex`
+  - `coreference_resolver.ex`
+  - `word_sense_disambiguator.ex` (delegates to generic)
 
 #### `lib/operations/` - Language-agnostic NLP operations
 Currently, operations are in `lib/language/english/`. Need to extract:
@@ -80,19 +84,21 @@ From PLAN.md lines 888-897:
 ### 6. Advanced Features (Future Directions, PLAN.md lines 1048-1061)
 
 #### Abstractive Summarization
-- PLAN.md lines 992-993, 1056
-- Currently only extractive summarization is implemented
-- Need attention-based abstractive models
+- ✅ Template-based abstractive summarization IMPLEMENTED (2026-01-07)
+- `lib/operations/summarization/abstractive.ex` and `lib/language/english/abstractive_summarizer.ex`
+- Neural attention-based models remain a future enhancement (see `docs/FUTURE_FEATURES.md`)
 
 #### Advanced Statistical Models
-- **PCFG parser** for phrase structure (line 1053)
-- **CRF for named entity recognition** (line 1054)
-- **Neural models** for improved accuracy (line 1055)
+- **PCFG parser** for phrase structure (line 1053) - documented in `docs/FUTURE_FEATURES.md`
+- **CRF for named entity recognition** (line 1054) - documented in `docs/FUTURE_FEATURES.md`
+- **Neural models** for improved accuracy (line 1055) - documented in `docs/FUTURE_FEATURES.md`
 
 #### Additional NLP Capabilities
-- **Word sense disambiguation** - Mentioned in semantic layer but not implemented
-- **Dialogue systems** (line 1057) - Conversational context tracking
-- **Formal semantics** (line 1059) - Lambda calculus representation for logical inference
+- ✅ **Word sense disambiguation** IMPLEMENTED (2026-01-07)
+  - `lib/semantic/word_sense_disambiguation.ex` - Lesk algorithm framework
+  - `lib/language/english/word_sense_disambiguator.ex` - English implementation
+- **Dialogue systems** (line 1057) - documented in `docs/FUTURE_FEATURES.md`
+- **Formal semantics** (line 1059) - documented in `docs/FUTURE_FEATURES.md`
 - **Code understanding** (line 1058) - Full program comprehension and explanation
 
 #### Integration
@@ -177,18 +183,24 @@ Missing from `examples/`:
   - Sequence detection and classification framework ✅
   - Configurable lexicons, patterns, and heuristics ✅
   - Refactored `English.EntityRecognizer` to delegate (23% code reduction) ✅
+- **Abstractive summarization** (template-based fact extraction and generation) ✅ NEW
+  - `lib/operations/summarization/abstractive.ex` (257 lines) ✅
+  - `lib/language/english/abstractive_summarizer.ex` (91 lines) ✅
+  - Extracts semantic facts, ranks by importance, generates fluent summaries ✅
+- **Word sense disambiguation** (Lesk algorithm for context-based sense selection) ✅ NEW
+  - `lib/semantic/word_sense_disambiguation.ex` (188 lines) ✅
+  - `lib/language/english/word_sense_disambiguator.ex` (168 lines) ✅
+  - Context window analysis, weighted scoring, ready for WordNet integration ✅
 
 ### Not Yet Implemented ❌
 
 - Multi-language support (Spanish, Catalan)
-- Word sense disambiguation
-- Abstractive summarization
-- Advanced statistical models (PCFG, CRF, neural)
+- Advanced statistical models (PCFG, CRF, neural) - documented in `docs/FUTURE_FEATURES.md`
 - Remaining documentation (3 of 13 docs missing)
 - Grammar resource files in priv/ (phrase rules, dependency rules)
 - Complete generic algorithm extraction (remaining modules: coreference, SRL, QA, classification)
-- Dialogue systems
-- Formal semantics / Lambda calculus
+- Dialogue systems - documented in `docs/FUTURE_FEATURES.md`
+- Formal semantics / Lambda calculus - documented in `docs/FUTURE_FEATURES.md`
 - Full Ragex integration
 
 ## Priority Recommendations
@@ -225,11 +237,23 @@ Missing from `examples/`:
 ### Low Priority (Future Features)
 1. Spanish language implementation
 2. Catalan language implementation
-3. Abstractive summarization
-4. Word sense disambiguation
-5. Advanced statistical models (PCFG, CRF, neural)
-6. Dialogue systems
-7. Formal semantics
+3. ~~Abstractive summarization~~ ✅ COMPLETED (2026-01-07)
+   - `lib/operations/summarization/abstractive.ex` (257 lines) - Generic template-based framework ✅
+   - `lib/language/english/abstractive_summarizer.ex` (91 lines) - English implementation ✅
+   - Extracts semantic facts (subject-verb-object tuples), ranks by importance, generates fluent summaries ✅
+4. ~~Word sense disambiguation~~ ✅ COMPLETED (2026-01-07)
+   - `lib/semantic/word_sense_disambiguation.ex` (188 lines) - Lesk algorithm framework ✅
+   - `lib/language/english/word_sense_disambiguator.ex` (168 lines) - English with sample dictionary ✅
+   - Context-based sense selection, ready for WordNet integration ✅
+5. Advanced statistical models (PCFG, CRF, neural) - DOCUMENTED IN `docs/FUTURE_FEATURES.md`
+   - Requires external integration (training data, optimization libraries, or NIFs)
+   - See FUTURE_FEATURES.md for detailed implementation plans
+6. Dialogue systems - DOCUMENTED IN `docs/FUTURE_FEATURES.md`
+   - Requires dialogue corpus, state tracking, multi-turn context management
+   - See FUTURE_FEATURES.md for architecture plan
+7. Formal semantics - DOCUMENTED IN `docs/FUTURE_FEATURES.md`
+   - Requires lambda calculus, compositional semantics, inference engine
+   - See FUTURE_FEATURES.md for design overview
 
 ## Notes
 
