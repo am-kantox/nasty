@@ -564,6 +564,13 @@ defmodule Nasty.AST.Semantic.Mention do
   def proper_name?(_), do: false
 
   @doc """
+  Checks if mention is a definite noun phrase.
+  """
+  @spec definite_np?(t()) :: boolean()
+  def definite_np?(%__MODULE__{type: :definite_np}), do: true
+  def definite_np?(_), do: false
+
+  @doc """
   Checks if gender agreement holds between two mentions.
   """
   @spec gender_agrees?(t(), t()) :: boolean()
