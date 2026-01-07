@@ -288,29 +288,47 @@ defmodule Nasty.Interop.CodeGen.Elixir do
   defp build_filter_predicate([]), do: quote(do: fn item -> true end)
 
   defp build_filter_predicate(constraints) do
-    # Build predicate from first constraint (TODO: support multiple constraints)
-    condition =
-      case hd(constraints) do
-        {:comparison, :greater_than, value} ->
-          quote do: item > unquote(value)
+    # Build condition from all constraints combined with AND logic
+    conditions =
+      Enum.map(constraints, fn constraint ->
+        case constraint do
+          {:comparison, :greater_than, value} ->
+            quote do: item > unquote(value)
 
-        {:comparison, :less_than, value} ->
-          quote do: item < unquote(value)
+          {:comparison, :less_than, value} ->
+            quote do: item < unquote(value)
 
-        {:comparison, :greater_equal, value} ->
-          quote do: item >= unquote(value)
+          {:comparison, :greater_equal, value} ->
+            quote do: item >= unquote(value)
 
-        {:comparison, :less_equal, value} ->
-          quote do: item <= unquote(value)
+          {:comparison, :less_equal, value} ->
+            quote do: item <= unquote(value)
 
-        {:equality, value} ->
-          quote do: item == unquote(value)
+          {:equality, value} ->
+            quote do: item == unquote(value)
 
-        _ ->
-          quote do: true
-      end
+          {:inequality, value} ->
+            quote do: item != unquote(value)
 
-    quote do: fn item -> unquote(condition) end
+          _ ->
+            quote do: true
+        end
+      end)
+
+    # Combine all conditions with AND
+    combined_condition = combine_conditions_with_and(conditions)
+
+    quote do: fn item -> unquote(combined_condition) end
+  end
+
+  # Helper: Combine multiple conditions with AND logic
+  defp combine_conditions_with_and([]), do: quote(do: true)
+  defp combine_conditions_with_and([single]), do: single
+
+  defp combine_conditions_with_and([first | rest]) do
+    Enum.reduce(rest, first, fn condition, acc ->
+      quote do: unquote(acc) and unquote(condition)
+    end)
   end
 
   # Helper: Build map transformation

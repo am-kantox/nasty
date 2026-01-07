@@ -59,6 +59,9 @@ defmodule Nasty do
   - Phase 1: Universal AST schema and English implementation
   """
 
+  alias Nasty.Interop.CodeGen.Explain
+  alias Nasty.Language.{English, English.Summarizer}
+
   @doc """
   Returns the version and implementation status.
 
@@ -129,6 +132,139 @@ defmodule Nasty do
     case Nasty.Language.Registry.get(language_code) do
       {:ok, module} -> module.render(ast, opts)
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Summarizes a document by extracting important sentences.
+
+  ## Parameters
+
+    - `text_or_ast`: Text string or AST Document to summarize
+    - `opts`: Keyword options
+      - `:language` - Language code (`:en`, `:es`, `:ca`, etc.) (required if text)
+      - `:ratio` - Compression ratio (0.0 to 1.0), default 0.3
+      - `:max_sentences` - Maximum number of sentences in summary
+      - `:method` - Selection method: `:greedy` or `:mmr` (default: `:greedy`)
+
+  ## Examples
+
+      {:ok, summary} = Nasty.summarize(text, language: :en, ratio: 0.3)
+      
+      # Or with AST directly
+      {:ok, ast} = Nasty.parse(text, language: :en)
+      {:ok, summary} = Nasty.summarize(ast, max_sentences: 3)
+
+  ## Returns
+
+    - `{:ok, [%Sentence{}]}` - List of extracted sentences
+    - `{:error, reason}` - Error
+  """
+  @spec summarize(String.t() | struct(), keyword()) :: {:ok, [struct()]} | {:error, term()}
+  def summarize(text_or_ast, opts \\ [])
+
+  def summarize(text, opts) when is_binary(text) do
+    with {:ok, ast} <- parse(text, opts) do
+      summarize(ast, opts)
+    end
+  end
+
+  def summarize(%Nasty.AST.Document{language: language} = document, opts) do
+    case Nasty.Language.Registry.get(language) do
+      {:ok, Nasty.Language.English} ->
+        {:ok, Summarizer.summarize(document, opts)}
+
+      {:ok, _module} ->
+        {:error, :summarization_not_supported}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def summarize(_, _opts), do: {:error, :invalid_input}
+
+  @doc """
+  Converts natural language text to code.
+
+  ## Parameters
+
+    - `text`: Natural language description of what the code should do
+    - `opts`: Keyword options
+      - `:source_language` - Source natural language (`:en`, etc.) (required)
+      - `:target_language` - Target programming language (`:elixir`, etc.) (required)
+
+  ## Examples
+
+      {:ok, code} = Nasty.to_code("Sort the list", 
+        source_language: :en, 
+        target_language: :elixir
+      )
+      # => "Enum.sort(list)"
+
+  ## Returns
+
+    - `{:ok, code_string}` - Generated code
+    - `{:error, reason}` - Error
+  """
+  @spec to_code(String.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
+  def to_code(text, opts \\ []) do
+    source_language = Keyword.get(opts, :source_language)
+    target_language = Keyword.get(opts, :target_language)
+
+    cond do
+      is_nil(source_language) ->
+        {:error, :source_language_required}
+
+      is_nil(target_language) ->
+        {:error, :target_language_required}
+
+      source_language == :en and target_language == :elixir ->
+        English.to_code(text, opts)
+
+      true ->
+        {:error, {:unsupported_language_pair, source_language, target_language}}
+    end
+  end
+
+  @doc """
+  Generates natural language explanation from code.
+
+  ## Parameters
+
+    - `code`: Code string or AST to explain
+    - `opts`: Keyword options
+      - `:source_language` - Programming language (`:elixir`, etc.) (required)
+      - `:target_language` - Target natural language (`:en`, etc.) (required)
+      - `:style` - Explanation style: `:concise` or `:verbose` (default: `:concise`)
+
+  ## Examples
+
+      {:ok, explanation} = Nasty.explain_code("Enum.sort(list)",
+        source_language: :elixir,
+        target_language: :en
+      )
+      # => "Sort list"
+
+  ## Returns
+
+    - `{:ok, explanation_string}` - Natural language explanation
+    - `{:error, reason}` - Error
+  """
+  @spec explain_code(String.t() | Macro.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
+  def explain_code(code, opts \\ []) do
+    source_language = Keyword.get(opts, :source_language)
+    target_language = Keyword.get(opts, :target_language, :en)
+
+    cond do
+      is_nil(source_language) ->
+        {:error, :source_language_required}
+
+      source_language == :elixir and target_language == :en ->
+        Explain.explain_code(code, Keyword.put(opts, :language, :en))
+
+      true ->
+        {:error, {:unsupported_language_pair, source_language, target_language}}
     end
   end
 
