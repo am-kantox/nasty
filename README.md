@@ -471,12 +471,33 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ## Statistical & Neural Models
 
-Nasty includes both statistical and neural network models for state-of-the-art accuracy:
+Nasty includes comprehensive statistical and neural network models for state-of-the-art NLP:
 
 ### Statistical Models
+
+#### Sequence Labeling
 - **HMM POS Tagger**: Hidden Markov Model with Viterbi decoding (~95% accuracy)
-- **Naive Bayes Classifier**: For text classification tasks
-- Fast inference, low memory footprint
+- **CRF (Conditional Random Fields)**: Feature-based sequence labeling
+  - Named Entity Recognition
+  - POS tagging
+  - Chunking and segmentation
+  - Forward-backward algorithm for training
+  - Viterbi decoding for prediction
+  - Multiple optimization methods (SGD, Momentum, AdaGrad)
+
+#### Parsing
+- **PCFG (Probabilistic Context-Free Grammar)**: Statistical phrase structure parsing
+  - CYK algorithm for efficient parsing
+  - Grammar learning from treebanks
+  - Chomsky Normal Form (CNF) conversion
+  - Smoothing and probability estimation
+  - Beam search for pruning
+
+#### Classification
+- **Naive Bayes Classifier**: Fast text classification
+  - Multiple feature types (BOW, n-grams, POS patterns)
+  - Laplace smoothing
+  - Multi-class support
 
 ### Neural Models
 - **BiLSTM-CRF**: Bidirectional LSTM with CRF for sequence tagging (97-98% accuracy)
@@ -485,7 +506,7 @@ Nasty includes both statistical and neural network models for state-of-the-art a
 - **Training infrastructure**: Train custom models on your own data
 - **Evaluation metrics**: Accuracy, precision, recall, F1, confusion matrices
 
-See [NEURAL_MODELS.md](docs/NEURAL_MODELS.md) for neural architecture details, [TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md) for training guide, and [PRETRAINED_MODELS.md](docs/PRETRAINED_MODELS.md) for transformer support (planned).
+See [STATISTICAL_MODELS.md](docs/STATISTICAL_MODELS.md) for complete reference, [NEURAL_MODELS.md](docs/NEURAL_MODELS.md) for neural architecture details, [TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md) for training guide, and [PRETRAINED_MODELS.md](docs/PRETRAINED_MODELS.md) for transformer support (planned).
 
 ### Quick Start: Model Management
 
@@ -493,38 +514,65 @@ See [NEURAL_MODELS.md](docs/NEURAL_MODELS.md) for neural architecture details, [
 # List available models
 mix nasty.models list
 
-# Train HMM model (fast, 95% accuracy)
+# Train HMM POS tagger (fast, 95% accuracy)
 mix nasty.train.pos \
   --corpus data/UD_English-EWT/en_ewt-ud-train.conllu \
   --test data/UD_English-EWT/en_ewt-ud-test.conllu \
   --output priv/models/en/pos_hmm_v1.model
 
-# Train neural model (slower, 97-98% accuracy)
+# Train neural POS tagger (slower, 97-98% accuracy)
 mix nasty.train.neural_pos \
   --corpus data/UD_English-EWT/en_ewt-ud-train.conllu \
   --output priv/models/en/pos_neural_v1.axon \
   --epochs 10 \
   --batch-size 32
 
-# Evaluate model
+# Train CRF for NER
+mix nasty.train.crf \
+  --corpus data/train.conllu \
+  --test data/test.conllu \
+  --output priv/models/en/ner_crf.model \
+  --task ner \
+  --iterations 100
+
+# Train PCFG parser
+mix nasty.train.pcfg \
+  --corpus data/en_ewt-ud-train.conllu \
+  --test data/en_ewt-ud-test.conllu \
+  --output priv/models/en/pcfg.model \
+  --smoothing 0.001
+
+# Evaluate models
 mix nasty.eval.pos \
   --model priv/models/en/pos_hmm_v1.model \
   --test data/UD_English-EWT/en_ewt-ud-test.conllu \
   --baseline
+
+mix nasty.eval \
+  --model priv/models/en/ner_crf.model \
+  --test data/test.conllu \
+  --type crf \
+  --task ner
+
+mix nasty.eval \
+  --model priv/models/en/pcfg.model \
+  --test data/test.conllu \
+  --type pcfg
 ```
 
 ## Future Enhancements
 
 - [x] Statistical models for improved accuracy (HMM POS tagger - done!)
 - [x] Neural models (BiLSTM-CRF POS tagger with 97-98% accuracy - done!)
+- [x] PCFG parser for phrase structure (done!)
+- [x] CRF for named entity recognition (done!)
 - [x] Semantic role labeling (rule-based SRL - done!)
 - [x] Coreference resolution (heuristic-based - done!)
 - [x] Question answering (extractive QA - done!)
 - [x] Information extraction (relations, events, templates - done!)
 - [x] Code ↔ NL bidirectional conversion (done!)
 - [ ] Pre-trained transformers (BERT, RoBERTa via Bumblebee - planned)
-- [ ] PCFG parser for phrase structure
-- [ ] CRF for named entity recognition  
+- [ ] Integration of PCFG/CRF with main pipeline
 - [ ] Multi-language support (Spanish, Catalan)
 - [ ] Advanced coreference (neural models)
 
