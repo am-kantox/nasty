@@ -118,9 +118,10 @@ All critical features for the initial release have been implemented.
 
 ### 3. Advanced Statistical Models ✅
 
-**Status**: ✅ Implemented  
+**Status**: ✅ Fully Implemented and Integrated  
 **Effort**: Medium-Large (3-5 weeks each)  
-**Reference**: `docs/STATISTICAL_MODELS.md`
+**Reference**: `docs/STATISTICAL_MODELS.md`  
+**Completed**: 2026-01-07
 
 #### PCFG (Probabilistic Context-Free Grammar) Parser ✅
 
@@ -128,17 +129,21 @@ All critical features for the initial release have been implemented.
 
 **Implementation**:
 - ✅ `lib/statistics/parsing/grammar.ex` - Rule representation and CNF conversion
-- ✅ `lib/statistics/parsing/cyk_parser.ex` - CYK parsing algorithm
+- ✅ `lib/statistics/parsing/cyk_parser.ex` - CYK parsing algorithm  
 - ✅ `lib/statistics/parsing/pcfg.ex` - Main PCFG model
 - ✅ Grammar rule learning from treebanks
 - ✅ Viterbi-style best parse selection
 - ✅ Add-k smoothing for unseen rules
+- ✅ Mix tasks: `mix nasty.train.pcfg`, `mix nasty.eval --type pcfg`
+- ✅ Integration: `English.parse(tokens, model: :pcfg)`
+- ✅ Comprehensive test suite
 
 **Benefits**:
 - ✅ Better ambiguity resolution with probabilities
 - ✅ Confidence scores on parse trees
 - ✅ More accurate phrase structure
 - ✅ N-best parsing support
+- ✅ Graceful fallback to rule-based parsing
 
 **Performance**:
 - Bracketing F1: 85-90% (expected)
@@ -156,12 +161,16 @@ All critical features for the initial release have been implemented.
 - ✅ `lib/statistics/sequence_labeling/crf.ex` - Main CRF model
 - ✅ Forward-backward algorithm for training
 - ✅ BIO tagging scheme support
+- ✅ Mix tasks: `mix nasty.train.crf`, `mix nasty.eval --type crf`
+- ✅ Integration: `EntityRecognizer.recognize(tokens, model: :crf)`
+- ✅ Comprehensive test suite
 
 **Benefits**:
 - ✅ Significantly better NER accuracy (92-95% F1 vs 70-80% rule-based)
 - ✅ Proper entity boundary detection
 - ✅ Context-aware predictions with rich features
 - ✅ Confidence scores
+- ✅ Graceful fallback to rule-based NER
 
 **Performance**:
 - Entity F1: 92-95% (expected on CoNLL-2003)

@@ -823,6 +823,13 @@ alias Nasty.Language.English
 
 # Ensemble mode (combines neural + HMM + rule-based)
 {:ok, tagged} = English.tag_pos(tokens, model: :ensemble)
+
+# PCFG statistical parsing
+{:ok, document} = English.parse(tagged, model: :pcfg)
+
+# CRF-based named entity recognition
+alias Nasty.Language.English.EntityRecognizer
+entities = EntityRecognizer.recognize(tagged, model: :crf)
 ```
 
 ### Training Custom Models
@@ -836,26 +843,54 @@ wget https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-4611/u
 # Extract
 tar -xzf ud-treebanks-v2.10.tgz
 
-# Train HMM model (fast, 95% accuracy)
+# Train HMM POS tagger (fast, 95% accuracy)
 mix nasty.train.pos \
   --corpus ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-train.conllu \
   --test ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-test.conllu \
   --output priv/models/en/my_hmm_model.model
 
-# Train neural model (slower, 97-98% accuracy)
+# Train neural POS tagger (slower, 97-98% accuracy)
 mix nasty.train.neural_pos \
   --corpus ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-train.conllu \
   --output priv/models/en/my_neural_model.axon \
   --epochs 10 \
   --batch-size 32
 
-# Evaluate
+# Train PCFG parser
+mix nasty.train.pcfg \
+  --corpus ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-train.conllu \
+  --test ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-test.conllu \
+  --output priv/models/en/my_pcfg.model \
+  --smoothing 0.001
+
+# Train CRF for named entity recognition
+mix nasty.train.crf \
+  --corpus data/ner_train.conllu \
+  --test data/ner_test.conllu \
+  --output priv/models/en/my_crf_ner.model \
+  --task ner \
+  --iterations 100
+
+# Evaluate models
 mix nasty.eval.pos \
   --model priv/models/en/my_hmm_model.model \
   --test ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-test.conllu
+
+mix nasty.eval \
+  --model priv/models/en/my_pcfg.model \
+  --test ud-treebanks-v2.10/UD_English-EWT/en_ewt-ud-test.conllu \
+  --type pcfg
+
+mix nasty.eval \
+  --model priv/models/en/my_crf_ner.model \
+  --test data/ner_test.conllu \
+  --type crf \
+  --task ner
 ```
 
-For detailed neural model training instructions, see [TRAINING_NEURAL.md](TRAINING_NEURAL.md).
+For detailed training instructions:
+- Neural models: [TRAINING_NEURAL.md](TRAINING_NEURAL.md)
+- PCFG and CRF models: [STATISTICAL_MODELS.md](STATISTICAL_MODELS.md)
 
 ### Model Management
 

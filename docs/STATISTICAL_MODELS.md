@@ -125,12 +125,14 @@ metrics = PCFG.evaluate(model, test_data)
 mix nasty.train.pcfg \
   --corpus data/en_ewt-ud-train.conllu \
   --output priv/models/en/pcfg.model \
-  --smoothing 0.001
+  --smoothing 0.001 \
+  --test data/en_ewt-ud-test.conllu
 
 # Evaluate PCFG
-mix nasty.eval.pcfg \
+mix nasty.eval \
   --model priv/models/en/pcfg.model \
-  --test data/en_ewt-ud-test.conllu
+  --test data/en_ewt-ud-test.conllu \
+  --type pcfg
 ```
 
 ## CRF (Conditional Random Fields)
@@ -288,17 +290,21 @@ Momentum: v := momentum * v + gradient
 
 ```bash
 # Train CRF NER
-mix nasty.train.crf_ner \
+mix nasty.train.crf \
   --corpus data/ner_train.conllu \
   --output priv/models/en/crf_ner.model \
+  --task ner \
   --iterations 100 \
   --learning-rate 0.1 \
-  --regularization 1.0
+  --regularization 1.0 \
+  --test data/ner_test.conllu
 
 # Evaluate NER
-mix nasty.eval.ner \
+mix nasty.eval \
   --model priv/models/en/crf_ner.model \
-  --test data/ner_test.conllu
+  --test data/ner_test.conllu \
+  --type crf \
+  --task ner
 ```
 
 ## Integration with English Pipeline
@@ -307,18 +313,66 @@ Both models integrate seamlessly with the existing English module:
 
 ### PCFG Integration
 
+The PCFG parser is integrated into `Nasty.Language.English.SentenceParser`:
+
 ```elixir
-# Mode selection
-English.parse(tokens, mode: :pcfg, model_path: "priv/models/en/pcfg.model")
-# Falls back to rule-based if mode not specified
+# Use PCFG parsing
+{:ok, tokens} = English.tokenize(text)
+{:ok, tagged} = English.tag_pos(tokens)
+{:ok, document} = English.parse(tagged, model: :pcfg)
+
+# Or directly with SentenceParser
+alias Nasty.Language.English.SentenceParser
+{:ok, sentences} = SentenceParser.parse_sentences(tokens, model: :pcfg)
+
+# With specific model (bypasses registry lookup)
+{:ok, pcfg_model} = PCFG.load("path/to/model.pcfg")
+{:ok, sentences} = SentenceParser.parse_sentences(tokens, 
+  model: :pcfg, 
+  pcfg_model: pcfg_model
+)
+
+# Falls back to rule-based if :model option not specified or model unavailable
+{:ok, document} = English.parse(tagged)  # Uses rule-based parsing
 ```
 
 ### CRF Integration
 
+The CRF model is integrated into `Nasty.Language.English.EntityRecognizer`:
+
 ```elixir
-# Mode selection for NER
-English.recognize_entities(tokens, mode: :crf, model_path: "priv/models/en/crf_ner.model")
-# Falls back to rule-based if mode not specified or model unavailable
+# Use CRF for NER
+alias Nasty.Language.English.EntityRecognizer
+
+{:ok, tokens} = English.tokenize(text)
+{:ok, tagged} = English.tag_pos(tokens)
+
+# CRF-based entity recognition
+entities = EntityRecognizer.recognize(tagged, model: :crf)
+
+# With specific model (bypasses registry lookup)
+{:ok, crf_model} = CRF.load("path/to/model.crf")
+entities = EntityRecognizer.recognize(tagged, 
+  model: :crf,
+  crf_model: crf_model
+)
+
+# Falls back to rule-based if :model option not specified or model unavailable
+entities = EntityRecognizer.recognize(tagged)  # Uses rule-based NER
+```
+
+### Model Registry
+
+Both integrations use `Nasty.Statistics.ModelLoader` to automatically load models:
+
+```elixir
+# Models are loaded from the registry by task and language
+# PCFG: ModelLoader.load_latest(:en, :pcfg)
+# CRF:  ModelLoader.load_latest(:en, :ner_crf)
+
+# Models should be saved with proper naming:
+# priv/models/en/pcfg_v1.model
+# priv/models/en/ner_crf_v1.model
 ```
 
 ## Performance Expectations
