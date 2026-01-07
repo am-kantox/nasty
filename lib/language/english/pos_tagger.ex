@@ -20,7 +20,7 @@ defmodule Nasty.Language.English.POSTagger do
   """
 
   alias Nasty.AST.Token
-  alias Nasty.Statistics.{ModelLoader, POSTagging.HMMTagger}
+  alias Nasty.Statistics.{ModelLoader, POSTagging.HMMTagger, POSTagging.NeuralTagger}
   require Logger
 
   @doc """
@@ -30,13 +30,16 @@ defmodule Nasty.Language.English.POSTagger do
   1. Lexical lookup for known words (determiners, pronouns, etc.)
   2. Morphological patterns (suffixes for verbs, nouns, adjectives)
   3. Context rules (e.g., word after determiner is likely a noun)
+  4. Statistical models (HMM)
+  5. Neural models (BiLSTM-CRF)
 
   ## Parameters
 
     - `tokens` - List of Token structs (from tokenizer)
     - `opts` - Options
-      - `:model` - Model type: `:rule_based` (default), `:hmm`, `:ensemble`
-      - `:hmm_model` - Trained HMM model (required if model is :hmm or :ensemble)
+      - `:model` - Model type: `:rule_based` (default), `:hmm`, `:neural`, `:ensemble`, `:neural_ensemble`
+      - `:hmm_model` - Trained HMM model (optional)
+      - `:neural_model` - Trained neural model (optional)
 
   ## Returns
 
@@ -53,8 +56,14 @@ defmodule Nasty.Language.English.POSTagger do
       :hmm ->
         tag_pos_hmm(tokens, opts)
 
+      :neural ->
+        tag_pos_neural(tokens, opts)
+
       :ensemble ->
         tag_pos_ensemble(tokens, opts)
+
+      :neural_ensemble ->
+        tag_pos_neural_ensemble(tokens, opts)
 
       _ ->
         {:error, {:unknown_model_type, model_type}}
@@ -128,6 +137,59 @@ defmodule Nasty.Language.English.POSTagger do
   end
 
   @doc """
+  Neural POS tagging using BiLSTM-CRF.
+
+  If no model is provided via `:neural_model` option, attempts to load
+  the latest neural POS tagging model from the registry. Falls back
+  to HMM or rule-based tagging if no model is available.
+  """
+  def tag_pos_neural(tokens, opts) do
+    neural_model =
+      case Keyword.get(opts, :neural_model) do
+        nil ->
+          # Try to load from registry
+          case ModelLoader.load_latest(:en, :pos_tagging_neural) do
+            {:ok, model} ->
+              Logger.debug("Loaded neural POS model from registry")
+              model
+
+            {:error, :not_found} ->
+              Logger.warning(
+                "No neural POS model found. Falling back to HMM tagging. " <>
+                  "Train a model using: mix nasty.train.neural.pos"
+              )
+
+              nil
+          end
+
+        model ->
+          model
+      end
+
+    case neural_model do
+      nil ->
+        # Fallback to HMM
+        tag_pos_hmm(tokens, opts)
+
+      model ->
+        words = Enum.map(tokens, & &1.text)
+
+        case NeuralTagger.predict(model, words, []) do
+          {:ok, tags} ->
+            tagged =
+              Enum.zip(tokens, tags)
+              |> Enum.map(fn {token, tag} -> %{token | pos_tag: tag} end)
+
+            {:ok, tagged}
+
+          {:error, reason} ->
+            Logger.warning("Neural tagging failed: #{inspect(reason)}, falling back to HMM")
+            tag_pos_hmm(tokens, opts)
+        end
+    end
+  end
+
+  @doc """
   Ensemble POS tagging combining rule-based and HMM.
 
   Uses HMM predictions but falls back to rule-based for punctuation
@@ -145,6 +207,33 @@ defmodule Nasty.Language.English.POSTagger do
 
           {_rule_token, hmm_token} ->
             hmm_token
+        end)
+
+      {:ok, ensemble_tokens}
+    end
+  end
+
+  @doc """
+  Neural ensemble POS tagging combining neural, HMM, and rule-based models.
+
+  Uses neural predictions as primary, with fallback chain:
+  neural -> HMM -> rule-based
+
+  Prefers rule-based for high-confidence cases like punctuation and numbers.
+  """
+  def tag_pos_neural_ensemble(tokens, opts) do
+    with {:ok, rule_tokens} <- tag_pos_rule_based(tokens),
+         {:ok, neural_tokens} <- tag_pos_neural(tokens, opts) do
+      # Prefer rule-based for punctuation and numbers, otherwise use neural
+      ensemble_tokens =
+        Enum.zip(rule_tokens, neural_tokens)
+        |> Enum.map(fn
+          {%{pos_tag: pos_tag} = rule_token, _neural_token}
+          when pos_tag in [:punct, :num] ->
+            rule_token
+
+          {_rule_token, neural_token} ->
+            neural_token
         end)
 
       {:ok, ensemble_tokens}

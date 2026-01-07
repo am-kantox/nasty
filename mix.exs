@@ -56,6 +56,12 @@ defmodule Nasty.MixProject do
   defp deps do
     [
       {:nimble_parsec, "~> 1.4"},
+      # Neural Network Libraries
+      {:axon, "~> 0.7"},
+      {:nx, "~> 0.9"},
+      {:exla, "~> 0.9"},
+      {:bumblebee, "~> 0.6"},
+      {:tokenizers, "~> 0.5"},
       # Doc / Test / Benchmarking
       {:credo, "~> 1.5", only: :dev},
       # {:dialyxir, "~> 1.1", only: :dev, runtime: false},

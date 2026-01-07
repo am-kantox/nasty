@@ -6,7 +6,7 @@ defmodule Nasty.Semantic.EntityRecognition do
   in text, regardless of the source language.
   """
 
-  alias Nasty.AST.{Document, Sentence, Semantic, Token}
+  alias Nasty.AST.{Document, Semantic, Sentence, Token}
 
   @type options :: keyword()
   @type entity_types :: [:person | :organization | :location | :date | :money | :percent | :misc]

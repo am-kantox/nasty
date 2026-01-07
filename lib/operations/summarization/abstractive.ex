@@ -160,9 +160,7 @@ defmodule Nasty.Operations.Summarization.Abstractive do
   def generate_default_sentence([{subject, verb1, object1} | rest]) do
     # Combine multiple facts about same subject
     additional_facts =
-      rest
-      |> Enum.map(fn {_subject, verb, object} -> "#{verb} #{object}" end)
-      |> Enum.join(" and ")
+      Enum.map_join(rest, " and ", fn {_subject, verb, object} -> "#{verb} #{object}" end)
 
     if additional_facts == "" do
       "#{subject} #{verb1} #{object1}."

@@ -5,9 +5,9 @@ defmodule Nasty.Language.English.AdaptersTest do
   alias Nasty.AST.Semantic.Entity
 
   alias Nasty.Language.English.Adapters.{
-    SummarizerAdapter,
+    CoreferenceResolverAdapter,
     EntityRecognizerAdapter,
-    CoreferenceResolverAdapter
+    SummarizerAdapter
   }
 
   describe "SummarizerAdapter" do
