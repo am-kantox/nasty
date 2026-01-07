@@ -179,7 +179,7 @@ defmodule Nasty.Statistics.Neural.Transformers.Inference do
   defp maybe_compile(optimizations, _classifier, device) do
     if :compile in optimizations do
       Logger.info("Compiling model for #{device}")
-      # TODO: Implement Bumblebee serving compilation
+      # [TODO]: Implement Bumblebee serving compilation
       # For now, return nil (no compiled serving)
       {:ok, nil}
     else

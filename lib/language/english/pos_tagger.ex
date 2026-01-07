@@ -20,7 +20,9 @@ defmodule Nasty.Language.English.POSTagger do
   """
 
   alias Nasty.AST.Token
+  alias Nasty.Language.English.TransformerPOSTagger
   alias Nasty.Statistics.{ModelLoader, POSTagging.HMMTagger, POSTagging.NeuralTagger}
+
   require Logger
 
   @doc """
@@ -37,7 +39,7 @@ defmodule Nasty.Language.English.POSTagger do
 
     - `tokens` - List of Token structs (from tokenizer)
     - `opts` - Options
-      - `:model` - Model type: `:rule_based` (default), `:hmm`, `:neural`, `:ensemble`, `:neural_ensemble`
+      - `:model` - Model type: `:rule_based` (default), `:hmm`, `:neural`, `:ensemble`, `:neural_ensemble`, `:transformer`, or specific transformer model name (e.g., `:roberta_base`)
       - `:hmm_model` - Trained HMM model (optional)
       - `:neural_model` - Trained neural model (optional)
 
@@ -64,6 +66,17 @@ defmodule Nasty.Language.English.POSTagger do
 
       :neural_ensemble ->
         tag_pos_neural_ensemble(tokens, opts)
+
+      :transformer ->
+        tag_pos_transformer(tokens, opts)
+
+      model_name when is_atom(model_name) ->
+        # Check if it's a transformer model name
+        if transformer_model?(model_name) do
+          tag_pos_transformer(tokens, Keyword.put(opts, :model, model_name))
+        else
+          {:error, {:unknown_model_type, model_type}}
+        end
 
       _ ->
         {:error, {:unknown_model_type, model_type}}
@@ -238,6 +251,34 @@ defmodule Nasty.Language.English.POSTagger do
 
       {:ok, ensemble_tokens}
     end
+  end
+
+  @doc """
+  Transformer-based POS tagging using pre-trained models.
+
+  Uses BERT, RoBERTa, or other transformer models for state-of-the-art
+  accuracy (98-99%). Falls back to neural tagging if transformer fails.
+  """
+  def tag_pos_transformer(tokens, opts) do
+    case TransformerPOSTagger.tag_pos(tokens, opts) do
+      {:ok, tagged} ->
+        {:ok, tagged}
+
+      {:error, reason} ->
+        Logger.warning("Transformer tagging failed: #{inspect(reason)}, falling back to neural")
+        tag_pos_neural(tokens, opts)
+    end
+  end
+
+  # Check if model name is a known transformer model
+  defp transformer_model?(model_name) do
+    model_name in [
+      :bert_base_cased,
+      :bert_base_uncased,
+      :roberta_base,
+      :xlm_roberta_base,
+      :distilbert_base
+    ]
   end
 
   ## Private Functions

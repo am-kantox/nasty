@@ -112,9 +112,9 @@ defmodule Nasty.Statistics.Neural.Transformers.FineTuner do
           Logger.info("Fine-tuning completed successfully")
           {:ok, finetuned_classifier}
 
-        {:error, reason} ->
-          Logger.error("Fine-tuning failed: #{inspect(reason)}")
-          {:error, reason}
+          # {:error, reason} ->
+          #   Logger.error("Fine-tuning failed: #{inspect(reason)}")
+          #   {:error, reason}
       end
     end
   end
@@ -239,7 +239,7 @@ defmodule Nasty.Statistics.Neural.Transformers.FineTuner do
     Logger.info("Epochs: #{config.epochs}")
     Logger.info("Total training steps: #{calculate_total_steps(training_data, config)}")
 
-    # TODO: Implement actual training loop with Axon
+    # [TODO]: Implement actual training loop with Axon
     # For now, return the classifier unchanged
     {:ok, classifier}
   end

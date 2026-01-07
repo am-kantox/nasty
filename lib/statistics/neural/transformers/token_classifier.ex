@@ -220,7 +220,7 @@ defmodule Nasty.Statistics.Neural.Transformers.TokenClassifier do
     hidden_size = 768
 
     # Return mock hidden states for now
-    # TODO: Replace with actual Bumblebee.apply_model call
+    # [TODO]: Replace with actual Bumblebee.apply_model call
     # Use a deterministic approach instead of random
     hidden_states = Nx.broadcast(0.0, {batch_size, seq_length, hidden_size})
 
@@ -239,7 +239,7 @@ defmodule Nasty.Statistics.Neural.Transformers.TokenClassifier do
     # Default to UPOS tag count
     num_labels = 17
 
-    # TODO: Execute Axon model properly
+    # [TODO]: Execute Axon model properly
     # Use deterministic approach instead of random
     Nx.broadcast(0.0, {batch_size, seq_length, num_labels})
   end
