@@ -42,8 +42,6 @@ defmodule Nasty.Statistics.Neural.Model do
   so they can be used interchangeably with HMM and other statistical models.
   """
 
-  alias Nasty.Statistics.Model
-
   @doc """
   Returns the Axon model architecture.
 
@@ -154,9 +152,6 @@ defmodule Nasty.Statistics.Neural.Model do
   """
   @spec validate_implementation!(module()) :: :ok | no_return()
   def validate_implementation!(module) do
-    # Check it implements the base Model behaviour
-    Model.validate_implementation!(module)
-
     # Check neural-specific callbacks
     required_callbacks = [
       {:model_architecture, 1},

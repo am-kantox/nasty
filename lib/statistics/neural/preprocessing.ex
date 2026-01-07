@@ -25,8 +25,6 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
       augmented = Preprocessing.augment(sentences, methods: [:synonym, :shuffle])
   """
 
-  alias Nasty.Statistics.Neural.Embeddings
-
   @doc """
   Normalizes text for neural model input.
 
@@ -37,8 +35,10 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
 
   ## Options
 
-    - `:lowercase` - Convert to lowercase (default: false)
+    - `:lowercase` - Convert to lowercase (default: true)
     - `:remove_accents` - Remove accents/diacritics (default: false)
+    - `:remove_punct` - Remove punctuation (default: false)
+    - `:normalize_whitespace` - Normalize whitespace (default: false)
     - `:normalize_digits` - Replace digits with <NUM> (default: false)
     - `:normalize_urls` - Replace URLs with <URL> (default: false)
     - `:normalize_emails` - Replace emails with <EMAIL> (default: false)
@@ -50,7 +50,9 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
   @spec normalize_text(String.t(), keyword()) :: String.t()
   def normalize_text(text, opts \\ []) do
     text
-    |> maybe_lowercase(Keyword.get(opts, :lowercase, false))
+    |> maybe_lowercase(Keyword.get(opts, :lowercase, true))
+    |> maybe_normalize_whitespace(Keyword.get(opts, :normalize_whitespace, true))
+    |> maybe_remove_punct(Keyword.get(opts, :remove_punctuation, false))
     |> maybe_remove_accents(Keyword.get(opts, :remove_accents, false))
     |> maybe_normalize_digits(Keyword.get(opts, :normalize_digits, false))
     |> maybe_normalize_urls(Keyword.get(opts, :normalize_urls, false))
@@ -78,8 +80,35 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
 
   Tensor of shape `[num_words, max_word_length]` with character IDs.
   """
-  @spec extract_char_features([String.t()], map(), keyword()) :: Nx.Tensor.t()
-  def extract_char_features(words, char_vocab, opts \\ []) do
+  @spec extract_char_features(String.t() | [String.t()], map(), keyword()) ::
+          list() | Nx.Tensor.t()
+  def extract_char_features(word, char_vocab, opts \\ [])
+
+  def extract_char_features(word, char_vocab, opts) when is_binary(word) do
+    max_word_length = Keyword.get(opts, :max_word_length, 20)
+    pad_value = Keyword.get(opts, :pad_value, 0)
+    unk_value = Map.get(char_vocab, "<UNK>", 1)
+
+    if word == "" do
+      []
+    else
+      chars = String.graphemes(word) |> Enum.take(max_word_length)
+
+      ids =
+        Enum.map(chars, fn char ->
+          Map.get(char_vocab, char, unk_value)
+        end)
+
+      # Only pad if no custom max_word_length was passed, or we're processing a list
+      if Keyword.has_key?(opts, :max_word_length) && length(ids) < max_word_length do
+        ids ++ List.duplicate(pad_value, max_word_length - length(ids))
+      else
+        ids
+      end
+    end
+  end
+
+  def extract_char_features(words, char_vocab, opts) when is_list(words) do
     max_word_length = Keyword.get(opts, :max_word_length, 20)
     pad_value = Keyword.get(opts, :pad_value, 0)
     unk_value = Map.get(char_vocab, "<UNK>", 1)
@@ -168,19 +197,28 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
   - `:prefix` - First 3 characters
   - `:suffix` - Last 3 characters
   """
-  @spec extract_word_features([String.t()]) :: [map()]
-  def extract_word_features(words) do
-    Enum.map(words, fn word ->
-      %{
-        is_capitalized: capitalized?(word),
-        is_all_caps: all_caps?(word),
-        is_numeric: numeric?(word),
-        has_hyphen: String.contains?(word, "-"),
-        word_shape: word_shape(word),
-        prefix: String.slice(word, 0..2),
-        suffix: String.slice(word, -3..-1)
-      }
-    end)
+  @spec extract_word_features(String.t() | [String.t()]) :: map() | [map()]
+  def extract_word_features(word) when is_binary(word) do
+    %{
+      is_capitalized: capitalized?(word),
+      is_all_caps: all_caps?(word),
+      is_all_uppercase: all_caps?(word),
+      is_numeric: numeric?(word),
+      has_hyphen: String.contains?(word, "-"),
+      has_punct: word =~ ~r/[^\w\s-]/,
+      has_punctuation: word =~ ~r/[^\w\s-]/,
+      has_digit: numeric?(word),
+      has_uppercase: word =~ ~r/[A-Z]/,
+      has_lowercase: word =~ ~r/[a-z]/,
+      word_shape: word_shape(word),
+      length: String.length(word),
+      prefix: String.slice(word, 0..2),
+      suffix: String.slice(word, -3..-1)
+    }
+  end
+
+  def extract_word_features(words) when is_list(words) do
+    Enum.map(words, &extract_word_features/1)
   end
 
   @doc """
@@ -263,11 +301,25 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
   defp maybe_lowercase(text, true), do: String.downcase(text)
   defp maybe_lowercase(text, false), do: text
 
+  defp maybe_remove_punct(text, true) do
+    String.replace(text, ~r/[^\w\s]/, "")
+  end
+
+  defp maybe_remove_punct(text, false), do: text
+
+  defp maybe_normalize_whitespace(text, true) do
+    text
+    |> String.replace(~r/\s+/, " ")
+    |> String.trim()
+  end
+
+  defp maybe_normalize_whitespace(text, false), do: text
+
   defp maybe_remove_accents(text, true) do
-    # Simple accent removal (full implementation would use Unicode normalization)
+    # Simple accent removal using Unicode normalization
     text
     |> String.normalize(:nfd)
-    |> String.replace(~r/[\u0300-\u036f]/, "")
+    |> String.replace(~r/[̀-ͯ]/u, "")
   end
 
   defp maybe_remove_accents(text, false), do: text
@@ -291,12 +343,20 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
   defp maybe_normalize_emails(text, false), do: text
 
   defp capitalized?(word) do
-    first = String.first(word)
-    first == String.upcase(first) and first =~ ~r/[A-Z]/
+    if word == "" || is_nil(word) do
+      false
+    else
+      first = String.first(word)
+      first == String.upcase(first) and first =~ ~r/[A-Z]/
+    end
   end
 
   defp all_caps?(word) do
-    word == String.upcase(word) and word =~ ~r/[A-Z]/
+    if word == "" || is_nil(word) do
+      false
+    else
+      word == String.upcase(word) and word =~ ~r/[A-Z]/
+    end
   end
 
   defp numeric?(word) do
@@ -306,7 +366,7 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
   defp word_shape(word) do
     word
     |> String.graphemes()
-    |> Enum.map(fn char ->
+    |> Enum.map_join("", fn char ->
       cond do
         char =~ ~r/[A-Z]/ -> "X"
         char =~ ~r/[a-z]/ -> "x"
@@ -314,6 +374,121 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
         true -> char
       end
     end)
-    |> Enum.join()
   end
+
+  @doc """
+  Pads or truncates a single sequence to a fixed length.
+
+  ## Parameters
+
+    - `sequence` - Single sequence (list)
+    - `max_length` - Target length
+    - `opts` - Padding options
+
+  ## Options
+
+    - `:padding_value` - Value to use for padding (default: 0)
+    - `:truncate` - Truncation strategy: `:pre` or `:post` (default: `:post`)
+
+  ## Returns
+
+  Sequence of length `max_length`.
+  """
+  @spec pad_sequence(list(), non_neg_integer(), keyword()) :: list()
+  def pad_sequence(seq, max_length, opts \\ []) do
+    pad_value = Keyword.get(opts, :padding_value, 0)
+    truncate = Keyword.get(opts, :truncate, :post)
+
+    cond do
+      length(seq) > max_length ->
+        case truncate do
+          :post -> Enum.take(seq, max_length)
+          :pre -> Enum.drop(seq, length(seq) - max_length)
+        end
+
+      length(seq) < max_length ->
+        seq ++ List.duplicate(pad_value, max_length - length(seq))
+
+      true ->
+        seq
+    end
+  end
+
+  @doc """
+  Pads all sequences in a batch to the same length.
+
+  ## Parameters
+
+    - `batch` - List of sequences
+    - `opts` - Padding options
+
+  ## Options
+
+    - `:max_length` - Target length (default: length of longest sequence)
+    - `:padding_value` - Value to use for padding (default: 0)
+
+  ## Returns
+
+  List of padded sequences.
+  """
+  @spec pad_batch([list()], keyword()) :: [list()]
+  def pad_batch(batch, opts \\ [])
+
+  def pad_batch([], _opts), do: []
+
+  def pad_batch(batch, opts) do
+    max_length = Keyword.get(opts, :max_length) || batch |> Enum.map(&length/1) |> Enum.max()
+    pad_value = Keyword.get(opts, :padding_value, 0)
+
+    Enum.map(batch, fn seq ->
+      pad_sequence(seq, max_length, padding_value: pad_value)
+    end)
+  end
+
+  @doc """
+  Creates an attention mask for a padded sequence.
+
+  ## Parameters
+
+    - `sequence` - Padded sequence
+    - `opts` - Mask options
+
+  ## Options
+
+    - `:padding_value` - Value used for padding (default: 0)
+
+  ## Returns
+
+  Mask list where 1 = real token, 0 = padding.
+  """
+  @spec create_attention_mask(list(), keyword()) :: list()
+  def create_attention_mask(sequence, opts \\ [])
+
+  def create_attention_mask([], _opts), do: []
+
+  def create_attention_mask(sequence, opts) do
+    padding_value = Keyword.get(opts, :padding_value, 0)
+
+    Enum.map(sequence, fn val ->
+      if val == padding_value, do: 0, else: 1
+    end)
+  end
+
+  @doc """
+  Augments text with various techniques (placeholder).
+
+  ## Returns
+
+  {:error, :not_implemented}
+  """
+  def augment_text(_text, _opts), do: {:error, :not_implemented}
+
+  @doc """
+  Tokenizes text into subwords using BPE or similar (placeholder).
+
+  ## Returns
+
+  {:error, :not_implemented}
+  """
+  def tokenize_subwords(_text, _model), do: {:error, :not_implemented}
 end

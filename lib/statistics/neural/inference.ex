@@ -31,6 +31,7 @@ defmodule Nasty.Statistics.Neural.Inference do
   """
 
   require Logger
+  require Nx
 
   @doc """
   Runs inference on a single input.
@@ -59,7 +60,9 @@ defmodule Nasty.Statistics.Neural.Inference do
 
     try do
       # Create predict function with JIT compilation
-      predict_fn = Axon.build(model, compiler: compiler, mode: mode)
+      {init_fn, predict_fn} = Axon.build(model, compiler: compiler, mode: mode)
+      # Initialize model if state is not provided
+      state = if map_size(state) == 0, do: init_fn.(Nx.template({1, 1}, :s64), %{}), else: state
 
       # Run prediction
       output = predict_fn.(state, input)
@@ -105,7 +108,9 @@ defmodule Nasty.Statistics.Neural.Inference do
 
     try do
       # Build predict function once for all batches
-      predict_fn = Axon.build(model, compiler: compiler, mode: :inference)
+      {init_fn, predict_fn} = Axon.build(model, compiler: compiler, mode: :inference)
+      # Initialize model if state is not provided
+      state = if map_size(state) == 0, do: init_fn.(Nx.template({1, 1}, :s64), %{}), else: state
 
       # Process in chunks
       outputs =
@@ -197,7 +202,9 @@ defmodule Nasty.Statistics.Neural.Inference do
     compiler = Keyword.get(opts, :compiler, EXLA)
 
     # Build predict function once
-    predict_fn = Axon.build(model, compiler: compiler, mode: :inference)
+    {init_fn, predict_fn} = Axon.build(model, compiler: compiler, mode: :inference)
+    # Initialize model if state is not provided
+    state = if map_size(state) == 0, do: init_fn.(Nx.template({1, 1}, :s64), %{}), else: state
 
     input_stream
     |> Stream.chunk_every(batch_size)

@@ -72,8 +72,6 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
       {:ok, tags} = BiLSTMCRF.predict(model, trained_state, word_ids)
   """
 
-  import Nx.Defn
-
   @doc """
   Builds a BiLSTM-CRF model.
 
@@ -97,13 +95,18 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
 
   An `%Axon{}` model ready for training.
   """
-  @spec build(keyword()) :: Axon.t()
-  def build(opts) do
+  @spec build(keyword() | map()) :: Axon.t()
+  def build(opts) when is_map(opts) do
+    build(Map.to_list(opts))
+  end
+
+  def build(opts) when is_list(opts) do
     vocab_size = Keyword.fetch!(opts, :vocab_size)
     num_tags = Keyword.fetch!(opts, :num_tags)
     embedding_dim = Keyword.get(opts, :embedding_dim, 300)
     hidden_size = Keyword.get(opts, :hidden_size, 256)
-    num_layers = Keyword.get(opts, :num_layers, 2)
+    # Accept both num_layers and num_lstm_layers for compatibility
+    num_layers = Keyword.get(opts, :num_lstm_layers, Keyword.get(opts, :num_layers, 2))
     dropout = Keyword.get(opts, :dropout, 0.3)
     use_char_cnn = Keyword.get(opts, :use_char_cnn, false)
 
@@ -178,7 +181,6 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
         acc
         |> Axon.lstm(hidden_size,
           name: "lstm_forward_#{layer_idx}",
-          return_sequences: true,
           recurrent_initializer: :glorot_uniform
         )
         |> elem(0)
@@ -189,7 +191,6 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
         |> reverse_sequence()
         |> Axon.lstm(hidden_size,
           name: "lstm_backward_#{layer_idx}",
-          return_sequences: true,
           recurrent_initializer: :glorot_uniform
         )
         |> elem(0)
@@ -361,6 +362,117 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
     else
       model
     end
+  end
+
+  @doc """
+  Returns default configuration for BiLSTM-CRF.
+
+  ## Parameters
+
+    - `opts` - Optional overrides
+
+  ## Returns
+
+  Map with default configuration.
+  """
+  @spec default_config(keyword()) :: map()
+  def default_config(opts \\ []) do
+    base = %{
+      vocab_size: 10_000,
+      num_tags: 17,
+      embedding_dim: 300,
+      hidden_size: 256,
+      num_lstm_layers: 2,
+      dropout: 0.3,
+      use_char_cnn: false
+    }
+
+    Enum.reduce(opts, base, fn {k, v}, acc -> Map.put(acc, k, v) end)
+  end
+
+  @doc """
+  Returns POS tagging specific configuration.
+
+  ## Parameters
+
+    - `opts` - Required and optional parameters
+
+  ## Returns
+
+  Map with POS tagging configuration.
+  """
+  @spec pos_tagging_config(keyword()) :: map()
+  def pos_tagging_config(opts) do
+    vocab_size = Keyword.fetch!(opts, :vocab_size)
+    num_tags = Keyword.fetch!(opts, :num_tags)
+
+    %{
+      vocab_size: vocab_size,
+      num_tags: num_tags,
+      embedding_dim: 300,
+      hidden_size: 256,
+      num_lstm_layers: 2,
+      dropout: 0.3,
+      use_char_cnn: Keyword.get(opts, :use_char_cnn, true),
+      char_vocab_size: 100,
+      char_embedding_dim: 30
+    }
+  end
+
+  @doc """
+  Returns NER specific configuration.
+
+  ## Parameters
+
+    - `opts` - Required and optional parameters
+
+  ## Returns
+
+  Map with NER configuration.
+  """
+  @spec ner_config(keyword()) :: map()
+  def ner_config(opts) do
+    vocab_size = Keyword.fetch!(opts, :vocab_size)
+    num_tags = Keyword.fetch!(opts, :num_tags)
+
+    %{
+      vocab_size: vocab_size,
+      num_tags: num_tags,
+      embedding_dim: 300,
+      hidden_size: 256,
+      num_lstm_layers: 2,
+      dropout: 0.3,
+      use_char_cnn: true,
+      char_filters: [3, 4, 5],
+      char_num_filters: 30
+    }
+  end
+
+  @doc """
+  Returns dependency parsing specific configuration.
+
+  ## Parameters
+
+    - `opts` - Required and optional parameters
+
+  ## Returns
+
+  Map with dependency parsing configuration.
+  """
+  @spec dependency_parsing_config(keyword()) :: map()
+  def dependency_parsing_config(opts) do
+    vocab_size = Keyword.fetch!(opts, :vocab_size)
+    num_tags = Keyword.fetch!(opts, :num_tags)
+
+    %{
+      vocab_size: vocab_size,
+      num_tags: num_tags,
+      embedding_dim: 300,
+      hidden_size: 512,
+      num_lstm_layers: 3,
+      dropout: 0.4,
+      use_char_cnn: false
+    }
   end
 
   @doc """

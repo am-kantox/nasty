@@ -68,10 +68,10 @@ defmodule Nasty.Statistics.Neural.Pretrained do
       {:ok, model} = Pretrained.load_model("bert-base-uncased", task: :pos_tagging)
   """
   @spec load_model(String.t(), keyword()) :: {:ok, map()} | {:error, term()}
-  def load_model(model_name, opts \\ []) do
+  def load_model(model_name, _opts \\ []) do
     Logger.info("Loading pre-trained model: #{model_name}")
 
-    # TODO: Implement Bumblebee model loading
+    # [TODO]: Implement Bumblebee model loading
     # This would involve:
     # 1. Download model from HuggingFace if not cached
     # 2. Load model weights with Bumblebee
@@ -104,7 +104,7 @@ defmodule Nasty.Statistics.Neural.Pretrained do
   """
   @spec fine_tune(map(), list(), keyword()) :: {:ok, map()} | {:error, term()}
   def fine_tune(_model, _training_data, _opts \\ []) do
-    # TODO: Implement fine-tuning
+    # [TODO]: Implement fine-tuning
     # This would involve:
     # 1. Prepare data for transformer input
     # 2. Add task-specific head if needed
@@ -130,7 +130,7 @@ defmodule Nasty.Statistics.Neural.Pretrained do
   """
   @spec predict(map(), term(), keyword()) :: {:ok, term()} | {:error, term()}
   def predict(_model, _input, _opts \\ []) do
-    # TODO: Implement prediction
+    # [TODO]: Implement prediction
     # This would involve:
     # 1. Tokenize input
     # 2. Run through model

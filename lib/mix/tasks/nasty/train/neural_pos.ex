@@ -63,9 +63,7 @@ defmodule Mix.Tasks.Nasty.Train.NeuralPos do
 
   use Mix.Task
 
-  alias Nasty.Statistics.POSTagging.NeuralTagger
-  alias Nasty.Statistics.Neural.{DataLoader, Embeddings, Trainer}
-  alias Nasty.Statistics.Evaluator
+  alias Nasty.Statistics.{Evaluator, Neural.DataLoader, POSTagging.NeuralTagger}
   require Logger
 
   @impl Mix.Task
@@ -159,7 +157,7 @@ defmodule Mix.Tasks.Nasty.Train.NeuralPos do
         Mix.shell().info("\nTraining completed!")
 
         # Evaluate on validation set
-        if length(valid_data) > 0 do
+        if match?([_ | _], valid_data) do
           Mix.shell().info("\nEvaluating on validation set...")
           evaluate_model(trained_tagger, valid_data)
         end

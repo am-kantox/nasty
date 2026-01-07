@@ -177,7 +177,7 @@ defmodule Nasty.Statistics.POSTagging.NeuralTagger do
         words = training_data |> Enum.flat_map(fn {words, _tags} -> words end)
         tags = training_data |> Enum.flat_map(fn {_words, tags} -> tags end) |> Enum.uniq()
 
-        {:ok, vocab} = Embeddings.build_vocabulary([words], min_freq: 2)
+        {:ok, vocab} = Embeddings.build_vocabulary([words], min_freq: 2, return_struct: true)
         tag_vocab = build_tag_vocab(tags)
 
         # Rebuild model with correct vocab size

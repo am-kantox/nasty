@@ -219,7 +219,7 @@ defmodule Nasty.Statistics.Neural.Trainer do
   defp maybe_add_validation(loop, nil), do: loop
 
   defp maybe_add_validation(loop, valid_data) do
-    Axon.Loop.validate(loop, valid_data)
+    Axon.Loop.validate(loop, loop.model, valid_data)
   end
 
   defp maybe_add_early_stopping(loop, opts) do
@@ -255,7 +255,7 @@ defmodule Nasty.Statistics.Neural.Trainer do
       nil ->
         loop
 
-      clip_value ->
+      _clip_value ->
         # Note: Axon handles gradient clipping via optimizer options
         # This is a placeholder for explicit clipping if needed
         loop
@@ -297,12 +297,9 @@ defmodule Nasty.Statistics.Neural.Trainer do
   defp format_metric(value), do: value
 
   defp run_training(loop, train_data, _valid_data, epochs, batch_size) do
-    # Initialize model state
-    init_state = Axon.Loop.init(loop)
-
-    # Run training
+    # Run training - Axon.Loop.run handles initialization internally
     trained_state =
-      Axon.Loop.run(loop, train_data, init_state,
+      Axon.Loop.run(loop, train_data,
         epochs: epochs,
         batch_size: batch_size,
         compiler: EXLA
@@ -313,5 +310,126 @@ defmodule Nasty.Statistics.Neural.Trainer do
     error ->
       Logger.error("Training failed: #{inspect(error)}")
       {:error, error}
+  end
+
+  ## Public Helper Functions for Tests
+
+  @doc """
+  Creates a training loop with custom configuration.
+
+  ## Parameters
+
+    - `model` - Axon model
+    - `config` - Training configuration
+
+  ## Returns
+
+  Axon.Loop configured for training.
+  """
+  def create_training_loop(model, config) do
+    optimizer = Map.get(config, :optimizer, :adam)
+    learning_rate = Map.get(config, :learning_rate, 0.001)
+    loss_fn = Map.get(config, :loss, :categorical_cross_entropy)
+    metrics = Map.get(config, :metrics, [:accuracy])
+
+    optimizer_fn = build_optimizer(optimizer, learning_rate)
+    # Map loss name to function
+    loss =
+      case loss_fn do
+        :categorical_cross_entropy -> build_loss_function(:cross_entropy)
+        other -> build_loss_function(other)
+      end
+
+    model
+    |> Axon.Loop.trainer(loss, optimizer_fn)
+    |> add_metrics(metrics)
+  end
+
+  @doc """
+  Returns an optimizer function.
+
+  ## Parameters
+
+    - `optimizer` - Optimizer type
+    - `opts` - Optimizer options
+
+  ## Returns
+
+  Optimizer function.
+  """
+  def get_optimizer(optimizer, opts \\ []) do
+    learning_rate = Keyword.get(opts, :learning_rate, 0.001)
+    build_optimizer(optimizer, learning_rate)
+  end
+
+  @doc """
+  Adds early stopping to a training loop.
+
+  ## Parameters
+
+    - `loop` - Training loop
+    - `opts` - Early stopping options
+
+  ## Returns
+
+  Loop with early stopping configured.
+  """
+  def add_early_stopping(loop, opts \\ []) do
+    patience = Keyword.get(opts, :patience, 5)
+    min_delta = Keyword.get(opts, :min_delta, 0.001)
+
+    Axon.Loop.early_stop(loop, "validation_loss",
+      mode: :min,
+      patience: patience,
+      min_delta: min_delta
+    )
+  end
+
+  @doc """
+  Adds checkpointing to a training loop.
+
+  ## Parameters
+
+    - `loop` - Training loop
+    - `opts` - Checkpointing options
+
+  ## Returns
+
+  Loop with checkpointing configured.
+  """
+  def add_checkpointing(loop, opts \\ []) do
+    checkpoint_dir = Keyword.fetch!(opts, :checkpoint_dir)
+    event = Keyword.get(opts, :event, :epoch_completed)
+
+    File.mkdir_p!(checkpoint_dir)
+
+    Axon.Loop.checkpoint(loop,
+      event: event,
+      filter: :always
+    )
+  end
+
+  @doc """
+  Creates default training configuration.
+
+  ## Parameters
+
+    - `opts` - Optional overrides
+
+  ## Returns
+
+  Map with training configuration.
+  """
+  def training_config(opts \\ []) do
+    base = %{
+      optimizer: :adam,
+      learning_rate: 0.001,
+      loss: :categorical_cross_entropy,
+      metrics: [:accuracy],
+      epochs: 10,
+      batch_size: 32
+    }
+
+    Enum.reduce(opts, base, fn {k, v}, acc -> Map.put(acc, k, v) end)
   end
 end

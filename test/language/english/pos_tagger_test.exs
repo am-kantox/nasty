@@ -227,4 +227,89 @@ defmodule Nasty.Language.English.POSTaggerTest do
       assert hd(tagged).pos_tag == :det
     end
   end
+
+  describe "neural mode integration" do
+    @moduletag :neural
+
+    test "accepts :neural mode option" do
+      {:ok, tokens} = Tokenizer.tokenize("The cat sat.")
+
+      # Should use HMM fallback if neural model not available
+      {:ok, tagged} = POSTagger.tag_pos(tokens, mode: :neural)
+
+      assert is_list(tagged)
+      assert length(tagged) == 4
+      assert Enum.all?(tagged, &Map.has_key?(&1, :pos_tag))
+    end
+
+    test "accepts :neural_ensemble mode option" do
+      {:ok, tokens} = Tokenizer.tokenize("The cat sat.")
+
+      # Should combine neural + HMM + rules
+      {:ok, tagged} = POSTagger.tag_pos(tokens, mode: :neural_ensemble)
+
+      assert is_list(tagged)
+      assert length(tagged) == 4
+    end
+
+    test "neural mode falls back gracefully when model unavailable" do
+      {:ok, tokens} = Tokenizer.tokenize("The dog runs.")
+
+      # Neural model not loaded, should fallback to HMM
+      {:ok, tagged} = POSTagger.tag_pos(tokens, mode: :neural)
+
+      tags = Enum.map(tagged, & &1.pos_tag)
+      assert :det in tags
+      assert :noun in tags
+      assert :verb in tags
+    end
+
+    test "accepts neural_model option" do
+      {:ok, tokens} = Tokenizer.tokenize("Hello world.")
+
+      # Pass nil model (should fall back)
+      {:ok, tagged} = POSTagger.tag_pos(tokens, mode: :neural, neural_model: nil)
+
+      assert is_list(tagged)
+      assert length(tagged) == 3
+    end
+
+    test "neural_ensemble combines multiple approaches" do
+      {:ok, tokens} = Tokenizer.tokenize("The cat sat.")
+
+      {:ok, ensemble_tags} = POSTagger.tag_pos(tokens, mode: :neural_ensemble)
+      {:ok, hmm_tags} = POSTagger.tag_pos(tokens, mode: :hmm)
+      {:ok, rule_tags} = POSTagger.tag_pos(tokens, mode: :rule_based)
+
+      # All should produce valid results
+      assert length(ensemble_tags) == length(hmm_tags)
+      assert length(ensemble_tags) == length(rule_tags)
+    end
+  end
+
+  describe "mode parameter" do
+    test "accepts :rule_based mode" do
+      {:ok, tokens} = Tokenizer.tokenize("The cat.")
+      {:ok, tagged} = POSTagger.tag_pos(tokens, mode: :rule_based)
+
+      assert length(tagged) == 3
+    end
+
+    test "accepts :hmm mode" do
+      {:ok, tokens} = Tokenizer.tokenize("The cat.")
+      {:ok, tagged} = POSTagger.tag_pos(tokens, mode: :hmm)
+
+      assert length(tagged) == 3
+    end
+
+    test "defaults to :hmm mode when no mode specified" do
+      {:ok, tokens} = Tokenizer.tokenize("The cat.")
+      {:ok, tagged_default} = POSTagger.tag_pos(tokens)
+      {:ok, tagged_hmm} = POSTagger.tag_pos(tokens, mode: :hmm)
+
+      # Should produce same results
+      assert Enum.map(tagged_default, & &1.pos_tag) ==
+               Enum.map(tagged_hmm, & &1.pos_tag)
+    end
+  end
 end
