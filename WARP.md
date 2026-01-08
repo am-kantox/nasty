@@ -129,6 +129,9 @@ The pipeline is modular:
 8. **Summarization** (`English.Summarizer`) - Extractive and abstractive summarization
 9. **Question Answering**, **Text Classification**, **Information Extraction** - Advanced NLP tasks
 10. **Code Interoperability** - Bidirectional NL ↔ Code conversion
+    - Intent recognition with constraint extraction (comparison, property, range)
+    - Natural language to Elixir code generation
+    - Code explanation back to natural language
 
 ### AST Structure
 The AST is hierarchical and linguistically rigorous:
@@ -150,6 +153,22 @@ All nodes include:
 3. **Language Markers** - All nodes carry language metadata for multilingual support
 4. **Pure Elixir** - No external NLP dependencies; uses NimbleParsec for parsing
 5. **Composable** - Small, focused modules that compose into full pipeline
+
+### Recent Improvements (2026-01-08)
+
+**Parser Enhancements**:
+- Adjectival phrases now parse with prepositional complements ("greater than 21")
+- "than" treated as pseudo-preposition in comparative constructions
+- Numeric objects supported in comparative phrases
+- Sentence-initial capitalized verbs correctly tagged in imperative sentences
+- Code-generation verbs (filter, sort, map, reduce) added to POS lexicon
+- Comparison and property adjectives expanded in lexicon
+
+**Constraint Extraction**:
+- Comparison constraints: `{:comparison, :greater_than, 21}`
+- Property constraints: `{:property, :active, true}`
+- Range constraints: `{:range, 50, 100}`
+- Full token extraction from all phrase types (NP, VP, AdjP, AdvP, PP)
 
 ## Coding Style Rules
 
