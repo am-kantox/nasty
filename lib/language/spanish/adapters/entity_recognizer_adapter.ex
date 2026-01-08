@@ -17,6 +17,8 @@ defmodule Nasty.Language.Spanish.Adapters.EntityRecognizerAdapter do
   alias Nasty.AST.{Entity, Token}
   alias Nasty.Semantic.EntityRecognition.RuleBased
 
+  @behaviour RuleBased
+
   @doc """
   Recognizes named entities in Spanish text using rule-based extraction.
 
@@ -38,20 +40,83 @@ defmodule Nasty.Language.Spanish.Adapters.EntityRecognizerAdapter do
   """
   @spec recognize([Token.t()], keyword()) :: {:ok, [Entity.t()]} | {:error, term()}
   def recognize(tokens, opts \\ []) do
-    # Spanish-specific configuration
-    config = %{
-      language: :es,
-      lexicons: load_spanish_lexicons(),
-      patterns: spanish_patterns(),
-      heuristics: spanish_heuristics(),
-      titles: spanish_titles()
-    }
-
-    # Merge config with options
-    full_opts = Keyword.merge([config: config], opts)
+    confidence = Keyword.get(opts, :min_confidence, 0.7)
+    types = Keyword.get(opts, :types, [])
 
     # Delegate to generic rule-based entity recognition
-    RuleBased.recognize(tokens, full_opts)
+    entities = RuleBased.recognize(__MODULE__, tokens, confidence: confidence)
+
+    # Filter by types if specified
+    filtered_entities =
+      if types == [] do
+        entities
+      else
+        Enum.filter(entities, &(&1.type in types))
+      end
+
+    {:ok, filtered_entities}
+  end
+
+  # Implement RuleBased behavior callbacks
+
+  @impl true
+  def excluded_pos_tags do
+    [:punct, :det, :adp, :verb, :aux, :cconj, :sconj]
+  end
+
+  @impl true
+  def classification_rules do
+    [
+      {:PERSON, &person?/1},
+      {:LOCATION, &location?/1},
+      {:ORGANIZATION, &organization?/1}
+    ]
+  end
+
+  @impl true
+  def lexicon_matchers do
+    lexicons = load_spanish_lexicons()
+    titles = spanish_titles()
+
+    %{
+      PERSON: fn text ->
+        words = String.split(text)
+        # Check if any word is in person names or has title
+        Enum.any?(
+          words,
+          &(MapSet.member?(lexicons.person_names, &1) || MapSet.member?(titles, &1))
+        )
+      end,
+      LOCATION: fn text ->
+        words = String.split(text)
+        Enum.any?(words, &MapSet.member?(lexicons.places, &1))
+      end,
+      ORGANIZATION: fn text ->
+        words = String.split(text)
+        Enum.any?(words, &MapSet.member?(lexicons.organizations, &1))
+      end
+    }
+  end
+
+  # Helper functions for classification rules
+  # Note: These receive {text, tokens} as a single tuple parameter
+
+  defp person?({text, _tokens}) do
+    titles = spanish_titles()
+    words = String.split(text)
+    Enum.any?(words, &MapSet.member?(titles, &1))
+  end
+
+  defp location?({text, _tokens}) do
+    # Check for location patterns
+    text =~ ~r/(Ciudad|Provincia|País)\s+de/ ||
+      text =~ ~r/(Norte|Sur|Este|Oeste)\s+de/
+  end
+
+  defp organization?({text, _tokens}) do
+    # Check for organization suffixes
+    text =~ ~r/(S\.A\.|S\.L\.|Ltda\.|S\.A\.U\.)$/ ||
+      text =~ ~r/^(Ministerio|Gobierno|Universidad|Real)\s+/
   end
 
   ## Private Functions
@@ -229,7 +294,8 @@ defmodule Nasty.Language.Spanish.Adapters.EntityRecognizerAdapter do
   end
 
   # Spanish entity recognition patterns
-  defp spanish_patterns do
+  @doc false
+  def spanish_patterns do
     %{
       # Person patterns
       person: [
@@ -274,7 +340,8 @@ defmodule Nasty.Language.Spanish.Adapters.EntityRecognizerAdapter do
   end
 
   # Spanish-specific heuristics
-  defp spanish_heuristics do
+  @doc false
+  def spanish_heuristics do
     %{
       # Words that indicate a person follows
       person_indicators:

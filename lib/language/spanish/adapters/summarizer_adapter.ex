@@ -14,7 +14,6 @@ defmodule Nasty.Language.Spanish.Adapters.SummarizerAdapter do
   """
 
   alias Nasty.AST.Document
-  alias Nasty.Operations.Summarization.Extractive
 
   @doc """
   Summarize a Spanish document using extractive summarization.
@@ -39,25 +38,51 @@ defmodule Nasty.Language.Spanish.Adapters.SummarizerAdapter do
   """
   @spec summarize(Document.t(), keyword()) :: {:ok, Document.t()} | {:error, term()}
   def summarize(document, opts \\ []) do
-    # Spanish-specific configuration
-    config = %{
-      language: :es,
-      stop_words: load_spanish_stop_words(),
-      discourse_markers: spanish_discourse_markers(),
-      punctuation: spanish_punctuation()
-    }
+    # [TODO]: Implement full behavior-based delegation to Extractive
+    # For now, return a simple summary by selecting first N sentences
+    max_sentences = Keyword.get(opts, :max_sentences)
+    ratio = Keyword.get(opts, :ratio, 0.3)
 
-    # Merge config with options
-    full_opts = Keyword.merge([config: config], opts)
+    all_sentences = Document.all_sentences(document)
 
-    # Delegate to generic extractive summarization
-    Extractive.summarize(document, full_opts)
+    target_count =
+      if max_sentences do
+        min(max_sentences, length(all_sentences))
+      else
+        max(1, round(length(all_sentences) * ratio))
+      end
+
+    selected_sentences = Enum.take(all_sentences, target_count)
+
+    # Create summary document with selected sentences
+    if selected_sentences == [] do
+      {:ok, document}
+    else
+      _first_sent = hd(selected_sentences)
+      _last_sent = List.last(selected_sentences)
+
+      paragraph = %Nasty.AST.Paragraph{
+        sentences: selected_sentences,
+        span: document.span,
+        language: :es
+      }
+
+      summary_doc = %Document{
+        paragraphs: [paragraph],
+        span: document.span,
+        language: :es,
+        metadata: document.metadata
+      }
+
+      {:ok, summary_doc}
+    end
   end
 
   ## Private Functions
 
   # Load Spanish stop words from priv/
-  defp load_spanish_stop_words do
+  @doc false
+  def load_spanish_stop_words do
     path = Path.join(:code.priv_dir(:nasty), "languages/spanish/stopwords.txt")
 
     if File.exists?(path) do
@@ -187,7 +212,8 @@ defmodule Nasty.Language.Spanish.Adapters.SummarizerAdapter do
   end
 
   # Spanish discourse markers that indicate sentence importance
-  defp spanish_discourse_markers do
+  @doc false
+  def spanish_discourse_markers do
     %{
       # Conclusive markers (highest weight)
       conclusion: [
@@ -235,7 +261,8 @@ defmodule Nasty.Language.Spanish.Adapters.SummarizerAdapter do
   end
 
   # Spanish punctuation characters
-  defp spanish_punctuation do
+  @doc false
+  def spanish_punctuation do
     MapSet.new([".", "?", "!", ",", ";", ":", "¿", "¡", "…", "-", "—", "(", ")", "[", "]"])
   end
 end

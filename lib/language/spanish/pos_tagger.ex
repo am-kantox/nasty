@@ -67,11 +67,15 @@ defmodule Nasty.Language.Spanish.POSTagger do
   Rule-based POS tagging for Spanish.
   """
   def tag_pos_rule_based(tokens) do
-    tagged =
+    # Use map_reduce to build up tagged tokens as we go
+    # This allows contextual rules to see previously tagged tokens
+    {tagged, _} =
       tokens
       |> Enum.with_index()
-      |> Enum.map(fn {token, idx} ->
-        tag_token(token, tokens, idx)
+      |> Enum.map_reduce([], fn {token, idx}, acc_tagged ->
+        # Tag using accumulated tagged tokens for context
+        tagged_token = tag_token(token, acc_tagged ++ [token] ++ Enum.drop(tokens, idx + 1), idx)
+        {tagged_token, acc_tagged ++ [tagged_token]}
       end)
 
     {:ok, tagged}
@@ -87,14 +91,20 @@ defmodule Nasty.Language.Spanish.POSTagger do
     else
       lowercase = String.downcase(token.text)
 
-      # Try lexical lookup first, then morphological, then contextual
-      tag =
-        lexical_tag(lowercase) ||
-          morphological_tag(token.text) ||
-          contextual_tag(token, all_tokens, idx) ||
-          :noun
+      # Try lexical lookup first (highest confidence)
+      lexical = lexical_tag(lowercase)
 
-      %{token | pos_tag: tag}
+      if lexical do
+        %{token | pos_tag: lexical}
+      else
+        # Check contextual rules (can override morphological for disambiguation)
+        contextual = contextual_tag(token, all_tokens, idx)
+        morphological = morphological_tag(token.text)
+
+        # Contextual rules have priority when they apply
+        tag = contextual || morphological || :noun
+        %{token | pos_tag: tag}
+      end
     end
   end
 
@@ -111,12 +121,13 @@ defmodule Nasty.Language.Spanish.POSTagger do
       word in contractions() -> :adp
       # Coordinating conjunctions
       word in conjunctions_coord() -> :cconj
-      # Subordinating conjunctions
-      word in conjunctions_sub() -> :sconj
       # Auxiliary verbs
       word in auxiliaries() -> :aux
-      # Common verbs (most frequent)
+      # Common verbs (most frequent) - check before subordinating conjunctions
+      # to handle ambiguous words like "como" (I eat vs. as/like)
       word in common_verbs() -> :verb
+      # Subordinating conjunctions - after verbs to resolve ambiguity
+      word in conjunctions_sub() -> :sconj
       # Common nouns (check before adjectives to avoid ambiguity)
       word in common_nouns() -> :noun
       # Common adjectives
@@ -132,11 +143,68 @@ defmodule Nasty.Language.Spanish.POSTagger do
   end
 
   # Morphological tagging based on Spanish suffixes and patterns
-  # credo:disable-for-lines:180
+  # credo:disable-for-lines:220
   defp morphological_tag(word) do
     lowercase = String.downcase(word)
 
     cond do
+      # Check longer/more specific patterns first
+
+      # Adverbs ending in -mente (check before verb patterns)
+      String.ends_with?(lowercase, "mente") and String.length(lowercase) > 6 ->
+        :adv
+
+      # Nouns with specific suffixes (check before verb patterns)
+      String.ends_with?(lowercase, "ción") ->
+        :noun
+
+      String.ends_with?(lowercase, "sión") ->
+        :noun
+
+      String.ends_with?(lowercase, "miento") ->
+        :noun
+
+      String.ends_with?(lowercase, "dad") ->
+        :noun
+
+      String.ends_with?(lowercase, "tad") ->
+        :noun
+
+      String.ends_with?(lowercase, "ncia") ->
+        :noun
+
+      String.ends_with?(lowercase, "ismo") ->
+        :noun
+
+      String.ends_with?(lowercase, "ista") ->
+        :noun
+
+      # Adjective suffixes (check before verb patterns)
+      String.ends_with?(lowercase, "oso") or String.ends_with?(lowercase, "osa") ->
+        :adj
+
+      String.ends_with?(lowercase, "ivo") or String.ends_with?(lowercase, "iva") ->
+        :adj
+
+      String.ends_with?(lowercase, "able") ->
+        :adj
+
+      String.ends_with?(lowercase, "ible") ->
+        :adj
+
+      String.ends_with?(lowercase, "ante") ->
+        :adj
+
+      String.ends_with?(lowercase, "ente") ->
+        :adj
+
+      String.ends_with?(lowercase, "iente") ->
+        :adj
+
+      # Proper nouns (capitalized)
+      String.first(word) == String.upcase(String.first(word)) and String.length(word) > 1 ->
+        :propn
+
       # Spanish verb endings - Present tense
       # -ar verbs: hablo, hablas, habla, hablamos, habláis, hablan
       # Be more specific to avoid false positives with nouns
@@ -303,61 +371,6 @@ defmodule Nasty.Language.Spanish.POSTagger do
           String.length(lowercase) > 3 ->
         :verb
 
-      # Nouns with specific suffixes
-      String.ends_with?(lowercase, "ción") ->
-        :noun
-
-      String.ends_with?(lowercase, "sión") ->
-        :noun
-
-      String.ends_with?(lowercase, "miento") ->
-        :noun
-
-      String.ends_with?(lowercase, "dad") ->
-        :noun
-
-      String.ends_with?(lowercase, "tad") ->
-        :noun
-
-      String.ends_with?(lowercase, "ncia") ->
-        :noun
-
-      String.ends_with?(lowercase, "ismo") ->
-        :noun
-
-      String.ends_with?(lowercase, "ista") ->
-        :noun
-
-      # Adjective suffixes
-      String.ends_with?(lowercase, "oso") or String.ends_with?(lowercase, "osa") ->
-        :adj
-
-      String.ends_with?(lowercase, "ivo") or String.ends_with?(lowercase, "iva") ->
-        :adj
-
-      String.ends_with?(lowercase, "able") ->
-        :adj
-
-      String.ends_with?(lowercase, "ible") ->
-        :adj
-
-      String.ends_with?(lowercase, "ante") ->
-        :adj
-
-      String.ends_with?(lowercase, "ente") ->
-        :adj
-
-      String.ends_with?(lowercase, "iente") ->
-        :adj
-
-      # Adverbs ending in -mente
-      String.ends_with?(lowercase, "mente") and String.length(lowercase) > 6 ->
-        :adv
-
-      # Proper nouns (capitalized, but not at sentence start)
-      String.first(word) == String.upcase(String.first(word)) and String.length(word) > 1 ->
-        :propn
-
       true ->
         nil
     end
@@ -379,8 +392,15 @@ defmodule Nasty.Language.Spanish.POSTagger do
           :noun
         end
 
-      # After preposition -> likely noun
-      prev_token && prev_token.pos_tag == :adp ->
+      # After noun -> likely adjective (Spanish adjectives often come after nouns)
+      # e.g., "gato blanco" (white cat), "casa grande" (big house)
+      prev_token && prev_token.pos_tag == :noun &&
+          (ends_with_adj_agreement?(lowercase) || ends_with_adj_suffix?(lowercase)) ->
+        :adj
+
+      # After preposition -> likely noun (but preserve proper nouns)
+      prev_token && prev_token.pos_tag == :adp &&
+          not capitalized?(token.text) ->
         :noun
 
       # Before noun -> likely adjective (but Spanish adjectives often come after)
@@ -423,6 +443,18 @@ defmodule Nasty.Language.Spanish.POSTagger do
       String.ends_with?(word, "ante") or String.ends_with?(word, "ente")
   end
 
+  # Check if word has typical adjective gender/number agreement pattern
+  # Adjectives ending in -o (masc), -a (fem), -os (masc pl), -as (fem pl)
+  defp ends_with_adj_agreement?(word) do
+    len = String.length(word)
+
+    len > 3 &&
+      (String.ends_with?(word, "o") or
+         String.ends_with?(word, "a") or
+         String.ends_with?(word, "os") or
+         String.ends_with?(word, "as"))
+  end
+
   # Check if word is likely to be a verb stem (heuristic)
   # Returns false for common noun patterns ending in -o, -a, -e
   defp has_verb_stem?(word) do
@@ -434,6 +466,12 @@ defmodule Nasty.Language.Spanish.POSTagger do
       # [TODO] This is a simple heuristic - can be improved
       not Regex.match?(~r/(gato|pato|rato|dato)$/, word)
     end
+  end
+
+  # Check if word is capitalized (proper noun)
+  defp capitalized?(word) do
+    first_char = String.first(word)
+    first_char == String.upcase(first_char) && String.length(word) > 1
   end
 
   ## Word Lists (Closed-class words)

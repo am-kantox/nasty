@@ -118,25 +118,115 @@ defmodule Nasty.Language.Spanish.Morphology do
         rest |> String.reverse() |> Kernel.<>("ar")
 
       "odnei" <> rest ->
-        # Could be -er or -ir, default to -er
-        rest |> String.reverse() |> Kernel.<>("er")
+        stem = String.reverse(rest)
+        # Check if it's a known -er verb stem
+        if stem in ["com", "beb", "le", "cre", "tem", "ve", "vend", "aprend", "compr", "perd"] do
+          stem <> "er"
+        else
+          stem <> "ir"
+        end
 
       # Past participle: -ado → -ar, -ido → -er/-ir
       "oda" <> rest when byte_size(rest) >= 1 ->
         rest |> String.reverse() |> Kernel.<>("ar")
 
       "odi" <> rest when byte_size(rest) >= 1 ->
+        stem = String.reverse(rest)
+        # Check if it's a known -er verb stem
+        if stem in ["com", "beb", "le", "cre", "tem", "ve", "vend", "aprend", "compr", "perd"] do
+          stem <> "er"
+        else
+          stem <> "ir"
+        end
+
+      # Present tense -ir verbs (vivimos, vivís) - check before shorter patterns
+      "somi" <> rest ->
+        rest |> String.reverse() |> Kernel.<>("ir")
+
+      "sí" <> rest ->
+        rest |> String.reverse() |> Kernel.<>("ir")
+
+      # Present tense -er verbs (comemos, coméis) - check before shorter patterns
+      "some" <> rest ->
         rest |> String.reverse() |> Kernel.<>("er")
 
-      # Present tense -ar verbs
-      <<"o", rest::binary>> when byte_size(rest) >= 1 ->
-        # hablo → hablar
-        rest |> String.reverse() |> Kernel.<>("ar")
+      "sié" <> rest ->
+        rest |> String.reverse() |> Kernel.<>("er")
 
+      # -es ending (comes, vives) - need to distinguish -er from -ir
+      "se" <> rest ->
+        stem = String.reverse(rest)
+
+        if stem in ["viv", "part", "sub", "recib", "escrib", "abr", "sufr"] do
+          stem <> "ir"
+        else
+          stem <> "er"
+        end
+
+      # -en ending (comen, viven)
+      "ne" <> rest ->
+        stem = String.reverse(rest)
+
+        if stem in ["viv", "part", "sub", "recib", "escrib", "abr", "sufr"] do
+          stem <> "ir"
+        else
+          stem <> "er"
+        end
+
+      # -e ending (come, vive) - need to distinguish -er from -ir
+      <<"e", rest::binary>> when byte_size(rest) >= 2 ->
+        stem = String.reverse(rest)
+
+        cond do
+          # Known -er verb stems
+          stem in [
+            "com",
+            "beb",
+            "le",
+            "tem",
+            "cre",
+            "ve",
+            "vend",
+            "aprend",
+            "compr",
+            "perd",
+            "respond"
+          ] ->
+            stem <> "er"
+
+          # Known -ir verb stems
+          stem in ["viv", "part", "sub", "recib", "escrib", "abr", "sufr"] ->
+            stem <> "ir"
+
+          # Default to -er for unknowns
+          true ->
+            stem <> "er"
+        end
+
+      # -o ending (como, vivo, hablo)
+      <<"o", rest::binary>> when byte_size(rest) >= 2 ->
+        stem = String.reverse(rest)
+
+        cond do
+          # Known -ir verb stems
+          stem in ["viv", "part", "sub", "recib", "escrib", "describ", "abr", "sufr", "descubr"] ->
+            stem <> "ir"
+
+          # Known -er verb stems
+          stem in ["com", "beb", "le", "tem", "cre", "ve", "vend", "aprend", "compr", "perd"] ->
+            stem <> "er"
+
+          # Default to -ar for most -o endings (hablo → hablar)
+          true ->
+            stem <> "ar"
+        end
+
+      # -as ending (hablas)
       "sa" <> rest ->
         rest |> String.reverse() |> Kernel.<>("ar")
 
-      <<"a", rest::binary>> when byte_size(rest) >= 1 ->
+      # -a ending (habla)
+      <<"a", rest::binary>> when byte_size(rest) >= 2 ->
         rest |> String.reverse() |> Kernel.<>("ar")
 
       "soma" <> rest ->
@@ -147,29 +237,6 @@ defmodule Nasty.Language.Spanish.Morphology do
 
       "na" <> rest ->
         rest |> String.reverse() |> Kernel.<>("ar")
-
-      # Present tense -er verbs
-      "se" <> rest ->
-        rest |> String.reverse() |> Kernel.<>("er")
-
-      <<"e", rest::binary>> when byte_size(rest) >= 1 ->
-        rest |> String.reverse() |> Kernel.<>("er")
-
-      "some" <> rest ->
-        rest |> String.reverse() |> Kernel.<>("er")
-
-      "sié" <> rest ->
-        rest |> String.reverse() |> Kernel.<>("er")
-
-      "ne" <> rest ->
-        rest |> String.reverse() |> Kernel.<>("er")
-
-      # Present tense -ir verbs
-      "somi" <> rest ->
-        rest |> String.reverse() |> Kernel.<>("ir")
-
-      "sí" <> rest ->
-        rest |> String.reverse() |> Kernel.<>("ir")
 
       # Preterite tense
       <<"é", rest::binary>> ->
@@ -188,7 +255,13 @@ defmodule Nasty.Language.Spanish.Morphology do
         rest |> String.reverse() |> Kernel.<>("ar")
 
       <<"í", rest::binary>> when byte_size(rest) >= 1 ->
-        rest |> String.reverse() |> Kernel.<>("ir")
+        stem = String.reverse(rest)
+        # comí → comer (but vivdí → vivir)
+        if stem in ["com", "beb", "le", "tem", "cre", "ve", "vend", "aprend", "compr", "perd"] do
+          stem <> "er"
+        else
+          stem <> "ir"
+        end
 
       "etsi" <> rest ->
         rest |> String.reverse() |> Kernel.<>("er")
@@ -369,11 +442,19 @@ defmodule Nasty.Language.Spanish.Morphology do
       String.ends_with?(word, "ado") or String.ends_with?(word, "ido") ->
         %{tense: :past, aspect: :perfective}
 
-      # Preterite
-      String.ends_with?(word, ["é", "ó", "aste", "iste", "asteis", "isteis", "aron", "ieron"]) ->
+      # Conditional (check before imperfect - more specific pattern)
+      String.ends_with?(word, ["ría", "rías", "ríamos", "ríais", "rían"]) ->
+        %{tense: :conditional, mood: :conditional}
+
+      # Future (check before imperfect)
+      String.ends_with?(word, ["ré", "rás", "rá", "remos", "réis", "rán"]) ->
+        %{tense: :future, mood: :indicative}
+
+      # Preterite tense
+      String.ends_with?(word, ["é", "ó", "í", "aste", "iste", "asteis", "isteis", "aron", "ieron"]) ->
         %{tense: :past, mood: :indicative}
 
-      # Imperfect
+      # Imperfect (check after conditional and future)
       String.ends_with?(word, [
         "aba",
         "abas",
@@ -387,14 +468,6 @@ defmodule Nasty.Language.Spanish.Morphology do
         "ían"
       ]) ->
         %{tense: :imperfect, mood: :indicative}
-
-      # Future
-      String.ends_with?(word, ["ré", "rás", "rá", "remos", "réis", "rán"]) ->
-        %{tense: :future, mood: :indicative}
-
-      # Conditional
-      String.ends_with?(word, ["ría", "rías", "ríamos", "ríais", "rían"]) ->
-        %{tense: :conditional, mood: :conditional}
 
       # Present tense (default)
       true ->

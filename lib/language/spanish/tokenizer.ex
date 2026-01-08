@@ -139,12 +139,13 @@ defmodule Nasty.Language.Spanish.Tokenizer do
 
   # Spanish contractions (must match before regular words)
   # del = de + el, al = a + el
+  # Note: These are matched with word boundaries - must not be followed by letters
   contraction =
     choice([
-      string("del"),
-      string("al"),
-      string("Del"),
-      string("Al")
+      string("del") |> lookahead_not(utf8_string([?a..?z, ?A..?Z] ++ spanish_accented, 1)),
+      string("al") |> lookahead_not(utf8_string([?a..?z, ?A..?Z] ++ spanish_accented, 1)),
+      string("Del") |> lookahead_not(utf8_string([?a..?z, ?A..?Z] ++ spanish_accented, 1)),
+      string("Al") |> lookahead_not(utf8_string([?a..?z, ?A..?Z] ++ spanish_accented, 1))
     ])
     |> unwrap_and_tag(:contraction)
 
@@ -383,7 +384,8 @@ defmodule Nasty.Language.Spanish.Tokenizer do
 
           {new_line_final, new_col_final, new_byte_pos} =
             if ws_after > 0 do
-              ws_text = String.slice(original_text, end_offset, ws_after)
+              # Use binary.part for byte-based slicing
+              ws_text = :binary.part(original_text, end_offset, ws_after)
 
               if String.contains?(ws_text, "\n") do
                 ws_lines = String.split(ws_text, "\n")
@@ -419,7 +421,8 @@ defmodule Nasty.Language.Spanish.Tokenizer do
     if offset >= byte_size(text) do
       0
     else
-      rest = String.slice(text, offset..-1//1)
+      # Use binary.part to slice by bytes, not graphemes
+      rest = :binary.part(text, offset, byte_size(text) - offset)
 
       case Regex.run(~r/^[\s\t\n\r]+/, rest) do
         [ws] -> byte_size(ws)

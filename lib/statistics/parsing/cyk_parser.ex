@@ -110,13 +110,13 @@ defmodule Nasty.Statistics.Parsing.CYKParser do
       end)
 
     # Step 2: Fill chart for increasing span lengths
-    Enum.reduce(2..n, chart, fn length, chart_acc ->
-      Enum.reduce(0..(n - length), chart_acc, fn i, chart_acc2 ->
+    Enum.reduce(2..n//1, chart, fn length, chart_acc ->
+      Enum.reduce(0..(n - length)//1, chart_acc, fn i, chart_acc2 ->
         j = i + length - 1
 
         # Try all split points k in [i, j-1]
         binary_entries =
-          for k <- i..(j - 1),
+          for k <- i..(j - 1)//1,
               left_entry <- get_chart_entries(chart_acc2, i, k),
               right_entry <- get_chart_entries(chart_acc2, k + 1, j),
               {label, tree} <- apply_binary_rules(grammar, left_entry, right_entry, i, j) do

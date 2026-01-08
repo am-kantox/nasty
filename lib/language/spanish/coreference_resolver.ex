@@ -49,7 +49,9 @@ defmodule Nasty.Language.Spanish.CoreferenceResolver do
       {:ok, [%CorefChain{...}]}
   """
   @spec resolve(Document.t(), keyword()) :: {:ok, [CorefChain.t()]} | {:error, term()}
-  def resolve(%Document{language: :es} = doc, opts \\ []) do
+  def resolve(doc, opts \\ [])
+
+  def resolve(%Document{language: :es} = doc, opts) do
     CoreferenceResolverAdapter.resolve(doc, opts)
   end
 

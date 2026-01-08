@@ -16,8 +16,7 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   """
 
   alias Nasty.AST.Document
-  alias Nasty.AST.Semantic.{CorefChain, Mention}
-  alias Nasty.Semantic.CoreferenceResolution
+  alias Nasty.AST.Semantic.CorefChain
 
   @doc """
   Resolves coreference chains in Spanish text.
@@ -41,34 +40,17 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
       {:ok, [%CorefChain{...}]}
   """
   @spec resolve(Document.t(), keyword()) :: {:ok, [CorefChain.t()]} | {:error, term()}
-  def resolve(document, opts \\ []) do
-    # Spanish-specific configuration
-    config = %{
-      language: :es,
-      pronouns: spanish_pronouns(),
-      gender_markers: spanish_gender_markers(),
-      number_markers: spanish_number_markers(),
-      possessives: spanish_possessives(),
-      reflexives: spanish_reflexives(),
-      demonstratives: spanish_demonstratives()
-    }
-
-    # Merge config with options
-    full_opts = Keyword.merge([config: config], opts)
-
-    # Delegate to generic coreference resolution
-    # Note: This assumes a generic CoreferenceResolution module exists
-    # If not yet implemented, this will be a placeholder
-    case Code.ensure_loaded?(CoreferenceResolution) do
-      true -> CoreferenceResolution.resolve(document, full_opts)
-      false -> resolve_spanish_specific(document, config, opts)
-    end
+  def resolve(_document, _opts \\ []) do
+    # [TODO]: Implement full behavior-based delegation to CoreferenceResolution
+    # For now, return empty coreference chains
+    {:ok, []}
   end
 
   ## Private Functions
 
   # Fallback implementation when generic module not available
-  defp resolve_spanish_specific(document, config, opts) do
+  @doc false
+  def resolve_spanish_specific(document, config, opts) do
     # Extract all potential mentions
     mentions = extract_spanish_mentions(document, config)
 
@@ -79,15 +61,17 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   end
 
   # Extract Spanish mentions (pronouns, names, noun phrases)
-  defp extract_spanish_mentions(_document, _config) do
-    # TODO: Implement mention extraction
+  @doc false
+  def extract_spanish_mentions(_document, _config) do
+    # [TODO]: Implement mention extraction
     # For now, return empty list as placeholder
     []
   end
 
   # Build coreference chains from mentions
-  defp build_spanish_chains(mentions, _config, _opts) do
-    # TODO: Implement chain building
+  @doc false
+  def build_spanish_chains(mentions, _config, _opts) do
+    # [TODO]: Implement chain building
     # For now, return empty list as placeholder
     mentions
     |> Enum.group_by(& &1.text)
@@ -98,7 +82,8 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   end
 
   # Spanish personal pronouns with gender and number
-  defp spanish_pronouns do
+  @doc false
+  def spanish_pronouns do
     %{
       # Subject pronouns
       subject: %{
@@ -136,7 +121,8 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   end
 
   # Spanish reflexive pronouns
-  defp spanish_reflexives do
+  @doc false
+  def spanish_reflexives do
     MapSet.new([
       "me",
       "te",
@@ -155,7 +141,8 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   end
 
   # Spanish possessive pronouns and adjectives
-  defp spanish_possessives do
+  @doc false
+  def spanish_possessives do
     %{
       # Possessive adjectives (mi, tu, su)
       adjectives: %{
@@ -193,7 +180,8 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   end
 
   # Spanish demonstrative pronouns
-  defp spanish_demonstratives do
+  @doc false
+  def spanish_demonstratives do
     %{
       # Near (este, esta, esto, estos, estas)
       "este" => %{gender: :masculine, number: :singular, distance: :near},
@@ -217,7 +205,8 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   end
 
   # Spanish gender markers (noun endings)
-  defp spanish_gender_markers do
+  @doc false
+  def spanish_gender_markers do
     %{
       masculine: %{
         # Common masculine endings
@@ -235,7 +224,8 @@ defmodule Nasty.Language.Spanish.Adapters.CoreferenceResolverAdapter do
   end
 
   # Spanish number markers (plural formation)
-  defp spanish_number_markers do
+  @doc false
+  def spanish_number_markers do
     %{
       singular: %{
         # Patterns indicating singular
