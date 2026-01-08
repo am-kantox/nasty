@@ -378,35 +378,41 @@ Inference: barks(fido) ✓
 - Language-specific customization
 - A/B testing of grammar variants
 
-### 8. WordNet Integration
+### 8. WordNet Integration ✅
 
 **Priority**: Low  
 **Effort**: 3-4 weeks  
-**Status**: WSD framework ready, needs data
+**Status**: ✅ **COMPLETE**
 
 **Purpose**: Rich lexical database for word sense disambiguation
 
-**Integration Points**:
-- Word sense disambiguation (already has framework)
-- Synonym/antonym lookup
-- Hypernym/hyponym relationships
-- Semantic similarity calculations
+**Completed Features**:
+- ✅ Full ETS-based storage with multiple indexes
+- ✅ WN-LMF format loader for OEWN and OMW data
+- ✅ Synset, lemma, and relation management
+- ✅ Semantic similarity calculations (Path, Wu-Palmer, Lesk)
+- ✅ Interlingual Index (ILI) for cross-language mapping
+- ✅ Word sense disambiguation integration
+- ✅ Mix tasks for downloading and managing WordNet data
+- ✅ Support for English, Spanish, and Catalan
+- ✅ Comprehensive test coverage
 
 **Implementation**:
 ```elixir
-defmodule Nasty.Lexical.WordNet do
-  def get_senses(word, pos_tag)
-  def get_definition(sense_id)
-  def get_synonyms(sense_id)
-  def get_hypernyms(sense_id)
-  def similarity(sense1, sense2)
-end
+# Modules implemented:
+- Nasty.Lexical.WordNet           # Main API
+- Nasty.Lexical.WordNet.Synset    # Synonym set
+- Nasty.Lexical.WordNet.Lemma     # Word sense
+- Nasty.Lexical.WordNet.Relation  # Semantic relations
+- Nasty.Lexical.WordNet.Storage   # ETS storage
+- Nasty.Lexical.WordNet.Loader    # WN-LMF parser
+- Nasty.Lexical.WordNet.Similarity # Semantic similarity
 ```
 
-**Resources**:
-- Open Multilingual WordNet
-- NLTK WordNet interface (for reference)
-- BabelNet (multilingual)
+**Resources Used**:
+- Open English WordNet (OEWN 2025)
+- Open Multilingual WordNet (OMW Spanish/Catalan)
+- WN-LMF standardized format
 
 ### 9. Advanced Coreference Resolution
 
@@ -441,7 +447,7 @@ end
 ### High Value / Near Term
 1. Catalan language support (completes trilingual capability)
 2. Grammar resource externalization (improves maintainability)
-3. WordNet integration (enhances WSD)
+3. ✅ ~~WordNet integration~~ **COMPLETED**
 
 ### Medium Value / Medium Term
 4. Cross-lingual translation (leverages existing architecture)
