@@ -42,7 +42,10 @@ defmodule Nasty.Language.English.EntityRecognizer do
     [
       {:person, &has_title_prefix?/1},
       {:gpe, &has_location_suffix?/1},
-      {:org, &has_org_suffix?/1}
+      {:org, &has_org_suffix?/1},
+      {:date, &is_date_pattern?/1},
+      {:time, &is_time_pattern?/1},
+      {:money, &is_money_pattern?/1}
     ]
   end
 
@@ -312,5 +315,101 @@ defmodule Nasty.Language.English.EntityRecognizer do
 
     lowercase in orgs or
       Enum.any?(orgs, fn org -> String.starts_with?(lowercase, org) end)
+  end
+
+  # Check if text matches date pattern
+  defp is_date_pattern?({text, tokens}) do
+    # Patterns: "January 5", "Jan 5", "5 January", "2026", "5/1/2026"
+    cond do
+      # Month names
+      has_month_name?(text) ->
+        true
+
+      # Year (4 digits)
+      Regex.match?(~r/^\d{4}$/, text) ->
+        true
+
+      # Date with slashes or dashes
+      Regex.match?(~r/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/, text) ->
+        true
+
+      # Day + month or month + day (e.g., "5 January", "January 5")
+      length(tokens) == 2 and
+          (has_month_name?(hd(tokens).text) or has_month_name?(List.last(tokens).text)) ->
+        true
+
+      true ->
+        false
+    end
+  end
+
+  # Check if text matches time pattern
+  defp is_time_pattern?({text, _tokens}) do
+    # Patterns: "3:00", "3:00 PM", "15:30", "noon", "midnight"
+    text_lower = String.downcase(text)
+
+    cond do
+      # Time words
+      text_lower in ~w(noon midnight morning afternoon evening night) ->
+        true
+
+      # HH:MM format
+      Regex.match?(~r/^\d{1,2}:\d{2}(:\d{2})?$/, text) ->
+        true
+
+      # HH:MM AM/PM format (handled as multi-token)
+      Regex.match?(~r/\d{1,2}:\d{2}\s*(am|pm|AM|PM)/, text) ->
+        true
+
+      true ->
+        false
+    end
+  end
+
+  # Check if text matches money pattern
+  defp is_money_pattern?({text, tokens}) do
+    # Patterns: "$100", "€50", "100 dollars", "fifty euros"
+    text_lower = String.downcase(text)
+
+    cond do
+      # Currency symbols at start
+      Regex.match?(~r/^[\$€£¥₹₽¢]/, text) ->
+        true
+
+      # Currency words at end
+      Regex.match?(~r/(dollar|euro|pound|yen|cent|rupee|ruble|yuan)s?$/, text_lower) ->
+        true
+
+      # Number followed by currency word
+      length(tokens) >= 2 and Regex.match?(~r/^\d+/, hd(tokens).text) and
+          currency_word?(List.last(tokens).text) ->
+        true
+
+      true ->
+        false
+    end
+  end
+
+  # Helper: check if text contains a month name
+  defp has_month_name?(text) do
+    text_lower = String.downcase(text)
+
+    months = ~w(
+      january february march april may june july august
+      september october november december
+      jan feb mar apr jun jul aug sep sept oct nov dec
+    )
+
+    Enum.any?(months, fn month -> String.contains?(text_lower, month) end)
+  end
+
+  # Helper: check if text is a currency word
+  defp currency_word?(text) do
+    text_lower = String.downcase(text)
+
+    text_lower in ~w(
+      dollar dollars euro euros pound pounds sterling
+      yen yuan rupee rupees ruble rubles cent cents
+    )
   end
 end
