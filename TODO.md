@@ -31,63 +31,73 @@ These are TODOs found in the codebase that need attention:
 ### Code Interoperability
 
 #### Intent Recognition (`lib/interop/intent_recognizer.ex`)
-- **Semantic Frames** (line 51)
-  - semantic_frames not yet implemented in Clause struct
-  - Status: Works with simplified extraction
-- **Sophistication** (line 55)
-  - Intent building might be too simplified
-  - Could extract more nuanced constraints and arguments
+- ~~**Semantic Frames** (line 51)~~
+  - ~~semantic_frames not yet implemented in Clause struct~~
+  - Status: ~~Works with simplified extraction~~ COMPLETED - Added fallback handling for semantic_frames field
+- ~~**Sophistication** (line 55)~~
+  - ~~Intent building might be too simplified~~
+  - ~~Could extract more nuanced constraints and arguments~~
+  - Status: COMPLETED - Enhanced with comparison, property, and range constraint extraction
   
 #### Code Explanation (`lib/interop/code_gen/explain.ex`)
-- **Enum.reduce Explanation** (line 289)
-  - Reducer function explanation not implemented
-  - Currently gives generic explanation
-- **Mapper Variable Usage** (line 350)
-  - Not using variable name in mapper explanation
-  - Could be more descriptive
+- ~~**Enum.reduce Explanation** (line 289)~~
+  - ~~Reducer function explanation not implemented~~
+  - ~~Currently gives generic explanation~~
+  - Status: COMPLETED - Added full reducer explanation with accumulator and element naming
+- ~~**Mapper Variable Usage** (line 350)~~
+  - ~~Not using variable name in mapper explanation~~
+  - ~~Could be more descriptive~~
+  - Status: COMPLETED - Now uses variable name in mapper explanation
 
 ### Language Support
 
 #### Spanish Implementations
-- **Text Classification** (`lib/language/spanish/text_classifier.ex`, lines 157-159)
-  - POS tags feature not implemented for Spanish
-  - Entity extraction feature not implemented for Spanish
-  - Status: Basic BOW classification works
+- ~~**Text Classification** (`lib/language/spanish/text_classifier.ex`, lines 157-159)~~
+  - ~~POS tags feature not implemented for Spanish~~
+  - ~~Entity extraction feature not implemented for Spanish~~
+  - Status: ~~Basic BOW classification works~~ COMPLETED - POS tags and entity extraction features now implemented
 
 #### Entity Recognition (`lib/language/english/entity_recognizer.ex`)
-- **Error Handling** (line 155)
-  - CRF prediction error case not handled
-  - Would fall through to rule-based (needs explicit error handling)
+- ~~**Error Handling** (line 155)~~
+  - ~~CRF prediction error case not handled~~
+  - ~~Would fall through to rule-based (needs explicit error handling)~~
+  - Status: COMPLETED - Explicit error handling added with fallback to rule-based
 
 ### Data Processing
 
 #### Corpus Management (`lib/data/corpus.ex`)
-- **Test Ratio Usage** (line 94)
-  - test_ratio variable calculated but not used directly
-  - Could be cleaner
+- ~~**Test Ratio Usage** (line 94)~~
+  - ~~test_ratio variable calculated but not used directly~~
+  - ~~Could be cleaner~~
+  - Status: COMPLETED - Cleaned up unused variable comment
 
 ### Mix Tasks
 
 #### Training Tasks
-- **Fine-tuning** (`lib/mix/tasks/nasty/fine_tune/pos.ex`, lines 113, 145)
-  - Training loop progress reporting could be enhanced
-  - Validation logic could be more detailed
+- ~~**Fine-tuning** (`lib/mix/tasks/nasty/fine_tune/pos.ex`, lines 113, 145)~~
+  - ~~Training loop progress reporting could be enhanced~~
+  - ~~Validation logic could be more detailed~~
+  - Status: COMPLETED - Added error handling for evaluation failures
 
 #### Evaluation Tasks (`lib/mix/tasks/nasty.eval.ex`, line 154)
-- Additional evaluation metrics needed
+- ~~Additional evaluation metrics needed~~
+- Status: COMPLETED - Added per-label metrics, confusion matrix statistics, and support counts
 
 #### CRF Training (`lib/mix/tasks/nasty.train.crf.ex`, line 232)
-- Enhanced progress reporting
+- ~~Enhanced progress reporting~~
+- Status: COMPLETED - Added error handling for prediction failures
 
 ### Visualization
 
 #### Rendering (`lib/rendering/visualization.ex`, line 162)
-- JSON export could include more metadata
+- ~~JSON export could include more metadata~~
+- Status: COMPLETED - Added language, span, and dependencies to JSON export
 
 ### Template Extraction
 
 #### English Templates (`lib/language/english/template_extractor.ex`, line 164)
-- More template types could be added
+- ~~More template types could be added~~
+- Status: COMPLETED - Added product_launch, education, founding, and subsidiary templates
 
 ## Feature-Level TODOs
 

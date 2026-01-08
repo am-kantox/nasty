@@ -152,13 +152,12 @@ defmodule Nasty.Language.English.EntityRecognizer do
             # Convert CRF labels to Entity structs
             labels_to_entities(tokens, labels)
 
-            # [TODO]
-            # {:error, reason} ->
-            #   Logger.warning(
-            #     "CRF prediction failed: #{inspect(reason)}, falling back to rule-based"
-            #   )
+          {:error, reason} ->
+            Logger.warning(
+              "CRF prediction failed: #{inspect(reason)}, falling back to rule-based"
+            )
 
-            #   recognize_rule_based(tokens)
+            recognize_rule_based(tokens)
         end
     end
   end

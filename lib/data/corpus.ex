@@ -91,7 +91,6 @@ defmodule Nasty.Data.Corpus do
       end
 
     total = length(sentences)
-    # [TODO] `test_ratio`
     [train_ratio, val_ratio, _test_ratio] = ratios
 
     train_size = round(total * train_ratio)

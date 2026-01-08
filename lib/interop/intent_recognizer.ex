@@ -48,11 +48,14 @@ defmodule Nasty.Interop.IntentRecognizer do
     intent_type = classify_intent_type(sentence)
 
     # Step 2: Extract semantic frames from clause structure
-    # [TODO] semantic_frames is not yet implemented in Clause struct
-    frames = extract_frames_from_clause(sentence.main_clause)
+    # Note: semantic_frames may not be populated in Clause yet, fallback to manual extraction
+    frames =
+      case sentence.main_clause do
+        %{semantic_frames: sf} when is_list(sf) and length(sf) > 0 -> sf
+        _ -> extract_frames_from_clause(sentence.main_clause)
+      end
 
-    # Step 3: Build intent from frames and sentence structure
-    # [TODO] might be too simplified
+    # Step 3: Build intent from frames and sentence structure with enhanced extraction
     build_intent_from_sentence(intent_type, sentence, frames)
 
     # case build_intent_from_sentence(intent_type, sentence, frames) do
@@ -287,19 +290,86 @@ defmodule Nasty.Interop.IntentRecognizer do
     end
   end
 
-  defp extract_constraints(nil, _sentence), do: []
+  defp extract_constraints(nil, sentence) do
+    # Fallback: extract constraints from prepositional phrases and adverbials
+    extract_constraints_from_sentence(sentence)
+  end
 
-  defp extract_constraints(%SemanticFrame{roles: roles}, _sentence) do
+  defp extract_constraints(%SemanticFrame{roles: roles}, sentence) do
     # Look for manner, purpose, or instrument roles that indicate constraints
-    roles
-    |> Enum.filter(fn role ->
-      role.type in [:manner, :purpose, :instrument]
+    role_constraints =
+      roles
+      |> Enum.filter(fn role ->
+        role.type in [:manner, :purpose, :instrument]
+      end)
+      |> Enum.map(&parse_constraint/1)
+      |> Enum.reject(&is_nil/1)
+
+    # Also extract from sentence structure for additional constraints
+    sentence_constraints = extract_constraints_from_sentence(sentence)
+
+    # Combine and deduplicate
+    (role_constraints ++ sentence_constraints) |> Enum.uniq()
+  end
+
+  # Extract constraints from sentence prepositional phrases
+  defp extract_constraints_from_sentence(sentence) do
+    tokens = extract_all_tokens(sentence.main_clause)
+
+    # Look for comparison patterns in tokens
+    extract_comparison_constraints(tokens) ++
+      extract_property_constraints(tokens) ++
+      extract_range_constraints(tokens)
+  end
+
+  # Extract comparison constraints (greater than, less than, etc.)
+  defp extract_comparison_constraints(tokens) do
+    text = Enum.map_join(tokens, " ", & &1.text) |> String.downcase()
+
+    comparisons = [
+      {~r/greater than (\d+)/, :greater_than},
+      {~r/more than (\d+)/, :greater_than},
+      {~r/above (\d+)/, :greater_than},
+      {~r/less than (\d+)/, :less_than},
+      {~r/fewer than (\d+)/, :less_than},
+      {~r/below (\d+)/, :less_than},
+      {~r/at least (\d+)/, :greater_than_or_equal},
+      {~r/at most (\d+)/, :less_than_or_equal}
+    ]
+
+    Enum.flat_map(comparisons, fn {pattern, op} ->
+      case Regex.run(pattern, text) do
+        [_, value] -> [{:comparison, op, String.to_integer(value)}]
+        _ -> []
+      end
     end)
-    |> Enum.map(fn role ->
-      # Parse constraint from role
-      parse_constraint(role)
+  end
+
+  # Extract property-based constraints (active, valid, etc.)
+  defp extract_property_constraints(tokens) do
+    property_words = ~w(active inactive valid invalid enabled disabled archived)
+
+    tokens
+    |> Enum.filter(fn token ->
+      String.downcase(token.text) in property_words
     end)
-    |> Enum.reject(&is_nil/1)
+    |> Enum.map(fn token ->
+      property = String.downcase(token.text) |> String.to_atom()
+      {:property, property, true}
+    end)
+  end
+
+  # Extract range constraints (between X and Y)
+  defp extract_range_constraints(tokens) do
+    text = Enum.map_join(tokens, " ", & &1.text) |> String.downcase()
+
+    case Regex.run(~r/between (\d+) and (\d+)/, text) do
+      [_, min, max] ->
+        [{:range, String.to_integer(min), String.to_integer(max)}]
+
+      _ ->
+        []
+    end
   end
 
   defp parse_constraint(role) do

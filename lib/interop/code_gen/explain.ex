@@ -286,11 +286,11 @@ defmodule Nasty.Interop.CodeGen.Explain do
     end
   end
 
-  # [TODO] `reducer`
-  defp explain_function_call("Enum", :reduce, [target, initial, _reducer], opts) do
+  defp explain_function_call("Enum", :reduce, [target, initial, reducer], opts) do
     with {:ok, target_text} <- traverse_ast(target, opts),
-         {:ok, init_text} <- traverse_ast(initial, opts) do
-      {:ok, "reduce #{target_text} starting with #{init_text}"}
+         {:ok, init_text} <- traverse_ast(initial, opts),
+         {:ok, reducer_text} <- explain_reducer(reducer, opts) do
+      {:ok, "reduce #{target_text} starting with #{init_text}, #{reducer_text}"}
     end
   end
 
@@ -347,11 +347,11 @@ defmodule Nasty.Interop.CodeGen.Explain do
   end
 
   # Explain anonymous function mappers (for map)
-  # [TODO] `var`
-  defp explain_mapper({:fn, _meta, [{:->, _meta2, [[{_var, _, _}], body]}]}, opts) do
+  defp explain_mapper({:fn, _meta, [{:->, _meta2, [[{var, _, _}], body]}]}, opts) do
     # fn x -> body end
     with {:ok, body_text} <- traverse_ast(body, opts) do
-      {:ok, "to #{body_text}"}
+      var_text = atom_to_text(var)
+      {:ok, "transforming each #{var_text} to #{body_text}"}
     end
   end
 
@@ -362,6 +362,20 @@ defmodule Nasty.Interop.CodeGen.Explain do
 
   defp explain_mapper(_mapper, _opts) do
     {:ok, "with transformation"}
+  end
+
+  # Explain anonymous function reducers (for reduce)
+  defp explain_reducer({:fn, _meta, [{:->, _meta2, [[{acc, _, _}, {elem, _, _}], body]}]}, opts) do
+    # fn acc, elem -> body end
+    with {:ok, body_text} <- traverse_ast(body, opts) do
+      acc_text = atom_to_text(acc)
+      elem_text = atom_to_text(elem)
+      {:ok, "accumulating #{acc_text} with each #{elem_text} to #{body_text}"}
+    end
+  end
+
+  defp explain_reducer(_reducer, _opts) do
+    {:ok, "with accumulator function"}
   end
 
   # Helper: Convert operator to text

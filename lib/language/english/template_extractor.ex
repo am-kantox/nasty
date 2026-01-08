@@ -160,8 +160,97 @@ defmodule Nasty.Language.English.TemplateExtractor do
     }
   end
 
+  @doc """
+  Creates a template for product launch events.
+  """
+  @spec product_launch_template() :: template()
+  def product_launch_template do
+    %{
+      name: "product_launch",
+      pattern: "[ORG] launched [PRODUCT]",
+      patterns: [
+        "[ORG] launched [PRODUCT]",
+        "[ORG] released [PRODUCT]",
+        "[ORG] announced [PRODUCT]",
+        "[ORG] unveiled [PRODUCT]"
+      ],
+      slots: [
+        %{name: :company, type: :org, required: true, multiple: false},
+        %{name: :product, type: :product, required: true, multiple: false},
+        %{name: :date, type: :date, required: false, multiple: false}
+      ],
+      metadata: %{event_type: :product_launch}
+    }
+  end
+
+  @doc """
+  Creates a template for educational affiliations.
+  """
+  @spec education_template() :: template()
+  def education_template do
+    %{
+      name: "education",
+      pattern: "[PERSON] studied at [ORG]",
+      patterns: [
+        "[PERSON] studied at [ORG]",
+        "[PERSON] graduated from [ORG]",
+        "[PERSON] attended [ORG]",
+        "[PERSON] earned degree from [ORG]"
+      ],
+      slots: [
+        %{name: :student, type: :person, required: true, multiple: false},
+        %{name: :institution, type: :org, required: true, multiple: false}
+      ],
+      metadata: %{relation_type: :educated_at}
+    }
+  end
+
+  @doc """
+  Creates a template for founding events.
+  """
+  @spec founding_template() :: template()
+  def founding_template do
+    %{
+      name: "founding",
+      pattern: "[PERSON] founded [ORG]",
+      patterns: [
+        "[PERSON] founded [ORG]",
+        "[PERSON] co-founded [ORG]",
+        "[PERSON] established [ORG]",
+        "[PERSON] created [ORG]"
+      ],
+      slots: [
+        %{name: :founder, type: :person, required: true, multiple: true},
+        %{name: :organization, type: :org, required: true, multiple: false},
+        %{name: :date, type: :date, required: false, multiple: false}
+      ],
+      metadata: %{event_type: :founding}
+    }
+  end
+
+  @doc """
+  Creates a template for parent-subsidiary relations.
+  """
+  @spec subsidiary_template() :: template()
+  def subsidiary_template do
+    %{
+      name: "subsidiary",
+      pattern: "[ORG] is a subsidiary of [ORG]",
+      patterns: [
+        "[ORG] is a subsidiary of [ORG]",
+        "[ORG] owned by [ORG]",
+        "[ORG] is a division of [ORG]",
+        "[ORG] part of [ORG]"
+      ],
+      slots: [
+        %{name: :subsidiary, type: :org, required: true, multiple: false},
+        %{name: :parent, type: :org, required: true, multiple: false}
+      ],
+      metadata: %{relation_type: :subsidiary_of}
+    }
+  end
+
   # Match a template against a sentence
-  # [TODO] `language`
   defp match_template(sentence, template, _language) do
     # Get tokens and entities from sentence
     tokens = get_sentence_tokens(sentence)

@@ -23,6 +23,7 @@ defmodule Nasty.Language.Spanish.TextClassifier do
   """
 
   alias Nasty.Operations.Classification.NaiveBayes
+  alias Nasty.Language.Spanish.{Tokenizer, POSTagger, EntityRecognizer}
 
   @doc """
   Trains a Spanish text classifier on labeled examples.
@@ -79,9 +80,56 @@ defmodule Nasty.Language.Spanish.TextClassifier do
       |> String.split(config.tokenizer)
       |> Enum.reject(&(&1 == "" or MapSet.member?(config.stop_words, &1)))
 
-    # Create bag-of-words feature map
-    tokens
-    |> Enum.frequencies()
+    # Base bag-of-words features
+    base_features = Enum.frequencies(tokens)
+
+    # Add POS tag features if enabled
+    pos_features =
+      if config.features.pos_tags do
+        extract_pos_features(text)
+      else
+        %{}
+      end
+
+    # Add entity features if enabled
+    entity_features =
+      if config.features.entities do
+        extract_entity_features(text)
+      else
+        %{}
+      end
+
+    # Merge all features
+    Map.merge(base_features, pos_features)
+    |> Map.merge(entity_features)
+  end
+
+  # Extract POS tag features for Spanish text
+  defp extract_pos_features(text) do
+    with {:ok, tokens} <- Tokenizer.tokenize(text),
+         {:ok, tagged_tokens} <- POSTagger.tag_pos(tokens) do
+      # Count POS tags as features
+      tagged_tokens
+      |> Enum.map(fn token -> "pos_#{token.pos_tag}" end)
+      |> Enum.frequencies()
+    else
+      _ -> %{}
+    end
+  end
+
+  # Extract entity features for Spanish text
+  defp extract_entity_features(text) do
+    with {:ok, tokens} <- Tokenizer.tokenize(text),
+         {:ok, tagged_tokens} <- POSTagger.tag_pos(tokens) do
+      entities = EntityRecognizer.recognize(tagged_tokens)
+
+      # Count entity types as features
+      entities
+      |> Enum.map(fn entity -> "entity_#{entity.type}" end)
+      |> Enum.frequencies()
+    else
+      _ -> %{}
+    end
   end
 
   # Spanish-specific classification configuration
@@ -153,10 +201,10 @@ defmodule Nasty.Language.Spanish.TextClassifier do
       features: %{
         ngrams: true,
         tfidf: true,
-        pos_tags: false,
-        # Not yet implemented for Spanish
-        entities: false
-        # Not yet implemented for Spanish
+        # POS tags features now implemented
+        pos_tags: true,
+        # Entity features now implemented
+        entities: true
       }
     }
   end

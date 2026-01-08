@@ -151,9 +151,9 @@ defmodule Mix.Tasks.Nasty.Eval do
           {:ok, predicted_labels} ->
             {expected_labels, predicted_labels, tokens}
 
-            # [TODO]
-            # {:error, _reason} ->
-            #   {expected_labels, List.duplicate(:none, length(expected_labels)), tokens}
+          {:error, reason} ->
+            Mix.shell().error("Prediction error: #{inspect(reason)}")
+            {expected_labels, List.duplicate(:none, length(expected_labels)), tokens}
         end
       end)
 
@@ -324,11 +324,47 @@ defmodule Mix.Tasks.Nasty.Eval do
         do: 2 * avg_precision * avg_recall / (avg_precision + avg_recall),
         else: 0.0
 
+    # Calculate per-label metrics for detailed analysis
+    per_label_metrics =
+      Enum.map(non_none_labels, fn label ->
+        tp = count_label_matches(all_expected, all_predicted, label, label)
+        fp = count_label_matches(all_expected, all_predicted, :other, label)
+        fn_count = count_label_matches(all_expected, all_predicted, label, :other)
+
+        precision = if tp + fp > 0, do: tp / (tp + fp), else: 0.0
+        recall = if tp + fn_count > 0, do: tp / (tp + fn_count), else: 0.0
+
+        f1_label =
+          if precision + recall > 0, do: 2 * precision * recall / (precision + recall), else: 0.0
+
+        {label,
+         %{
+           precision: precision,
+           recall: recall,
+           f1: f1_label,
+           true_positives: tp,
+           false_positives: fp,
+           false_negatives: fn_count
+         }}
+      end)
+      |> Map.new()
+
+    # Calculate confusion matrix statistics
+    confusion_pairs =
+      Enum.zip(all_expected, all_predicted)
+      |> Enum.reject(fn {e, p} -> e == p end)
+      |> Enum.frequencies()
+
     %{
       accuracy: correct / total,
       precision: avg_precision,
       recall: avg_recall,
-      f1: f1
+      f1: f1,
+      total_predictions: total,
+      correct_predictions: correct,
+      per_label: per_label_metrics,
+      confusion_pairs: confusion_pairs,
+      support: Map.new(Enum.frequencies(all_expected))
     }
   end
 

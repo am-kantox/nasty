@@ -296,6 +296,27 @@ defmodule Nasty.Rendering.Visualization do
 
   defp format_span(_), do: ""
 
+  # Private: Format span for JSON (returns map instead of string)
+  defp format_span_map(nil), do: nil
+
+  defp format_span_map(%{
+         start_pos: {sl, sc},
+         end_pos: {el, ec},
+         start_offset: so,
+         end_offset: eo
+       }) do
+    %{
+      start_line: sl,
+      start_column: sc,
+      end_line: el,
+      end_column: ec,
+      start_offset: so,
+      end_offset: eo
+    }
+  end
+
+  defp format_span_map(_), do: nil
+
   # Private: Escape label for DOT format
   defp escape_label(text) do
     text
@@ -325,6 +346,9 @@ defmodule Nasty.Rendering.Visualization do
       type: "Sentence",
       function: sent.function,
       structure: sent.structure,
+      language: sent.language,
+      span: format_span_map(sent.span),
+      dependencies: extract_dependencies(sent),
       children:
         [sent.main_clause | sent.additional_clauses]
         |> Enum.map(&to_json_structure/1)
@@ -373,7 +397,9 @@ defmodule Nasty.Rendering.Visualization do
       text: token.text,
       lemma: token.lemma,
       pos_tag: token.pos_tag,
-      morphology: token.morphology
+      morphology: token.morphology,
+      language: token.language,
+      span: format_span_map(token.span)
     }
   end
 
