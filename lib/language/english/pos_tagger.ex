@@ -416,6 +416,12 @@ defmodule Nasty.Language.English.POSTagger do
     lowercase = String.downcase(token.text)
 
     cond do
+      # Sentence-initial capitalized word followed by noun/pronoun -> likely verb (imperative)
+      # e.g., "Filter users", "Sort the list", "Find active items"
+      idx == 0 && next_token && next_token.pos_tag in [:noun, :det, :pron] &&
+          lowercase in common_verb_stems() ->
+        :verb
+
       # Object pronouns after verb or preposition: me, him, her, us, them
       (lowercase in ~w(me him her us them) and prev_token) &&
           prev_token.pos_tag in [:verb, :adp] ->
@@ -490,6 +496,8 @@ defmodule Nasty.Language.English.POSTagger do
       build stay fall cut reach kill raise pass sell decide
       return explain hope develop carry break receive agree
       support hit produce eat cover catch draw sleep
+      filter sort map reduce select reject transform
+      calculate compute compare check validate
     )
   end
 
@@ -675,6 +683,18 @@ defmodule Nasty.Language.English.POSTagger do
       cover covered covering covers
       catch caught catching catches
       draw drew drawn drawing draws
+      filter filtered filtering filters
+      sort sorted sorting sorts
+      map mapped mapping maps
+      reduce reduced reducing reduces
+      select selected selecting selects
+      reject rejected rejecting rejects
+      transform transformed transforming transforms
+      calculate calculated calculating calculates
+      compute computed computing computes
+      compare compared comparing compares
+      check checked checking checks
+      validate validated validating validates
     )
   end
 
@@ -716,6 +736,9 @@ defmodule Nasty.Language.English.POSTagger do
       direct indirect wild calm
       brief brief enormous tiny
       huge massive grand minor
+      greater less fewer more
+      valid invalid active inactive
+      enabled disabled archived
     )
   end
 end

@@ -462,8 +462,48 @@ defmodule Nasty.Interop.IntentRecognizer do
     subject_tokens ++ predicate_tokens
   end
 
-  defp extract_tokens_from_phrase(%VerbPhrase{head: head, auxiliaries: aux, adverbials: adv}) do
-    [head] ++ aux ++ Enum.flat_map(adv || [], &extract_tokens_from_phrase/1)
+  defp extract_tokens_from_phrase(%VerbPhrase{
+         head: head,
+         auxiliaries: aux,
+         complements: comp,
+         adverbials: adv
+       }) do
+    [head] ++
+      aux ++
+      Enum.flat_map(comp || [], &extract_tokens_from_phrase/1) ++
+      Enum.flat_map(adv || [], &extract_tokens_from_phrase/1)
+  end
+
+  defp extract_tokens_from_phrase(%Nasty.AST.NounPhrase{
+         head: head,
+         determiner: det,
+         modifiers: mods,
+         post_modifiers: post
+       }) do
+    det_tokens = if det, do: [det], else: []
+    mod_tokens = Enum.flat_map(mods || [], &extract_tokens_from_phrase/1)
+    post_tokens = Enum.flat_map(post || [], &extract_tokens_from_phrase/1)
+
+    det_tokens ++ mod_tokens ++ [head] ++ post_tokens
+  end
+
+  defp extract_tokens_from_phrase(%Nasty.AST.AdjectivalPhrase{
+         intensifier: intens,
+         head: head,
+         complement: comp
+       }) do
+    intens_tokens = if intens, do: [intens], else: []
+    comp_tokens = if comp, do: extract_tokens_from_phrase(comp), else: []
+    intens_tokens ++ [head] ++ comp_tokens
+  end
+
+  defp extract_tokens_from_phrase(%Nasty.AST.AdverbialPhrase{intensifier: intens, head: head}) do
+    intens_tokens = if intens, do: [intens], else: []
+    intens_tokens ++ [head]
+  end
+
+  defp extract_tokens_from_phrase(%Nasty.AST.PrepositionalPhrase{head: prep, object: obj}) do
+    [prep] ++ extract_tokens_from_phrase(obj)
   end
 
   defp extract_tokens_from_phrase(%Token{} = token), do: [token]

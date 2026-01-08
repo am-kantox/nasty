@@ -221,6 +221,64 @@ defmodule Nasty.Language.English.PhraseParser do
           {:ok, PrepositionalPhrase.t(), non_neg_integer()} | :error
   def parse_prepositional_phrase(tokens, start_pos) when start_pos < length(tokens) do
     case get_token(tokens, start_pos) do
+      %Token{pos_tag: tag, text: text} = prep when tag in [:adp, :sconj] and text == "than" ->
+        # "than" acts like a preposition in comparative constructions
+        # Try to parse NP or accept a number token
+        case get_token(tokens, start_pos + 1) do
+          %Token{pos_tag: :num} = num_token ->
+            # Create a minimal NP from the number
+            np = %NounPhrase{
+              head: num_token,
+              determiner: nil,
+              modifiers: [],
+              post_modifiers: [],
+              language: num_token.language,
+              span: num_token.span
+            }
+
+            span =
+              Node.make_span(
+                prep.span.start_pos,
+                prep.span.start_offset,
+                num_token.span.end_pos,
+                num_token.span.end_offset
+              )
+
+            pp = %PrepositionalPhrase{
+              head: prep,
+              object: np,
+              language: prep.language,
+              span: span
+            }
+
+            {:ok, pp, start_pos + 2}
+
+          _ ->
+            # Try to parse as noun phrase
+            case parse_noun_phrase(tokens, start_pos + 1) do
+              {:ok, np, next_pos} ->
+                span =
+                  Node.make_span(
+                    prep.span.start_pos,
+                    prep.span.start_offset,
+                    np.span.end_pos,
+                    np.span.end_offset
+                  )
+
+                pp = %PrepositionalPhrase{
+                  head: prep,
+                  object: np,
+                  language: prep.language,
+                  span: span
+                }
+
+                {:ok, pp, next_pos}
+
+              :error ->
+                :error
+            end
+        end
+
       %Token{pos_tag: :adp} = prep ->
         case parse_noun_phrase(tokens, start_pos + 1) do
           {:ok, np, next_pos} ->
@@ -267,24 +325,35 @@ defmodule Nasty.Language.English.PhraseParser do
 
     case get_token(tokens, pos) do
       %Token{pos_tag: :adj} = head ->
+        pos = pos + 1
+
+        # Try to parse optional PP complement (e.g., "than 21", "to me")
+        {complement, pos} =
+          case parse_prepositional_phrase(tokens, pos) do
+            {:ok, pp, new_pos} -> {pp, new_pos}
+            :error -> {nil, pos}
+          end
+
         first_token = intensifier || head
+        last_token = if complement, do: get_last_token(complement), else: head
 
         span =
           Node.make_span(
             first_token.span.start_pos,
             first_token.span.start_offset,
-            head.span.end_pos,
-            head.span.end_offset
+            last_token.span.end_pos,
+            last_token.span.end_offset
           )
 
         adjp = %AdjectivalPhrase{
           intensifier: intensifier,
           head: head,
+          complement: complement,
           language: head.language,
           span: span
         }
 
-        {:ok, adjp, pos + 1}
+        {:ok, adjp, pos}
 
       _ ->
         :error
@@ -432,6 +501,11 @@ defmodule Nasty.Language.English.PhraseParser do
       match?({:ok, _, _}, parse_relative_clause(tokens, pos)) ->
         {:ok, rc, new_pos} = parse_relative_clause(tokens, pos)
         parse_post_modifiers(tokens, new_pos, [rc | acc])
+
+      # Try adjectival phrase (e.g., "greater than 21")
+      match?({:ok, _, _}, parse_adjectival_phrase(tokens, pos)) ->
+        {:ok, adjp, new_pos} = parse_adjectival_phrase(tokens, pos)
+        parse_post_modifiers(tokens, new_pos, [adjp | acc])
 
       # Try prepositional phrase
       match?({:ok, _, _}, parse_prepositional_phrase(tokens, pos)) ->
