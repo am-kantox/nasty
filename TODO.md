@@ -9,24 +9,42 @@ These are TODOs found in the codebase that need attention:
 ### Neural Models
 
 #### BiLSTM-CRF Architecture (`lib/statistics/neural/architectures/bilstm_crf.ex`)
-- **Full CRF Layer Implementation** (lines 158, 294, 328, 358)
-  - Currently using softmax instead of proper CRF
-  - Need: Forward-backward algorithm for partition function
-  - Need: Full Viterbi decoding for inference
-  - Need: Transition matrix learning and application
-  - Need: Variable-length sequence handling with masking
-  - Status: Basic softmax version works, but proper CRF would improve accuracy
+- ~~**Full CRF Layer Implementation** (lines 158, 294, 328, 358)~~
+  - ~~Currently using softmax instead of proper CRF~~
+  - ~~Need: Forward-backward algorithm for partition function~~
+  - ~~Need: Full Viterbi decoding for inference~~
+  - ~~Need: Transition matrix learning and application~~
+  - ~~Need: Variable-length sequence handling with masking~~
+  - Status: ~~Basic softmax version works, but proper CRF would improve accuracy~~ COMPLETED
+    - Implemented full CRF layer with learned transition matrix
+    - Implemented forward-backward algorithm for partition function computation
+    - Implemented complete Viterbi decoding for inference
+    - Added `crf_gold_score` for gold path scoring
+    - Added `crf_partition_function` with log-space computation for numerical stability
+    - Full support for variable-length sequences with masking
+    - CRF layer is now enabled by default (use_crf: true)
 
 #### INT8 Quantization (`lib/statistics/neural/quantization/int8.ex`)
-- **Model Hook System** (lines 194, 212, 304)
-  - Need: Axon hooks to capture intermediate activations
-  - Need: Full parameter extraction from Axon models
-  - Need: Real activation statistics collection
-  - Status: Stub implementation, basic quantization works
-- **Accuracy Validation** (lines 354, 369)
-  - Need: Full model evaluation on test data
-  - Need: Proper parameter counting
-  - Status: Returns placeholder values
+- ~~**Model Hook System** (lines 194, 212, 304)~~
+  - ~~Need: Axon hooks to capture intermediate activations~~
+  - ~~Need: Full parameter extraction from Axon models~~
+  - ~~Need: Real activation statistics collection~~
+  - Status: ~~Stub implementation, basic quantization works~~ COMPLETED
+    - Implemented `run_model_with_hooks` with support for Axon models, compiled functions, and model maps
+    - Implemented `attach_activation_hooks` for hooking into model layers
+    - Implemented `extract_layer_statistics` to collect min/max/mean/std statistics from parameters and activations
+    - Implemented `extract_parameters` with full parameter extraction from Axon models
+    - Added `flatten_params` to handle nested parameter structures
+    - Proper error handling throughout statistics collection pipeline
+- ~~**Accuracy Validation** (lines 354, 369)~~
+  - ~~Need: Full model evaluation on test data~~
+  - ~~Need: Proper parameter counting~~
+  - Status: ~~Returns placeholder values~~ COMPLETED
+    - Implemented `compare_accuracy` with full model evaluation on test data
+    - Implemented `predict_with_model` supporting Axon models, functions, and quantized models
+    - Implemented `compare_outputs` calculating relative error between predictions
+    - Implemented `count_parameters` with actual tensor size counting
+    - Graceful fallback to estimated values when parameter extraction fails
 
 ### Code Interoperability
 

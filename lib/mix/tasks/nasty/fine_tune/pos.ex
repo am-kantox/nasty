@@ -142,8 +142,9 @@ defmodule Mix.Tasks.Nasty.FineTune.Pos do
                     {:ok, metrics} ->
                       display_metrics(metrics)
 
-                    {:error, reason} ->
-                      Mix.shell().error("Evaluation failed: #{inspect(reason)}")
+                      # [TODO] make `FineTuner.evaluate/2` to return errors somewhen and uncomment that
+                      # {:error, reason} ->
+                      #   Mix.shell().error("Evaluation failed: #{inspect(reason)}")
                   end
                 end
 

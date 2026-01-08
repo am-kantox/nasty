@@ -51,7 +51,7 @@ defmodule Nasty.Interop.IntentRecognizer do
     # Note: semantic_frames may not be populated in Clause yet, fallback to manual extraction
     frames =
       case sentence.main_clause do
-        %{semantic_frames: sf} when is_list(sf) and length(sf) > 0 -> sf
+        %{semantic_frames: [_ | _] = sf} -> sf
         _ -> extract_frames_from_clause(sentence.main_clause)
       end
 

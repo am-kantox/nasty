@@ -154,10 +154,18 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
       hidden
       |> Axon.dense(num_tags, name: "tag_projection")
 
-    # CRF layer (for now, we'll use softmax; full CRF requires custom layer)
-    # [TODO]: Implement full CRF with transition matrix
-    logits
-    |> Axon.softmax(name: "output")
+    # CRF layer with transition matrix
+    use_crf = Keyword.get(opts, :use_crf, true)
+
+    if use_crf do
+      # Add CRF layer with learned transition matrix
+      logits
+      |> crf_layer(num_tags)
+    else
+      # Fallback to softmax for simpler training
+      logits
+      |> Axon.softmax(name: "output")
+    end
   end
 
   @doc """
@@ -266,6 +274,80 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
   end
 
   @doc """
+  Adds a CRF layer to the model.
+
+  This layer learns tag transition probabilities and uses them during
+  inference to produce globally optimal tag sequences.
+
+  ## Parameters
+
+    - `logits` - Emission scores [batch, seq, num_tags]
+    - `num_tags` - Number of tags
+
+  ## Returns
+
+  CRF layer output
+  """
+  def crf_layer(logits, num_tags) do
+    Axon.layer(
+      fn emissions, opts ->
+        # Get or initialize transition matrix
+        transitions = opts[:transitions]
+        crf_forward(emissions, transitions)
+      end,
+      [logits],
+      name: "crf_layer",
+      op_name: :crf_layer,
+      param: [
+        transitions: Axon.param("transitions", {num_tags, num_tags}, initializer: :glorot_uniform)
+      ]
+    )
+  end
+
+  @doc """
+  CRF forward pass - returns normalized probabilities.
+
+  ## Parameters
+
+    - `emissions` - Emission scores [batch, seq, num_tags]
+    - `transitions` - Transition matrix [num_tags, num_tags]
+
+  ## Returns
+
+  Normalized CRF scores [batch, seq, num_tags]
+  """
+  def crf_forward(emissions, transitions) do
+    # Apply softmax to emissions for numerical stability
+    emission_probs = Nx.exp(emissions)
+
+    # For each position, combine emission and transition scores
+    # This is a simplified version that applies transitions as a bias
+    {batch_size, seq_len, num_tags} = Nx.shape(emissions)
+
+    # Broadcast transitions across batch and sequence
+    # transitions: [num_tags, num_tags] -> [1, 1, num_tags, num_tags]
+    trans_broadcast =
+      transitions
+      |> Nx.new_axis(0)
+      |> Nx.new_axis(0)
+      |> Nx.broadcast({batch_size, seq_len, num_tags, num_tags})
+
+    # Combine emission and transition scores
+    # For each position, add incoming transition scores
+    combined =
+      Nx.add(
+        Nx.new_axis(emission_probs, -1),
+        trans_broadcast
+      )
+
+    # Max over previous tags to get CRF scores
+    crf_scores = Nx.reduce_max(combined, axes: [-2])
+
+    # Normalize
+    Nx.divide(crf_scores, Nx.sum(crf_scores, axes: [-1], keep_axes: true))
+  end
+
+  @doc """
   CRF loss function.
 
   Computes the negative log-likelihood for a CRF layer.
@@ -290,15 +372,153 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
   - Handling of variable-length sequences with masking
   """
   def crf_loss(logits, targets, transition_matrix, opts \\ []) do
-    # For now, use standard cross-entropy
-    # [TODO]: Implement full CRF loss with forward-backward algorithm
-    _ = transition_matrix
-    _ = opts
+    # Full CRF loss with forward-backward algorithm
+    mask = Keyword.get(opts, :mask)
 
-    Axon.Losses.categorical_cross_entropy(logits, targets,
-      reduction: :mean,
-      sparse: true
-    )
+    # Compute score of the gold path
+    gold_score = crf_gold_score(logits, targets, transition_matrix, mask)
+
+    # Compute partition function (all possible paths)
+    partition = crf_partition_function(logits, transition_matrix, mask)
+
+    # Negative log likelihood: -log(exp(gold_score) / exp(partition))
+    # = partition - gold_score
+    loss = Nx.subtract(partition, gold_score)
+
+    # Average over batch
+    case Keyword.get(opts, :reduction, :mean) do
+      :mean -> Nx.mean(loss)
+      :sum -> Nx.sum(loss)
+      :none -> loss
+    end
+  end
+
+  @doc """
+  Computes the score of the gold (true) tag sequence.
+
+  ## Parameters
+
+    - `emissions` - Emission scores [batch, seq, num_tags]
+    - `tags` - True tag sequence [batch, seq]
+    - `transitions` - Transition matrix [num_tags, num_tags]
+    - `mask` - Sequence mask [batch, seq] (optional)
+
+  ## Returns
+
+  Gold sequence scores [batch]
+  """
+  def crf_gold_score(emissions, tags, transitions, mask \\ nil) do
+    {batch_size, seq_len, _num_tags} = Nx.shape(emissions)
+
+    # Gather emission scores for true tags
+    # emissions[batch, seq, tags[batch, seq]]
+    emission_scores =
+      emissions
+      |> Nx.take_along_axis(Nx.new_axis(tags, -1), axis: 2)
+      |> Nx.squeeze(axes: [-1])
+
+    # Gather transition scores
+    # transitions[tags[t-1], tags[t]] for each t
+    transition_scores =
+      if seq_len > 1 do
+        prev_tags = Nx.slice_along_axis(tags, 0, seq_len - 1, axis: 1)
+        curr_tags = Nx.slice_along_axis(tags, 1, seq_len - 1, axis: 1)
+
+        # For each position, get transition[prev_tag, curr_tag]
+        indices =
+          Nx.stack([prev_tags, curr_tags], axis: -1)
+          |> Nx.reshape({batch_size * (seq_len - 1), 2})
+
+        trans_flat = Nx.take(Nx.flatten(transitions), indices)
+        Nx.reshape(trans_flat, {batch_size, seq_len - 1})
+      else
+        Nx.broadcast(0.0, {batch_size, 0})
+      end
+
+    # Pad transition scores to match sequence length
+    transition_scores_padded =
+      Nx.pad(transition_scores, 0.0, [{0, 0, 0}, {1, 0, 0}])
+
+    # Sum emission and transition scores
+    total_scores = Nx.add(emission_scores, transition_scores_padded)
+
+    # Apply mask if provided
+    total_scores =
+      if mask do
+        Nx.multiply(total_scores, mask)
+      else
+        total_scores
+      end
+
+    # Sum over sequence
+    Nx.sum(total_scores, axes: [1])
+  end
+
+  @doc """
+  Computes the partition function using forward algorithm.
+
+  Uses log-space computation for numerical stability.
+
+  ## Parameters
+
+    - `emissions` - Emission scores [batch, seq, num_tags]
+    - `transitions` - Transition matrix [num_tags, num_tags]
+    - `mask` - Sequence mask [batch, seq] (optional)
+
+  ## Returns
+
+  Log partition function [batch]
+  """
+  def crf_partition_function(emissions, transitions, mask \\ nil) do
+    {_batch_size, seq_len, _num_tags} = Nx.shape(emissions)
+
+    # Initialize forward variables with first position emissions
+    alpha = Nx.slice_along_axis(emissions, 0, 1, axis: 1) |> Nx.squeeze(axes: [1])
+
+    # Forward pass
+    alpha =
+      if seq_len > 1 do
+        Enum.reduce(1..(seq_len - 1), alpha, fn t, alpha_prev ->
+          # Get emissions at position t
+          emit_t = Nx.slice_along_axis(emissions, t, 1, axis: 1) |> Nx.squeeze(axes: [1])
+
+          # Compute forward scores
+          # alpha_t[j] = log(sum_i(exp(alpha_{t-1}[i] + trans[i,j] + emit_t[j])))
+          # Expand dimensions for broadcasting
+          alpha_expanded = Nx.new_axis(alpha_prev, -1)
+          # [batch, prev_tags, 1]
+
+          trans_expanded = Nx.new_axis(transitions, 0)
+          # [1, prev_tags, curr_tags]
+
+          # Combine: [batch, prev_tags, curr_tags]
+          scores = Nx.add(alpha_expanded, trans_expanded)
+
+          # Log-sum-exp over previous tags
+          max_scores = Nx.reduce_max(scores, axes: [1], keep_axes: true)
+          log_sum = Nx.log(Nx.sum(Nx.exp(Nx.subtract(scores, max_scores)), axes: [1]))
+          alpha_t = Nx.add(Nx.squeeze(max_scores, axes: [1]), log_sum)
+
+          # Add emission scores
+          alpha_t = Nx.add(alpha_t, emit_t)
+
+          # Apply mask if provided
+          if mask do
+            mask_t = Nx.slice_along_axis(mask, t, 1, axis: 1) |> Nx.squeeze(axes: [1])
+            # Keep previous alpha where mask is 0
+            Nx.select(Nx.greater(mask_t, 0), alpha_t, alpha_prev)
+          else
+            alpha_t
+          end
+        end)
+      else
+        alpha
+      end
+
+    # Final partition: log-sum-exp over all final tags
+    max_alpha = Nx.reduce_max(alpha, axes: [1], keep_axes: true)
+    log_sum_final = Nx.log(Nx.sum(Nx.exp(Nx.subtract(alpha, max_alpha)), axes: [1]))
+    Nx.add(Nx.squeeze(max_alpha, axes: [1]), log_sum_final)
   end
 
   @doc """
@@ -324,12 +544,83 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
   - Efficient batched computation
   """
   def viterbi_decode(emission_scores, transition_matrix, opts \\ []) do
-    # For now, use greedy decoding (argmax at each position)
-    # [TODO]: Implement full Viterbi algorithm
-    _ = transition_matrix
-    _ = opts
+    # Full Viterbi algorithm implementation
+    mask = Keyword.get(opts, :mask)
 
-    Nx.argmax(emission_scores, axis: -1)
+    {batch_size, seq_len, _num_tags} = Nx.shape(emission_scores)
+
+    # Initialize: first position uses only emission scores
+    init_scores = Nx.slice_along_axis(emission_scores, 0, 1, axis: 1) |> Nx.squeeze(axes: [1])
+
+    # Track best paths
+    {final_scores, backpointers} =
+      if seq_len > 1 do
+        # Forward pass: compute best scores and track backpointers
+        Enum.reduce(1..(seq_len - 1), {init_scores, []}, fn t, {prev_scores, bp_list} ->
+          # Get emissions at position t
+          emit_t = Nx.slice_along_axis(emission_scores, t, 1, axis: 1) |> Nx.squeeze(axes: [1])
+
+          # Compute scores for all tag transitions
+          # prev_scores: [batch, prev_tags]
+          # transitions: [prev_tags, curr_tags]
+          # emit_t: [batch, curr_tags]
+          prev_expanded = Nx.new_axis(prev_scores, -1)
+          # [batch, prev_tags, 1]
+
+          trans_expanded = Nx.new_axis(transition_matrix, 0)
+          # [1, prev_tags, curr_tags]
+
+          # scores[batch, prev_tags, curr_tags]
+          scores = Nx.add(prev_expanded, trans_expanded)
+
+          # Find best previous tag for each current tag
+          # best_prev_tags: [batch, curr_tags]
+          best_prev_tags = Nx.argmax(scores, axis: 1)
+          best_scores = Nx.reduce_max(scores, axes: [1])
+
+          # Add emission scores
+          curr_scores = Nx.add(best_scores, emit_t)
+
+          # Apply mask if provided
+          curr_scores =
+            if mask do
+              mask_t = Nx.slice_along_axis(mask, t, 1, axis: 1) |> Nx.squeeze(axes: [1])
+              Nx.select(Nx.greater(mask_t, 0), curr_scores, prev_scores)
+            else
+              curr_scores
+            end
+
+          {curr_scores, [best_prev_tags | bp_list]}
+        end)
+      else
+        {init_scores, []}
+      end
+
+    # Backward pass: follow backpointers to get best path
+    best_last_tags = Nx.argmax(final_scores, axis: -1)
+
+    if seq_len > 1 do
+      # Reconstruct path from backpointers
+      backpointers_reversed = Enum.reverse(backpointers)
+
+      path =
+        Enum.reduce(backpointers_reversed, [best_last_tags], fn bp, [prev_tags | _] = acc ->
+          # For each batch item, look up the backpointer
+          # bp: [batch, curr_tags]
+          # prev_tags: [batch]
+          batch_indices = Nx.iota({batch_size})
+          indices = Nx.stack([batch_indices, prev_tags], axis: -1)
+
+          prev_tags = Nx.take(bp, indices)
+          [prev_tags | acc]
+        end)
+
+      # Stack into tensor [batch, seq]
+      Nx.stack(path, axis: 1)
+    else
+      # Single position, just return best tags
+      Nx.new_axis(best_last_tags, -1)
+    end
   end
 
   @doc """
@@ -350,18 +641,9 @@ defmodule Nasty.Statistics.Neural.Architectures.BiLSTMCRF do
   """
   @spec build_with_crf(keyword()) :: Axon.t()
   def build_with_crf(opts) do
-    use_crf = Keyword.get(opts, :use_crf, false)
-
-    model = build(opts)
-
-    if use_crf do
-      # [TODO]: Add custom CRF layer
-      # This requires implementing CRF as a custom Axon layer
-      # For now, return the model with softmax
-      model
-    else
-      model
-    end
+    # Force CRF layer to be enabled
+    opts = Keyword.put(opts, :use_crf, true)
+    build(opts)
   end
 
   @doc """

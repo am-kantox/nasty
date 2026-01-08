@@ -22,8 +22,8 @@ defmodule Nasty.Language.Spanish.TextClassifier do
       {:ok, :positive, 0.87}
   """
 
+  alias Nasty.Language.Spanish.{EntityRecognizer, POSTagger, Tokenizer}
   alias Nasty.Operations.Classification.NaiveBayes
-  alias Nasty.Language.Spanish.{Tokenizer, POSTagger, EntityRecognizer}
 
   @doc """
   Trains a Spanish text classifier on labeled examples.

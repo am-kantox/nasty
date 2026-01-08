@@ -229,9 +229,10 @@ defmodule Mix.Tasks.Nasty.Train.Crf do
           {:ok, predicted_labels} ->
             {expected_labels, predicted_labels}
 
-          {:error, reason} ->
-            Mix.shell().error("Prediction error: #{inspect(reason)}")
-            {expected_labels, List.duplicate(:none, length(expected_labels))}
+            # [TODO] make `CRF.predict/3` to return errors somewhen and uncomment that
+            # {:error, reason} ->
+            #   Mix.shell().error("Prediction error: #{inspect(reason)}")
+            #   {expected_labels, List.duplicate(:none, length(expected_labels))}
         end
       end)
 
