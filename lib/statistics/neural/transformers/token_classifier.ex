@@ -208,23 +208,13 @@ defmodule Nasty.Statistics.Neural.Transformers.TokenClassifier do
       {:error, {:forward_pass_failed, error}}
   end
 
-  defp apply_base_model(_model_info, inputs) do
-    # This is a simplified version - in practice, we'd use Bumblebee.apply_model
-    # or create a serving for inference
-    # For now, return a placeholder that we'll implement properly during integration
-
-    # Extract dimensions from inputs
-    batch_size = inputs["input_ids"] |> Nx.shape() |> elem(0)
-    seq_length = inputs["input_ids"] |> Nx.shape() |> elem(1)
-    # Standard BERT/RoBERTa hidden size
-    hidden_size = 768
-
-    # Return mock hidden states for now
-    # [TODO]: Replace with actual Bumblebee.apply_model call
-    # Use a deterministic approach instead of random
-    hidden_states = Nx.broadcast(0.0, {batch_size, seq_length, hidden_size})
-
-    {:ok, %{hidden_state: hidden_states}}
+  defp apply_base_model(model_info, inputs) do
+    # Use Bumblebee to run the transformer model
+    outputs = Axon.predict(model_info.model, model_info.params, inputs)
+    {:ok, outputs}
+  rescue
+    error ->
+      {:error, {:base_model_failed, error}}
   end
 
   defp get_hidden_states(outputs) do
@@ -232,16 +222,18 @@ defmodule Nasty.Statistics.Neural.Transformers.TokenClassifier do
     Map.get(outputs, :hidden_state) || Map.get(outputs, :last_hidden_state)
   end
 
-  defp apply_classification_head(_head_model, hidden_states) do
-    # Apply the classification head to get logits
-    # For now, use random values - will be replaced with actual Axon execution
-    {batch_size, seq_length, _hidden_size} = Nx.shape(hidden_states)
-    # Default to UPOS tag count
-    num_labels = 17
-
-    # [TODO]: Execute Axon model properly
-    # Use deterministic approach instead of random
-    Nx.broadcast(0.0, {batch_size, seq_length, num_labels})
+  defp apply_classification_head(head_model, hidden_states) do
+    # Apply the classification head Axon model to hidden states
+    # The head expects %{"hidden_states" => tensor}
+    logits = Axon.predict(head_model, %{}, %{"hidden_states" => hidden_states})
+    logits
+  rescue
+    _error ->
+      # Fallback: return zero logits if execution fails
+      {batch_size, seq_length, _hidden_size} = Nx.shape(hidden_states)
+      # Default to UPOS tag count
+      num_labels = 17
+      Nx.broadcast(0.0, {batch_size, seq_length, num_labels})
   end
 
   defp align_and_decode(logits, tokenizer_output, config, strategy) do

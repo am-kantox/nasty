@@ -176,16 +176,35 @@ defmodule Nasty.Statistics.Neural.Transformers.Inference do
     end
   end
 
-  defp maybe_compile(optimizations, _classifier, device) do
+  defp maybe_compile(optimizations, classifier, device) do
     if :compile in optimizations do
       Logger.info("Compiling model for #{device}")
-      # [TODO]: Implement Bumblebee serving compilation
-      # For now, return nil (no compiled serving)
-      {:ok, nil}
+
+      # Create a Bumblebee serving for optimized inference
+      # The serving handles batching, compilation, and device placement
+      serving =
+        Bumblebee.Text.token_classification(
+          classifier.base_model.model_info,
+          classifier.base_model.tokenizer,
+          aggregation: :same,
+          compile: [batch_size: 1, sequence_length: 512],
+          defn_options: [compiler: get_compiler(device)]
+        )
+
+      Logger.info("Model compiled successfully")
+      {:ok, serving}
     else
       {:ok, nil}
     end
+  rescue
+    error ->
+      Logger.warning("Model compilation failed: #{inspect(error)}, using uncompiled model")
+      {:ok, nil}
   end
+
+  defp get_compiler(:cuda), do: EXLA
+  defp get_compiler(:cpu), do: EXLA
+  defp get_compiler(_), do: EXLA
 
   defp batch_predict_with_cache(optimized_model, document_sequences, opts) do
     # Process each document, using cache when possible

@@ -195,44 +195,69 @@ defmodule Nasty.Statistics.Neural.Transformers.CacheManager do
   defp read_cache_index(cache_dir) do
     cache_index = cache_index_path(cache_dir)
 
-    with {:ok, contents} <- File.read(cache_index),
-         {:ok, data} <- Jason.decode(contents, keys: :atoms) do
+    with {:ok, contents} <- File.read(cache_index) do
+      # json.decode returns the data directly
+      data = :json.decode(contents)
+      # Data is a map with "entries" key
+      entries_data = Map.get(data, "entries", [])
+
       entries =
-        Enum.map(data.entries, fn entry ->
-          %{entry | downloaded_at: DateTime.from_iso8601(entry.downloaded_at) |> elem(1)}
+        Enum.map(entries_data, fn entry ->
+          %{
+            model_name: String.to_atom(entry["model_name"]),
+            path: entry["path"],
+            size_bytes: entry["size_bytes"],
+            downloaded_at: DateTime.from_iso8601(entry["downloaded_at"]) |> elem(1),
+            version: entry["version"]
+          }
         end)
 
       {:ok, entries}
     end
+  rescue
+    _ -> {:error, :decode_failed}
   end
 
   defp write_cache_entry(cache_dir, model_name, entry) do
     cache_index = cache_index_path(cache_dir)
     File.mkdir_p!(cache_dir)
 
-    existing_entries =
-      case read_cache_index(cache_dir) do
-        {:ok, entries} -> entries
-        {:error, _} -> []
-      end
+    # Use a lock file to prevent concurrent writes
+    lock_file = cache_index <> ".lock"
 
-    # Remove old entry for this model if exists
-    existing_entries = Enum.reject(existing_entries, &(&1.model_name == model_name))
+    # Acquire lock with retry
+    acquire_lock(lock_file)
 
-    # Add new entry
-    updated_entries = [entry | existing_entries]
+    try do
+      existing_entries =
+        case read_cache_index(cache_dir) do
+          {:ok, entries} -> entries
+          {:error, _} -> []
+        end
 
-    # Serialize with ISO8601 timestamps
-    serializable_entries =
-      Enum.map(updated_entries, fn e ->
-        %{e | downloaded_at: DateTime.to_iso8601(e.downloaded_at)}
-      end)
+      # Remove old entry for this model if exists
+      existing_entries = Enum.reject(existing_entries, &(&1.model_name == model_name))
 
-    data = %{entries: serializable_entries}
+      # Add new entry
+      updated_entries = [entry | existing_entries]
 
-    case Jason.encode(data, pretty: true) do
-      {:ok, json} -> File.write!(cache_index, json)
-      {:error, _} -> :ok
+      # Serialize with ISO8601 timestamps
+      serializable_entries =
+        Enum.map(updated_entries, fn e ->
+          %{
+            "model_name" => Atom.to_string(e.model_name),
+            "path" => e.path,
+            "size_bytes" => e.size_bytes,
+            "downloaded_at" => DateTime.to_iso8601(e.downloaded_at),
+            "version" => e.version
+          }
+        end)
+
+      data = %{"entries" => serializable_entries}
+      json = :json.encode(data)
+      File.write!(cache_index, IO.iodata_to_binary(json))
+    after
+      release_lock(lock_file)
     end
   end
 
@@ -245,19 +270,44 @@ defmodule Nasty.Statistics.Neural.Transformers.CacheManager do
 
         serializable_entries =
           Enum.map(updated_entries, fn e ->
-            %{e | downloaded_at: DateTime.to_iso8601(e.downloaded_at)}
+            %{
+              "model_name" => Atom.to_string(e.model_name),
+              "path" => e.path,
+              "size_bytes" => e.size_bytes,
+              "downloaded_at" => DateTime.to_iso8601(e.downloaded_at),
+              "version" => e.version
+            }
           end)
 
-        data = %{entries: serializable_entries}
-
-        case Jason.encode(data, pretty: true) do
-          {:ok, json} -> File.write!(cache_index, json)
-          {:error, _} -> :ok
-        end
+        data = %{"entries" => serializable_entries}
+        json = :json.encode(data)
+        File.write!(cache_index, IO.iodata_to_binary(json))
 
       {:error, _} ->
         :ok
     end
+  end
+
+  defp acquire_lock(lock_file, retries \\ 50) do
+    case File.open(lock_file, [:write, :exclusive]) do
+      {:ok, file} ->
+        File.close(file)
+        :ok
+
+      {:error, :eexist} when retries > 0 ->
+        # Lock file exists, wait and retry
+        Process.sleep(10)
+        acquire_lock(lock_file, retries - 1)
+
+      {:error, :eexist} ->
+        # Max retries reached, force remove stale lock
+        File.rm(lock_file)
+        acquire_lock(lock_file, 5)
+    end
+  end
+
+  defp release_lock(lock_file) do
+    File.rm(lock_file)
   end
 
   defp format_bytes(bytes) when bytes < 1024, do: "#{bytes} B"

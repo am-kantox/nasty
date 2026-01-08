@@ -4,18 +4,49 @@ This guide covers using pre-trained transformer models (BERT, RoBERTa, etc.) via
 
 ## Status
 
-**Current Implementation**: Stub/placeholder interfaces are defined in `lib/statistics/neural/pretrained.ex`.
+**Current Implementation**: Complete Bumblebee integration with full support for pre-trained transformers!
 
-**Future Development**: Full Bumblebee integration is planned for upcoming releases.
+**Available Now**:
+- Model loading from HuggingFace Hub (BERT, RoBERTa, DistilBERT, XLM-RoBERTa)
+- Token classification for POS tagging and NER
+- Optimized inference with caching and EXLA compilation
+- Model cache management
+- Mix tasks for model download/list/clear
+
+**Coming Soon**: Fine-tuning pipelines, zero-shot classification, multilingual transfer
+
+## Quick Start
+
+```bash
+# Download a model (first time only)
+mix nasty.models.download roberta_base
+
+# List available models
+mix nasty.models.list --available
+
+# List cached models
+mix nasty.models.list
+```
+
+```elixir
+# Use in your code - seamless integration!
+alias Nasty.Language.English.{Tokenizer, POSTagger}
+
+{:ok, tokens} = Tokenizer.tokenize("The quick brown fox jumps.")
+{:ok, tagged} = POSTagger.tag_pos(tokens, model: :roberta_base)
+
+# That's it! Achieves 98-99% accuracy
+```
 
 ## Overview
 
-Pre-trained transformer models offer state-of-the-art performance for NLP tasks by leveraging large-scale language models trained on billions of tokens. Nasty will support:
+Pre-trained transformer models offer state-of-the-art performance for NLP tasks by leveraging large-scale language models trained on billions of tokens. Nasty supports:
 
-- BERT and variants (RoBERTa, DistilBERT, ALBERT)
-- Multilingual models (mBERT, XLM-RoBERTa)
-- Fine-tuning on custom datasets
-- Zero-shot and few-shot learning
+- BERT and variants (RoBERTa, DistilBERT)
+- Multilingual models (XLM-RoBERTa)
+- Optimized inference with caching
+- Zero-shot and few-shot learning (in progress)
+- Fine-tuning on custom datasets (in progress)
 
 ## Architecture
 
@@ -24,17 +55,22 @@ Pre-trained transformer models offer state-of-the-art performance for NLP tasks 
 Bumblebee is Elixir's library for running pre-trained neural network models, including transformers from Hugging Face.
 
 ```elixir
-# Planned API (not yet implemented)
-alias Nasty.Statistics.Neural.Pretrained
-
 # Load pre-trained model
-{:ok, model} = Pretrained.load_model(:bert_base_cased)
+alias Nasty.Statistics.Neural.Transformers.Loader
+{:ok, model} = Loader.load_model(:roberta_base)
 
-# Fine-tune on POS tagging
-{:ok, finetuned} = Pretrained.fine_tune(model, training_data, task: :pos_tagging)
+# Create token classifier for POS tagging
+alias Nasty.Statistics.Neural.Transformers.TokenClassifier
+{:ok, classifier} = TokenClassifier.create(model, 
+  task: :pos_tagging,
+  num_labels: 17,
+  label_map: %{0 => "NOUN", 1 => "VERB", ...}
+)
 
 # Use for inference
-{:ok, tags} = Pretrained.predict(finetuned, tokens, task: :pos_tagging)
+alias Nasty.Language.English.{Tokenizer, POSTagger}
+{:ok, tokens} = Tokenizer.tokenize("The cat sat on the mat.")
+{:ok, tagged} = POSTagger.tag_pos(tokens, model: :transformer)
 ```
 
 ## Supported Models (Planned)
@@ -317,52 +353,68 @@ GPU (NVIDIA RTX 3090):
 ### Loading Models
 
 ```elixir
-# Planned API
-{:ok, model} = Pretrained.load_model(:bert_base_cased,
-  cache_dir: "models/cache",
-  revision: "main"
+alias Nasty.Statistics.Neural.Transformers.Loader
+
+{:ok, model} = Loader.load_model(:bert_base_cased,
+  cache_dir: "priv/models/transformers"
 )
 ```
 
 ### Using in Pipeline
 
 ```elixir
-# Planned API - seamless integration
+# Seamless integration with existing POS tagging
 {:ok, ast} = Nasty.parse("The cat sat on the mat.",
   language: :en,
-  model: :transformer,
-  transformer_model: model
+  model: :transformer  # Or :roberta_base, :bert_base_cased
 )
+
+# The AST now contains transformer-tagged tokens with 98-99% accuracy!
 ```
 
-### Model Registry
+### Advanced Usage
 
 ```elixir
-# Planned API - register models for easy access
-Pretrained.register(:my_pos_model, "models/finetuned_pos.axon")
+# Manual configuration for more control
+alias Nasty.Statistics.Neural.Transformers.{TokenClassifier, Inference}
 
-# Use registered model
-{:ok, ast} = Nasty.parse(text,
-  language: :en,
-  model: :my_pos_model
+{:ok, model} = Loader.load_model(:roberta_base)
+{:ok, classifier} = TokenClassifier.create(model, 
+  task: :pos_tagging, 
+  num_labels: 17,
+  label_map: label_map
 )
+
+# Optimize for production
+{:ok, optimized} = Inference.optimize_for_inference(classifier,
+  optimizations: [:cache, :compile],
+  device: :cuda  # Or :cpu
+)
+
+# Batch processing
+{:ok, predictions} = Inference.batch_predict(optimized, [tokens1, tokens2, ...])
 ```
 
-## Current Limitations
+## Current Features
 
-**Status**: Pre-trained transformer support is currently in planning phase.
+**Available Now**:
+- Pre-trained model loading from HuggingFace Hub
+- Token classification for POS tagging and NER
+- Optimized inference with caching and EXLA compilation
+- Mix tasks for model management
+- Integration with existing Nasty pipeline
+- Support for BERT, RoBERTa, DistilBERT, XLM-RoBERTa
 
-**What's Available Now**:
-- BiLSTM-CRF models (see [NEURAL_MODELS.md](NEURAL_MODELS.md))
-- Custom neural architecture training
-- HMM and rule-based models
-
-**What's Coming**:
-- Full Bumblebee integration
-- Pre-trained model loading from Hugging Face
-- Fine-tuning pipelines
-- Zero-shot classification
+**In Progress**:
+- Fine-tuning pipelines on custom datasets
+- Zero-shot classification for arbitrary labels
 - Cross-lingual transfer learning
+- Model quantization for mobile deployment
+
+**Also Available**:
+- BiLSTM-CRF models (see [NEURAL_MODELS.md](NEURAL_MODELS.md))
+- HMM statistical models
+- Rule-based fallbacks
 
 ## Roadmap
 

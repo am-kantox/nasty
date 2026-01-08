@@ -68,17 +68,29 @@ defmodule Nasty.Statistics.Neural.Pretrained do
       {:ok, model} = Pretrained.load_model("bert-base-uncased", task: :pos_tagging)
   """
   @spec load_model(String.t(), keyword()) :: {:ok, map()} | {:error, term()}
-  def load_model(model_name, _opts \\ []) do
+  def load_model(model_name, opts \\ []) do
     Logger.info("Loading pre-trained model: #{model_name}")
 
-    # [TODO]: Implement Bumblebee model loading
-    # This would involve:
-    # 1. Download model from HuggingFace if not cached
-    # 2. Load model weights with Bumblebee
-    # 3. Load tokenizer
-    # 4. Wrap in a struct compatible with Neural.Model behaviour
+    # Convert string model name to atom if needed
+    model_atom =
+      if is_binary(model_name) do
+        String.replace(model_name, "-", "_") |> String.to_atom()
+      else
+        model_name
+      end
 
-    {:error, :not_implemented}
+    # Use the new Transformers.Loader
+    alias Nasty.Statistics.Neural.Transformers.Loader
+
+    case Loader.load_model(model_atom, opts) do
+      {:ok, model} ->
+        Logger.info("Successfully loaded transformer model: #{model_name}")
+        {:ok, model}
+
+      {:error, reason} ->
+        Logger.error("Failed to load model #{model_name}: #{inspect(reason)}")
+        {:error, reason}
+    end
   end
 
   @doc """
@@ -103,15 +115,21 @@ defmodule Nasty.Statistics.Neural.Pretrained do
     - `{:error, reason}` - Fine-tuning failed
   """
   @spec fine_tune(map(), list(), keyword()) :: {:ok, map()} | {:error, term()}
-  def fine_tune(_model, _training_data, _opts \\ []) do
-    # [TODO]: Implement fine-tuning
-    # This would involve:
-    # 1. Prepare data for transformer input
-    # 2. Add task-specific head if needed
-    # 3. Train with Axon.Loop
-    # 4. Return fine-tuned model
+  def fine_tune(model, training_data, opts \\ []) do
+    Logger.info("Fine-tuning transformer model")
 
-    {:error, :not_implemented}
+    # Use the new Transformers.FineTuner
+    alias Nasty.Statistics.Neural.Transformers.FineTuner
+
+    case FineTuner.fine_tune(model, training_data, opts) do
+      {:ok, fine_tuned_model} ->
+        Logger.info("Successfully fine-tuned model")
+        {:ok, fine_tuned_model}
+
+      {:error, reason} ->
+        Logger.error("Fine-tuning failed: #{inspect(reason)}")
+        {:error, reason}
+    end
   end
 
   @doc """
@@ -129,15 +147,26 @@ defmodule Nasty.Statistics.Neural.Pretrained do
     - `{:error, reason}` - Prediction failed
   """
   @spec predict(map(), term(), keyword()) :: {:ok, term()} | {:error, term()}
-  def predict(_model, _input, _opts \\ []) do
-    # [TODO]: Implement prediction
-    # This would involve:
-    # 1. Tokenize input
-    # 2. Run through model
-    # 3. Postprocess output
-    # 4. Return predictions in appropriate format
+  def predict(model, input, opts \\ []) do
+    # Use TokenClassifier for token-level predictions
+    alias Nasty.Statistics.Neural.Transformers.TokenClassifier
 
-    {:error, :not_implemented}
+    # Determine task from options or model config
+    task = Keyword.get(opts, :task, :pos_tagging)
+
+    case task do
+      :pos_tagging ->
+        TokenClassifier.predict(model, input, opts)
+
+      :ner ->
+        TokenClassifier.predict(model, input, opts)
+
+      :token_classification ->
+        TokenClassifier.predict(model, input, opts)
+
+      _ ->
+        {:error, {:unsupported_task, task}}
+    end
   end
 
   @doc """

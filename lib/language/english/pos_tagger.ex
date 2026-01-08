@@ -132,7 +132,7 @@ defmodule Nasty.Language.English.POSTagger do
         # Fallback to rule-based
         tag_pos_rule_based(tokens)
 
-      model ->
+      %Nasty.Statistics.POSTagging.HMMTagger{} = model ->
         words = Enum.map(tokens, & &1.text)
 
         case HMMTagger.predict(model, words, []) do
@@ -146,6 +146,11 @@ defmodule Nasty.Language.English.POSTagger do
           {:error, reason} ->
             {:error, reason}
         end
+
+      _invalid_model ->
+        # Model is not an HMM model, fallback to rule-based
+        Logger.warning("Invalid HMM model type, falling back to rule-based tagging")
+        tag_pos_rule_based(tokens)
     end
   end
 
