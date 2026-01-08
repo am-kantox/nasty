@@ -410,7 +410,7 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
 
   # Compute expected transition counts
   defp expected_transition_counts(labels, forward, backward, z, transition_weights, n) do
-    for t <- 0..(n - 2),
+    for t <- 0..(n - 2)//1,
         prev_label <- labels,
         curr_label <- labels,
         reduce: %{} do

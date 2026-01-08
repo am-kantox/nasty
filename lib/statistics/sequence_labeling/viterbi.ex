@@ -142,7 +142,7 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
        ) do
     n = length(feature_sequence)
 
-    Enum.reduce(1..(n - 1), {viterbi, backpointers}, fn t, {vit_acc, bp_acc} ->
+    Enum.reduce(1..(n - 1)//1, {viterbi, backpointers}, fn t, {vit_acc, bp_acc} ->
       features_t = Enum.at(feature_sequence, t)
 
       # For each current label
@@ -235,7 +235,7 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
     {forward, _} = initialize_viterbi(feature_sequence, feature_weights, labels, true)
 
     # Forward pass (sum instead of max)
-    Enum.reduce(1..(n - 1), forward, fn t, fwd_acc ->
+    Enum.reduce(1..(n - 1)//1, forward, fn t, fwd_acc ->
       features_t = Enum.at(feature_sequence, t)
 
       Enum.reduce(labels, fwd_acc, fn curr_label, acc2 ->
@@ -270,7 +270,7 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
       end
 
     # Backward pass
-    Enum.reduce((n - 2)..0, backward, fn t, bwd_acc ->
+    Enum.reduce((n - 2)..0//-1, backward, fn t, bwd_acc ->
       features_next = Enum.at(feature_sequence, t + 1)
 
       Enum.reduce(labels, bwd_acc, fn curr_label, acc2 ->

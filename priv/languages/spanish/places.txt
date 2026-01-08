@@ -1,0 +1,81 @@
+# Spanish-speaking countries
+España
+Argentina
+México
+Colombia
+Chile
+Perú
+Venezuela
+Ecuador
+Guatemala
+Cuba
+Bolivia
+Honduras
+Paraguay
+Uruguay
+Costa Rica
+Panamá
+Puerto Rico
+República Dominicana
+El Salvador
+Nicaragua
+
+# Major Spanish cities
+Madrid
+Barcelona
+Valencia
+Sevilla
+Zaragoza
+Málaga
+Murcia
+Palma
+Bilbao
+Alicante
+Córdoba
+Valladolid
+Vigo
+Gijón
+Granada
+Buenos Aires
+Bogotá
+Ciudad de México
+Lima
+Santiago
+Caracas
+Quito
+La Habana
+Asunción
+Montevideo
+San José
+Ciudad de Panamá
+San Juan
+Santo Domingo
+San Salvador
+Managua
+
+# Spanish regions
+Cataluña
+Andalucía
+País Vasco
+Galicia
+Castilla y León
+Castilla-La Mancha
+Comunidad Valenciana
+Aragón
+Extremadura
+Canarias
+Baleares
+Murcia
+Asturias
+Navarra
+Cantabria
+La Rioja
+
+# Geographic features
+Mediterráneo
+Atlántico
+Pacífico
+Caribe
+Andes
+Pirineos
+Sierra

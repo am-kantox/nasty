@@ -1,0 +1,71 @@
+# Spanish person titles and honorifics
+# Common titles
+Sr.
+Sra.
+Srta.
+Dr.
+Dra.
+Prof.
+Ing.
+Lic.
+D.
+Dª
+Doña
+Don
+
+# Professional titles
+Ingeniero
+Ingeniera
+Licenciado
+Licenciada
+Profesor
+Profesora
+Doctor
+Doctora
+Arquitecto
+Arquitecta
+Abogado
+Abogada
+Contador
+Contadora
+
+# Government and military
+Presidente
+Presidenta
+Ministro
+Ministra
+Alcalde
+Alcaldesa
+Senador
+Senadora
+Diputado
+Diputada
+General
+Coronel
+Capitán
+Teniente
+
+# Religious
+Papa
+Cardenal
+Obispo
+Padre
+Madre
+Hermano
+Hermana
+Fray
+Sor
+
+# Nobility
+Rey
+Reina
+Príncipe
+Princesa
+Duque
+Duquesa
+Conde
+Condesa
+Marqués
+Marquesa
+Barón
+Baronesa

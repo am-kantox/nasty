@@ -177,48 +177,55 @@ All critical features for the initial release have been implemented.
 - Speed: ~20-30ms per sentence (CPU)
 - Complexity: O(n × L²) where L = number of labels
 
-### 4. Generic Algorithm Extraction
+### 4. Generic Algorithm Extraction ✅
 
-**Status**: Partially complete (2 of 6 modules)  
+**Status**: ✅ Fully Implemented  
 **Effort**: Medium (2-3 weeks per module)  
-**Reference**: `docs/REFACTORING.md`
+**Reference**: `docs/REFACTORING.md`  
+**Completed**: 2026-01-08
 
-**Description**: Extract language-agnostic implementations for remaining NLP operations.
+**Description**: Extract language-agnostic implementations for all NLP operations.
 
 **Completed**:
 - ✅ Extractive Summarization (`lib/operations/summarization/extractive.ex`)
 - ✅ Rule-based NER (`lib/semantic/entity_recognition/rule_based.ex`)
-
-**Remaining**:
-- Coreference Resolution - Extract scoring and clustering algorithms
-- Semantic Role Labeling - Extract role mapping framework
-- Question Answering - Extract answer extraction strategies
-- Text Classification - Extract Naive Bayes training/prediction
+- ✅ Coreference Resolution (`lib/semantic/coreference/resolver.ex`, `clusterer.ex`, `mention_detector.ex`, `scorer.ex`)
+- ✅ Semantic Role Labeling (`lib/semantic/srl/labeler.ex`, `predicate_detector.ex`, `core_argument_mapper.ex`, `adjunct_classifier.ex`)
+- ✅ Question Answering (`lib/operations/qa/qa_engine.ex`, `question_classifier.ex`, `candidate_scorer.ex`, `answer_selector.ex`)
+- ✅ Text Classification (`lib/operations/classification/naive_bayes.ex`)
 
 **Benefits**:
-- Easier to add new languages (reuse 70-80% of code)
-- Consistent behavior across languages
-- Easier testing and maintenance
+- ✅ Easier to add new languages (reuse 70-80% of code)
+- ✅ Consistent behavior across languages
+- ✅ Easier testing and maintenance
+- ✅ Language implementations are now thin wrappers with config-based customization
 
 **Example Impact**:
-- Spanish summarization would reuse 440 lines of generic algorithm
-- Only need ~100 lines for Spanish-specific configuration
+- Spanish/Catalan implementations only need ~100-150 lines per module for configuration
+- Generic algorithms handle all core logic (scoring, clustering, extraction, classification)
+- All 626 tests pass with generic implementations
 
-### 5. Enhanced Documentation
+### 5. Enhanced Documentation ✅
 
-**Status**: Partial (10 of 14 documents complete)  
-**Effort**: Small (1-2 weeks)
+**Status**: ✅ Core documentation complete  
+**Effort**: Small (1-2 weeks)  
+**Completed**: 2026-01-08
 
-**Missing Documents**:
-- `docs/PARSING_GUIDE.md` - Detailed parsing algorithm documentation
-- `docs/languages/ENGLISH_GRAMMAR.md` - English grammar specification
-- `docs/languages/SPANISH_GRAMMAR.md` - Spanish grammar spec (when implemented)
-- `docs/languages/CATALAN_GRAMMAR.md` - Catalan grammar spec (when implemented)
+**Completed Documents**:
+- ✅ `docs/PARSING_GUIDE.md` - Detailed parsing algorithm documentation
+- ✅ `docs/languages/ENGLISH_GRAMMAR.md` - English grammar specification
+- ✅ Grammar resource files (`phrase_rules.ex`, `dependency_rules.ex`)
+- ✅ Test fixtures (`sentences.txt`, `expected_asts_test.txt`)
+
+**Future Documents** (pending language implementation):
+- `docs/languages/SPANISH_GRAMMAR.md` - Spanish grammar spec (when Spanish implemented)
+- `docs/languages/CATALAN_GRAMMAR.md` - Catalan grammar spec (when Catalan implemented)
 
 **Benefits**:
-- Better onboarding for contributors
-- Clear reference for grammar rules
-- Easier to implement new languages
+- ✅ Better onboarding for contributors
+- ✅ Clear reference for grammar rules
+- ✅ Easier to implement new languages
+- ✅ Comprehensive parsing and grammar documentation available
 
 ---
 
@@ -375,36 +382,7 @@ Inference: barks(fido) ✓
 - Faster training time
 - Scale to production workloads
 
-### 10. Additional Resources
-
-#### Grammar Resource Files
-
-**Effort**: Small (1 week)
-
-**Missing Files**:
-- `priv/languages/english/grammars/phrase_rules.ex` - CFG phrase rules
-- `priv/languages/english/grammars/dependency_rules.ex` - Dependency templates
-
-**Benefits**:
-- Easier to extend grammar
-- Better documentation of parsing rules
-- Configurable parsing behavior
-
-#### Test Fixtures
-
-**Effort**: Small (1 week)
-
-**Missing**:
-- `test/fixtures/english/sentences.txt` - Standard test sentences
-- `test/fixtures/english/expected_asts_test.ex` - Expected parse results
-- Multi-language test data (when languages implemented)
-
-**Benefits**:
-- Regression testing
-- Easier to verify changes
-- Standard benchmarks
-
-### 11. Full Ragex Integration
+### 10. Full Ragex Integration
 
 **Status**: Stub interface exists  
 **Effort**: Medium (3-4 weeks)
@@ -446,36 +424,42 @@ Inference: barks(fido) ✓
 - Comprehensive tests
 - Documentation
 
-### Phase 2: Advanced Models (P2)
+### Phase 2: Advanced Models (P2) ✅
 
 **Timeline**: 2-3 months  
-**Focus**: Pre-trained transformers and PCFG/CRF
+**Focus**: Pre-trained transformers and PCFG/CRF  
+**Status**: PCFG/CRF completed, transformers planned
 
 **Rationale**:
 - Significant accuracy improvements
 - Competitive with other NLP libraries
 - Enables advanced use cases
 
-**Deliverables**:
+**Completed Deliverables**:
+- ✅ PCFG parser
+- ✅ CRF-based NER
+
+**Remaining Deliverables**:
 - Bumblebee integration
 - Fine-tuning pipelines
-- PCFG parser
-- CRF-based NER
 
-### Phase 3: Architecture Refinement (P2)
+### Phase 3: Architecture Refinement (P2) ✅
 
 **Timeline**: 2 months  
-**Focus**: Complete generic algorithm extraction
+**Focus**: Complete generic algorithm extraction  
+**Status**: ✅ Completed 2026-01-08
 
 **Rationale**:
 - Makes Phase 1 easier
 - Cleaner codebase
 - Better maintainability
 
-**Deliverables**:
-- 6 generic algorithm modules
-- Refactored language adapters
-- Updated documentation
+**Completed Deliverables**:
+- ✅ 6 generic algorithm modules (Text Classification, QA, Coreference, SRL, Summarization, NER)
+- ✅ Refactored language adapters (English implementations now thin wrappers)
+- ✅ Updated documentation (PARSING_GUIDE.md, ENGLISH_GRAMMAR.md)
+- ✅ Grammar resource files (phrase_rules.ex, dependency_rules.ex)
+- ✅ Test fixtures (sentences.txt, expected_asts_test.txt)
 
 ### Phase 4: Research Features (P3)
 
@@ -499,21 +483,21 @@ Inference: barks(fido) ✓
 We welcome contributions! Here are good starting points:
 
 ### Good First Issues
-- Add missing documentation (PARSING_GUIDE.md, etc.)
-- Create test fixtures
-- Add grammar resource files
 - Improve error messages
+- Add Spanish/Catalan lexicons
+- Add more test cases
+- Improve documentation examples
 
 ### Intermediate
 - Implement Spanish/Catalan language support
-- Extract generic algorithms for remaining modules
 - Add model quantization
+- Improve transformer integration
 
 ### Advanced
-- Pre-trained transformer integration
-- PCFG/CRF implementation
+- Complete Bumblebee transformer integration
 - Neural coreference resolution
 - Dialogue systems
+- Formal semantics
 
 ---
 
@@ -537,7 +521,7 @@ We welcome contributions! Here are good starting points:
 
 ### Internal Dependencies
 
-**Multi-language** → Complete generic algorithm extraction first  
+**Multi-language** → ✅ Generic algorithm extraction complete, ready for new languages  
 **Dialogue systems** → Depends on better coreference resolution  
 **Formal semantics** → Depends on better parsing
 
@@ -587,10 +571,19 @@ We welcome contributions! Here are good starting points:
 ## Revision History
 
 - **2026-01-07**: Initial roadmap created based on existing documentation
-- Priorities assigned based on user value and implementation effort
-- Implementation phases outlined
+  - Priorities assigned based on user value and implementation effort
+  - Implementation phases outlined
+  - PCFG/CRF statistical models completed
+
+- **2026-01-08**: Major P2 features completed
+  - ✅ Generic Algorithm Extraction fully implemented (all 6 modules)
+  - ✅ Enhanced Documentation completed (PARSING_GUIDE.md, ENGLISH_GRAMMAR.md)
+  - ✅ Grammar resource files created (phrase_rules.ex, dependency_rules.ex)
+  - ✅ Test fixtures added (sentences.txt, expected_asts_test.txt)
+  - Updated roadmap to reflect completed work
+  - All 626 tests passing
 
 ---
 
-**Last Updated**: 2026-01-07  
+**Last Updated**: 2026-01-08  
 **Next Review**: 2026-04-07 (quarterly)
