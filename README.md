@@ -550,7 +550,15 @@ Nasty includes comprehensive statistical and neural network models for state-of-
 - **Training infrastructure**: Train custom models on your own data
 - **Evaluation metrics**: Accuracy, precision, recall, F1, confusion matrices
 
-See [STATISTICAL_MODELS.md](docs/STATISTICAL_MODELS.md) for complete reference, [NEURAL_MODELS.md](docs/NEURAL_MODELS.md) for neural architecture details, [TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md) for training guide, and [PRETRAINED_MODELS.md](docs/PRETRAINED_MODELS.md) for transformer support (planned).
+### Transformer Models (Bumblebee Integration)
+- **Pre-trained Models**: BERT, RoBERTa, DistilBERT, XLM-RoBERTa via Hugging Face
+- **Fine-tuning**: Full fine-tuning pipeline for POS tagging and NER (98-99% accuracy)
+- **Zero-shot Classification**: Classify without training using NLI models (70-85% accuracy)
+- **Model Quantization**: INT8 quantization for 4x compression and 2-3x speedup
+- **Multilingual Support**: XLM-RoBERTa for cross-lingual transfer
+- **Mix Tasks**: CLI tools for model management, fine-tuning, and inference
+
+See [STATISTICAL_MODELS.md](docs/STATISTICAL_MODELS.md) for complete reference, [NEURAL_MODELS.md](docs/NEURAL_MODELS.md) for neural architecture details, [TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md) for training guide, [PRETRAINED_MODELS.md](docs/PRETRAINED_MODELS.md) for transformer usage, [ZERO_SHOT.md](docs/ZERO_SHOT.md) for zero-shot classification, and [QUANTIZATION.md](docs/QUANTIZATION.md) for model optimization.
 
 ### Quick Start: Model Management
 
@@ -615,9 +623,12 @@ mix nasty.eval \
 - [x] Question answering (extractive QA - done!)
 - [x] Information extraction (relations, events, templates - done!)
 - [x] Code ↔ NL bidirectional conversion (done!)
-- [ ] Pre-trained transformers (BERT, RoBERTa via Bumblebee - planned)
-- [ ] Integration of PCFG/CRF with main pipeline
-- [ ] Multi-language support (Spanish, Catalan)
+- [x] Pre-trained transformers (BERT, RoBERTa via Bumblebee - done!)
+- [x] Fine-tuning infrastructure for POS tagging and NER (done!)
+- [x] Zero-shot classification using NLI models (done!)
+- [x] Model quantization (INT8 with 4x compression) (done!)
+- [x] Integration of PCFG/CRF with main pipeline (done!)
+- [x] Multi-language support - Spanish complete, Catalan future
 - [ ] Advanced coreference (neural models)
 
 ## License

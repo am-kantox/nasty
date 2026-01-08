@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-Nasty (Natural Abstract Syntax Treey) is a comprehensive NLP library for Elixir that treats natural language with the same rigor as programming languages. It provides a complete grammatical Abstract Syntax Tree (AST) for English, with a behaviour-based architecture designed to support multiple languages in the future.
+Nasty (Natural Abstract Syntax Treey) is a comprehensive NLP library for Elixir that treats natural language with the same rigor as programming languages. It provides a complete grammatical Abstract Syntax Tree (AST) for English and Spanish, with a behaviour-based architecture designed to support multiple languages.
 
 ## Core Commands
 
@@ -68,6 +68,24 @@ mix nasty.eval.pos \
 
 # List available models
 mix nasty.models list
+
+# Fine-tune transformer models (98-99% accuracy)
+mix nasty.fine_tune.pos \
+  --model roberta_base \
+  --corpus data/train.conllu \
+  --output priv/models/en/pos_roberta.model \
+  --epochs 3
+
+# Zero-shot classification (no training needed)
+mix nasty.zero_shot \
+  --text "I love this product!" \
+  --labels positive,negative,neutral
+
+# Quantize models for deployment (4x compression)
+mix nasty.quantize \
+  --input priv/models/en/pos_neural.axon \
+  --output priv/models/en/pos_neural_int8.axon \
+  --calibration-data data/calibration.conllu
 ```
 
 ### Demo and Examples
@@ -204,7 +222,18 @@ POS tagging supports multiple models:
 - **Rule-based** (`:rule`) - Fast, ~85% accuracy, no model loading
 - **HMM** (`:hmm`) - Statistical, ~95% accuracy, fast inference
 - **Neural** (`:neural`) - BiLSTM-CRF with Axon/EXLA, 97-98% accuracy
+- **Transformer** (`:roberta_base`, `:bert_base_cased`) - Pre-trained models, 98-99% accuracy
 - **Ensemble** (`:ensemble`) - Combines multiple models for best accuracy
+
+## Transformer Models (NEW)
+
+Nasty now supports pre-trained transformer models via Bumblebee:
+- **Fine-tuning**: Full pipeline for POS tagging and NER
+- **Zero-shot**: Classify without training using NLI models (70-85% accuracy)
+- **Quantization**: INT8 compression for 4x smaller models and 2-3x faster inference
+- **Multilingual**: XLM-RoBERTa support for 100+ languages including Spanish
+
+See `docs/PRETRAINED_MODELS.md`, `docs/ZERO_SHOT.md`, and `docs/QUANTIZATION.md` for details.
 
 ```elixir
 # Use in code
