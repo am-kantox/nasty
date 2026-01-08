@@ -396,7 +396,7 @@ Inference: barks(fido) ✓
 
 **Missing**:
 - `test/fixtures/english/sentences.txt` - Standard test sentences
-- `test/fixtures/english/expected_asts.exs` - Expected parse results
+- `test/fixtures/english/expected_asts_test.ex` - Expected parse results
 - Multi-language test data (when languages implemented)
 
 **Benefits**:

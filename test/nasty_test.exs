@@ -2,6 +2,12 @@ defmodule NastyTest do
   use ExUnit.Case
   doctest Nasty
 
+  setup_all do
+    # Ensure application is started and English is registered
+    Application.ensure_all_started(:nasty)
+    :ok
+  end
+
   test "returns version info" do
     assert Nasty.hello() == {:ok, "Nasty v0.1.0 - Early Development"}
   end

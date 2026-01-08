@@ -121,8 +121,8 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
     # Extract all features from training data
     all_features = extract_all_features(training_data)
 
-    # Initialize weights
-    feature_weights = Optimizer.initialize_weights(all_features, scale: 0.01)
+    # Initialize weights with nested structure for features
+    feature_weights = initialize_feature_weights(all_features, model.labels)
     transition_weights = initialize_transition_weights(model.labels)
 
     # Initialize optimizer
@@ -381,6 +381,7 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
   end
 
   # Compute expected feature counts under model distribution
+  # Returns nested structure: feature -> label -> count
   defp expected_feature_counts(feature_sequence, labels, forward, backward, z, _feature_weights) do
     n = length(feature_sequence)
 
@@ -392,11 +393,18 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
         # P(label at position t) = forward[t,label] * backward[t,label] / Z
         fwd = Map.get(forward, {t, label}, :neg_infinity)
         bwd = Map.get(backward, {t, label}, :neg_infinity)
-        prob = :math.exp(fwd + bwd - z)
 
-        # Expected count for this feature-label pair
-        key = {feature, label}
-        Map.update(acc, key, prob, &(&1 + prob))
+        prob =
+          if fwd == :neg_infinity or bwd == :neg_infinity or z == :neg_infinity or z == :infinity do
+            0.0
+          else
+            :math.exp(fwd + bwd - z)
+          end
+
+        # Expected count for this feature-label pair (nested structure)
+        Map.update(acc, feature, %{label => prob}, fn label_map ->
+          Map.update(label_map, label, prob, &(&1 + prob))
+        end)
     end
   end
 
@@ -413,7 +421,13 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
         emit_score = 0.0
         bwd_curr = Map.get(backward, {t + 1, curr_label}, :neg_infinity)
 
-        prob = :math.exp(fwd_prev + trans_score + emit_score + bwd_curr - z)
+        prob =
+          if fwd_prev == :neg_infinity or bwd_curr == :neg_infinity or z == :neg_infinity or
+               z == :infinity do
+            0.0
+          else
+            :math.exp(fwd_prev + trans_score + emit_score + bwd_curr - z)
+          end
 
         key = {prev_label, curr_label}
         Map.update(acc, key, prob, &(&1 + prob))
@@ -421,13 +435,15 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
   end
 
   # Compute observed feature counts from gold labels
+  # Returns nested structure: feature -> label -> count
   defp observed_feature_counts(feature_sequence, labels) do
     feature_sequence
     |> Enum.zip(labels)
     |> Enum.reduce(%{}, fn {features, label}, acc ->
       Enum.reduce(features, acc, fn feature, acc2 ->
-        key = {feature, label}
-        Map.update(acc2, key, 1.0, &(&1 + 1.0))
+        Map.update(acc2, feature, %{label => 1.0}, fn label_map ->
+          Map.update(label_map, label, 1.0, &(&1 + 1.0))
+        end)
       end)
     end)
   end
@@ -473,6 +489,19 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
     |> Enum.uniq()
   end
 
+  # Initialize feature weights with nested structure: feature -> label -> weight
+  defp initialize_feature_weights(features, labels) do
+    for feature <- features, into: %{} do
+      label_weights =
+        for label <- labels, into: %{} do
+          # Small random weight between -0.01 and +0.01
+          {label, :rand.uniform() * 0.02 - 0.01}
+        end
+
+      {feature, label_weights}
+    end
+  end
+
   # Initialize transition weights
   defp initialize_transition_weights(labels) do
     for prev <- labels, curr <- labels, into: %{} do
@@ -480,14 +509,39 @@ defmodule Nasty.Statistics.SequenceLabeling.CRF do
     end
   end
 
-  # Subtract weight maps element-wise
+  # Subtract weight maps element-wise (handles nested structures)
   defp subtract_weights(weights1, weights2) do
     all_keys = MapSet.union(MapSet.new(Map.keys(weights1)), MapSet.new(Map.keys(weights2)))
 
     Map.new(all_keys, fn key ->
-      val1 = Map.get(weights1, key, 0.0)
-      val2 = Map.get(weights2, key, 0.0)
-      {key, val1 - val2}
+      val1 = Map.get(weights1, key, %{})
+      val2 = Map.get(weights2, key, %{})
+
+      # Handle nested structure
+      result =
+        case {val1, val2} do
+          {v1, v2} when is_map(v1) and is_map(v2) ->
+            # Nested structure: subtract label maps
+            label_keys = MapSet.union(MapSet.new(Map.keys(v1)), MapSet.new(Map.keys(v2)))
+
+            Map.new(label_keys, fn label ->
+              {label, Map.get(v1, label, 0.0) - Map.get(v2, label, 0.0)}
+            end)
+
+          {v1, v2} when is_number(v1) and is_number(v2) ->
+            v1 - v2
+
+          {v1, v2} when is_map(v1) and is_number(v2) ->
+            Map.new(v1, fn {k, v} -> {k, v - v2} end)
+
+          {v1, v2} when is_number(v1) and is_map(v2) ->
+            Map.new(v2, fn {k, v} -> {k, v1 - v} end)
+
+          _ ->
+            0.0
+        end
+
+      {key, result}
     end)
   end
 end

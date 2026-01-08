@@ -2,7 +2,7 @@ defmodule Nasty.Statistics.Parsing.PCFGTest do
   use ExUnit.Case, async: true
 
   alias Nasty.AST.Token
-  alias Nasty.Statistics.Parsing.{CYKParser, Grammar, PCFG}
+  alias Nasty.Statistics.Parsing.{Grammar, PCFG}
   alias Nasty.Statistics.Parsing.Grammar.Rule
 
   describe "new/1" do
@@ -32,15 +32,15 @@ defmodule Nasty.Statistics.Parsing.PCFGTest do
       training_data = [
         {
           [
-            %Token{text: "the", pos: :det, language: :en},
-            %Token{text: "cat", pos: :noun, language: :en}
+            %Token{span: nil, text: "the", pos_tag: :det, language: :en},
+            %Token{span: nil, text: "cat", pos_tag: :noun, language: :en}
           ],
           {:s, [{:np, [{:det, "the"}, {:noun, "cat"}]}]}
         },
         {
           [
-            %Token{text: "the", pos: :det, language: :en},
-            %Token{text: "dog", pos: :noun, language: :en}
+            %Token{span: nil, text: "the", pos_tag: :det, language: :en},
+            %Token{span: nil, text: "dog", pos_tag: :noun, language: :en}
           ],
           {:s, [{:np, [{:det, "the"}, {:noun, "dog"}]}]}
         }
@@ -58,7 +58,7 @@ defmodule Nasty.Statistics.Parsing.PCFGTest do
     test "applies smoothing during training" do
       training_data = [
         {
-          [%Token{text: "word", pos: :noun, language: :en}],
+          [%Token{span: nil, text: "word", pos_tag: :noun, language: :en}],
           {:s, [{:noun, "word"}]}
         }
       ]
@@ -72,7 +72,7 @@ defmodule Nasty.Statistics.Parsing.PCFGTest do
     test "converts grammar to CNF when requested" do
       training_data = [
         {
-          [%Token{text: "word", pos: :noun, language: :en}],
+          [%Token{span: nil, text: "word", pos_tag: :noun, language: :en}],
           {:s, [{:noun, "word"}]}
         }
       ]
@@ -120,8 +120,8 @@ defmodule Nasty.Statistics.Parsing.PCFGTest do
 
     test "parses valid sentence", %{model: model} do
       tokens = [
-        %Token{text: "the", pos: :det, language: :en},
-        %Token{text: "cat", pos: :noun, language: :en}
+        %Token{span: nil, text: "the", pos_tag: :det, language: :en},
+        %Token{span: nil, text: "cat", pos_tag: :noun, language: :en}
       ]
 
       {:ok, tree} = PCFG.predict(model, tokens, [])
@@ -133,7 +133,7 @@ defmodule Nasty.Statistics.Parsing.PCFGTest do
 
     test "returns error for unparseable sentence", %{model: model} do
       tokens = [
-        %Token{text: "unknown", pos: :adj, language: :en}
+        %Token{span: nil, text: "unknown", pos_tag: :adj, language: :en}
       ]
 
       assert {:error, _reason} = PCFG.predict(model, tokens, [])
@@ -141,8 +141,8 @@ defmodule Nasty.Statistics.Parsing.PCFGTest do
 
     test "supports custom start symbol", %{model: model} do
       tokens = [
-        %Token{text: "the", pos: :det, language: :en},
-        %Token{text: "dog", pos: :noun, language: :en}
+        %Token{span: nil, text: "the", pos_tag: :det, language: :en},
+        %Token{span: nil, text: "dog", pos_tag: :noun, language: :en}
       ]
 
       {:ok, tree} = PCFG.predict(model, tokens, start_symbol: :s)

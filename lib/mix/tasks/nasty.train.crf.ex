@@ -229,8 +229,9 @@ defmodule Mix.Tasks.Nasty.Train.Crf do
           {:ok, predicted_labels} ->
             {expected_labels, predicted_labels}
 
-          {:error, _} ->
-            {expected_labels, List.duplicate(:none, length(expected_labels))}
+            # [TODO]
+            # {:error, _} ->
+            #   {expected_labels, List.duplicate(:none, length(expected_labels))}
         end
       end)
 

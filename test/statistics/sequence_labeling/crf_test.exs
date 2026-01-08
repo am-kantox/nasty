@@ -1,8 +1,12 @@
 defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
   use ExUnit.Case, async: true
 
-  alias Nasty.AST.Token
+  alias Nasty.AST.{Node, Token}
   alias Nasty.Statistics.SequenceLabeling.CRF
+
+  defp make_span do
+    Node.make_span({1, 0}, 0, {1, 1}, 1)
+  end
 
   describe "new/1" do
     test "creates new untrained CRF model" do
@@ -34,15 +38,15 @@ defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
       training_data = [
         {
           [
-            %Token{text: "John", pos: :propn, language: :en},
-            %Token{text: "Smith", pos: :propn, language: :en}
+            %Token{text: "John", pos_tag: :propn, language: :en, span: make_span()},
+            %Token{text: "Smith", pos_tag: :propn, language: :en, span: make_span()}
           ],
           [:person, :person]
         },
         {
           [
-            %Token{text: "Apple", pos: :propn, language: :en},
-            %Token{text: "Inc", pos: :propn, language: :en}
+            %Token{text: "Apple", pos_tag: :propn, language: :en, span: make_span()},
+            %Token{text: "Inc", pos_tag: :propn, language: :en, span: make_span()}
           ],
           [:org, :org]
         }
@@ -59,7 +63,7 @@ defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
     test "supports different optimization methods" do
       training_data = [
         {
-          [%Token{text: "word", pos: :noun, language: :en}],
+          [%Token{text: "word", pos_tag: :noun, language: :en, span: make_span()}],
           [:none]
         }
       ]
@@ -78,7 +82,7 @@ defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
     test "applies regularization during training" do
       training_data = [
         {
-          [%Token{text: "test", pos: :noun, language: :en}],
+          [%Token{text: "test", pos_tag: :noun, language: :en, span: make_span()}],
           [:tag]
         }
       ]
@@ -121,8 +125,8 @@ defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
 
     test "predicts labels for token sequence", %{model: model} do
       tokens = [
-        %Token{text: "John", pos: :propn, language: :en},
-        %Token{text: "Smith", pos: :propn, language: :en}
+        %Token{text: "John", pos_tag: :propn, language: :en, span: make_span()},
+        %Token{text: "Smith", pos_tag: :propn, language: :en, span: make_span()}
       ]
 
       {:ok, labels} = CRF.predict(model, tokens, [])
@@ -132,7 +136,7 @@ defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
     end
 
     test "handles single token", %{model: model} do
-      tokens = [%Token{text: "Apple", pos: :propn, language: :en}]
+      tokens = [%Token{text: "Apple", pos_tag: :propn, language: :en, span: make_span()}]
 
       {:ok, labels} = CRF.predict(model, tokens, [])
 
@@ -177,18 +181,18 @@ defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
       training_data = [
         {
           [
-            %Token{text: "Alice", pos: :propn, language: :en},
-            %Token{text: "works", pos: :verb, language: :en},
-            %Token{text: "at", pos: :adp, language: :en},
-            %Token{text: "Google", pos: :propn, language: :en}
+            %Token{text: "Alice", pos_tag: :propn, language: :en, span: make_span()},
+            %Token{text: "works", pos_tag: :verb, language: :en, span: make_span()},
+            %Token{text: "at", pos_tag: :adp, language: :en, span: make_span()},
+            %Token{text: "Google", pos_tag: :propn, language: :en, span: make_span()}
           ],
           [:person, :none, :none, :org]
         },
         {
           [
-            %Token{text: "Bob", pos: :propn, language: :en},
-            %Token{text: "joined", pos: :verb, language: :en},
-            %Token{text: "Microsoft", pos: :propn, language: :en}
+            %Token{text: "Bob", pos_tag: :propn, language: :en, span: make_span()},
+            %Token{text: "joined", pos_tag: :verb, language: :en, span: make_span()},
+            %Token{text: "Microsoft", pos_tag: :propn, language: :en, span: make_span()}
           ],
           [:person, :none, :org]
         }
@@ -198,9 +202,9 @@ defmodule Nasty.Statistics.SequenceLabeling.CRFTest do
       {:ok, trained} = CRF.train(model, training_data, iterations: 20)
 
       test_tokens = [
-        %Token{text: "Charlie", pos: :propn, language: :en},
-        %Token{text: "leads", pos: :verb, language: :en},
-        %Token{text: "Apple", pos: :propn, language: :en}
+        %Token{text: "Charlie", pos_tag: :propn, language: :en, span: make_span()},
+        %Token{text: "leads", pos_tag: :verb, language: :en, span: make_span()},
+        %Token{text: "Apple", pos_tag: :propn, language: :en, span: make_span()}
       ]
 
       {:ok, predicted_labels} = CRF.predict(trained, test_tokens, [])

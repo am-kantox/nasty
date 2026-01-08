@@ -1,0 +1,342 @@
+# Expected AST Structures for English Test Sentences
+#
+# This file defines expected AST structures for representative sentences
+# from sentences.txt. Used for regression testing to ensure parsing
+# produces consistent results.
+#
+# Format: Elixir data structures that can be evaluated
+
+alias Nasty.AST.{Clause, Document, NounPhrase, Paragraph, Sentence, Token, VerbPhrase}
+alias Nasty.AST.Phrase.{AdjectivalPhrase, PrepositionalPhrase}
+
+defmodule NastyTest.ExpectedAsts do
+  def expected do
+    %{
+      # Simple sentence: "The cat sat."
+      "the_cat_sat" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      language: :en,
+                      span: nil,
+                      determiner: %Token{language: :en, span: nil, text: "The", pos_tag: :det, lemma: "the"},
+                      head: %Token{language: :en, span: nil, text: "cat", pos_tag: :noun, lemma: "cat"},
+                      modifiers: [],
+                      post_modifiers: []
+                    },
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "sat", pos_tag: :verb, lemma: "sit"},
+                      auxiliaries: [],
+                      complements: []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+
+      # Transitive sentence: "The cat ate the food."
+      "the_cat_ate_the_food" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      language: :en,
+                      span: nil,
+                      determiner: %Token{language: :en, span: nil, text: "the", pos_tag: :det, lemma: "the"},
+                      head: %Token{language: :en, span: nil, text: "food", pos_tag: :noun, lemma: "food"},
+                      modifiers: [],
+                      post_modifiers: []
+                    }
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "ate", pos_tag: :verb, lemma: "eat"},
+                      auxiliaries: [],
+                      complements: [
+                        %NounPhrase{
+                          determiner: %Token{language: :en, span: nil, text: "the", pos_tag: :det, lemma: "the"},
+                          head: %Token{language: :en, span: nil, text: "food", pos_tag: :noun, lemma: "food"},
+                          modifiers: [],
+                          post_modifiers: []
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+
+      # With adjective: "The big cat sat."
+      "the_big_cat_sat" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      determiner: %Token{language: :en, span: nil, text: "The", pos_tag: :det, lemma: "the"},
+                      modifiers: [
+                        %Token{language: :en, span: nil, text: "big", pos_tag: :adj, lemma: "big"}
+                      ],
+                      head: %Token{language: :en, span: nil, text: "cat", pos_tag: :noun, lemma: "cat"},
+                      post_modifiers: []
+                    },
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "sat", pos_tag: :verb, lemma: "sit"},
+                      auxiliaries: [],
+                      complements: []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+
+      # With PP: "The cat sat on the mat."
+      "the_cat_sat_on_the_mat" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      determiner: %Token{language: :en, span: nil, text: "The", pos_tag: :det, lemma: "the"},
+                      head: %Token{language: :en, span: nil, text: "cat", pos_tag: :noun, lemma: "cat"},
+                      modifiers: [],
+                      post_modifiers: []
+                    },
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "sat", pos_tag: :verb, lemma: "sit"},
+                      auxiliaries: [],
+                      complements: [
+                        %PrepositionalPhrase{
+                          preposition: %Token{language: :en, span: nil, text: "on", pos_tag: :adp, lemma: "on"},
+                          object: %NounPhrase{
+                            determiner: %Token{language: :en, span: nil, text: "the", pos_tag: :det, lemma: "the"},
+                          head: %Token{language: :en, span: nil, text: "mat", pos_tag: :noun, lemma: "mat"},
+                          modifiers: [],
+                          post_modifiers: []
+                        }
+                      }
+                    ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      },
+
+      # With auxiliary: "The cat is running."
+      "the_cat_is_running" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      determiner: %Token{language: :en, span: nil, text: "The", pos_tag: :det, lemma: "the"},
+                      head: %Token{language: :en, span: nil, text: "cat", pos_tag: :noun, lemma: "cat"},
+                      modifiers: [],
+                      language: :en,
+                      span: nil,
+                      post_modifiers: []
+                    },
+                    predicate: %VerbPhrase{
+                      auxiliaries: [
+                        %Token{language: :en, span: nil, text: "is", pos_tag: :aux, lemma: "be"}
+                      ],
+                      head: %Token{language: :en, span: nil, text: "running", pos_tag: :verb, lemma: "run"},
+                      complements: []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+
+      # Copular: "The cat is happy."
+      "the_cat_is_happy" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      determiner: %Token{language: :en, span: nil, text: "The", pos_tag: :det, lemma: "the"},
+                      head: %Token{language: :en, span: nil, text: "cat", pos_tag: :noun, lemma: "cat"},
+                      modifiers: [],
+                      post_modifiers: []
+                    },
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "is", pos_tag: :aux, lemma: "be"},
+                      auxiliaries: [],
+                      complements: [
+                        %AdjectivalPhrase{
+                          head: %Token{language: :en, span: nil, text: "happy", pos_tag: :adj, lemma: "happy"},
+                          intensifier: nil
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+
+      # Subordinate clause: "John left because he was tired."
+      "john_left_because_he_was_tired" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      head: %Token{language: :en, span: nil, text: "John", pos_tag: :propn, lemma: "john"},
+                      determiner: nil,
+                      modifiers: [],
+                      post_modifiers: []
+                    },
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "left", pos_tag: :verb, lemma: "leave"},
+                      auxiliaries: [],
+                      complements: []
+                    }
+                  },
+                  %Clause{
+                    clause_type: :subordinate,
+                    subordinator: %Token{language: :en, span: nil, text: "because", pos_tag: :sconj, lemma: "because"},
+                    subject: %NounPhrase{
+                      head: %Token{language: :en, span: nil, text: "he", pos_tag: :pron, lemma: "he"},
+                      determiner: nil,
+                      modifiers: [],
+                      post_modifiers: []
+                    },
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "was", pos_tag: :aux, lemma: "be"},
+                      auxiliaries: [],
+                      complements: [
+                        %AdjectivalPhrase{
+                          head: %Token{language: :en, span: nil, text: "tired", pos_tag: :adj, lemma: "tired"},
+                          intensifier: nil
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+
+      # Coordination: "John and Mary walked."
+      "john_and_mary_walked" => %Document{
+        paragraphs: [
+          %Paragraph{
+            sentences: [
+              %Sentence{
+                clauses: [
+                  %Clause{
+                    clause_type: :main,
+                    subject: %NounPhrase{
+                      head: %Token{language: :en, span: nil, text: "John", pos_tag: :propn, lemma: "john"},
+                      determiner: nil,
+                      modifiers: [],
+                      post_modifiers: [],
+                      coordination: %{
+                        conjunction: %Token{language: :en, span: nil, text: "and", pos_tag: :cconj, lemma: "and"},
+                        conjuncts: [
+                          %NounPhrase{
+                            head: %Token{language: :en, span: nil, text: "Mary", pos_tag: :propn, lemma: "mary"},
+                            determiner: nil,
+                            modifiers: [],
+                            post_modifiers: []
+                          }
+                        ]
+                      }
+                    },
+                    predicate: %VerbPhrase{
+                      head: %Token{language: :en, span: nil, text: "walked", pos_tag: :verb, lemma: "walk"},
+                      auxiliaries: [],
+                      complements: []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+
+      # Expected POS tag sequences (for quick validation)
+      "pos_sequences" => %{
+        "The cat sat." => [:det, :noun, :verb, :punct],
+        "The cat ate the food." => [:det, :noun, :verb, :det, :noun, :punct],
+        "The big cat sat." => [:det, :adj, :noun, :verb, :punct],
+        "The cat sat on the mat." => [:det, :noun, :verb, :adp, :det, :noun, :punct],
+        "The cat is running." => [:det, :noun, :aux, :verb, :punct],
+        "John and Mary walked." => [:propn, :cconj, :propn, :verb, :punct]
+      },
+
+      # Expected dependency relations (simplified)
+      "dependency_relations" => %{
+        "The cat sat." => [
+          # ROOT → sat (index 2)
+          {:root, 0, 2},
+          # cat → The
+          {:det, 1, 0},
+          # sat → cat
+          {:nsubj, 2, 1},
+          # sat → .
+          {:punct, 2, 3}
+        ],
+        "The cat ate the food." => [
+          # ROOT → ate
+          {:root, 0, 2},
+          # cat → The
+          {:det, 1, 0},
+          # ate → cat
+          {:nsubj, 2, 1},
+          # food → the
+          {:det, 4, 3},
+          # ate → food
+          {:obj, 2, 4},
+          # ate → .
+          {:punct, 2, 5}
+        ]
+      }
+    }
+  end
+end

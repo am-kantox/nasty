@@ -149,7 +149,7 @@ Note: `Nasty.PrettyPrint` and `Nasty.Visualization` are available via their full
 
 #### Test Fixtures
 - `test/fixtures/english/sentences.txt` - Test sentences
-- `test/fixtures/english/expected_asts.exs` - Expected parse results
+- `test/fixtures/english/expected_asts_test.ex` - Expected parse results
 - `test/fixtures/spanish/` - Spanish test data (future)
 - `test/fixtures/catalan/` - Catalan test data (future)
 

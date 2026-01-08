@@ -151,8 +151,9 @@ defmodule Mix.Tasks.Nasty.Eval do
           {:ok, predicted_labels} ->
             {expected_labels, predicted_labels, tokens}
 
-          {:error, _reason} ->
-            {expected_labels, List.duplicate(:none, length(expected_labels)), tokens}
+            # [TODO]
+            # {:error, _reason} ->
+            #   {expected_labels, List.duplicate(:none, length(expected_labels)), tokens}
         end
       end)
 
@@ -164,10 +165,11 @@ defmodule Mix.Tasks.Nasty.Eval do
     Mix.shell().info("Recall: #{Float.round(metrics.recall * 100, 2)}%")
     Mix.shell().info("F1 score: #{Float.round(metrics.f1 * 100, 2)}%")
 
-    if verbose and Map.has_key?(metrics, :per_label) do
+    with true <- verbose,
+         %{per_label: per_label} <- metrics do
       Mix.shell().info("\nPer-label metrics:")
 
-      Enum.each(metrics.per_label, fn {label, label_metrics} ->
+      Enum.each(per_label, fn {label, label_metrics} ->
         Mix.shell().info("  #{label}:")
         Mix.shell().info("    Precision: #{Float.round(label_metrics.precision * 100, 2)}%")
         Mix.shell().info("    Recall: #{Float.round(label_metrics.recall * 100, 2)}%")

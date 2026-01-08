@@ -264,14 +264,68 @@ defmodule Nasty.Statistics.Parsing.PCFG do
         {rules, lexicon}
 
       {_tokens, _tree} ->
-        # Format 2: Parse trees (would need tree traversal to extract rules)
-        # For now, return empty - this would be implemented with full tree processing
-        {[], %{}}
+        # Format 2: Parse trees - extract rules by counting occurrences
+        rule_counts =
+          training_data
+          |> Enum.flat_map(fn {_tokens, tree} -> extract_rules_from_tree(tree) end)
+          |> Enum.frequencies()
+
+        # Convert counts to rules with probabilities
+        rules =
+          rule_counts
+          |> Enum.map(fn {{lhs, rhs}, count} ->
+            Rule.new(lhs, rhs, count, language)
+          end)
+
+        # Extract lexicon from lexical rules
+        lexicon = build_lexicon(rules)
+
+        {rules, lexicon}
 
       _ ->
         {[], %{}}
     end
   end
+
+  # Extract rules from a parse tree by traversing it
+  defp extract_rules_from_tree({lhs, children}) when is_atom(lhs) and is_list(children) do
+    # Process each child to get RHS symbols and extract child rules
+    {rhs, child_rules} =
+      Enum.reduce(children, {[], []}, fn child, {rhs_acc, rules_acc} ->
+        case child do
+          # Non-terminal with children: {symbol, [...]}
+          {symbol, grandchildren} when is_atom(symbol) and is_list(grandchildren) ->
+            # Extract rules recursively from this subtree
+            subtree_rules = extract_rules_from_tree(child)
+            {[symbol | rhs_acc], rules_acc ++ subtree_rules}
+
+          # Terminal: {symbol, "word"}
+          {symbol, terminal} when is_atom(symbol) and is_binary(terminal) ->
+            # Create lexical rule and add symbol to RHS
+            lexical_rule = {symbol, [terminal]}
+            {[symbol | rhs_acc], [lexical_rule | rules_acc]}
+
+          # Direct atom
+          atom when is_atom(atom) ->
+            {[atom | rhs_acc], rules_acc}
+
+          # Direct string (terminal)
+          str when is_binary(str) ->
+            {[str | rhs_acc], rules_acc}
+        end
+      end)
+
+    # Reverse RHS to maintain order
+    rhs = Enum.reverse(rhs)
+
+    # Create rule for this node
+    rule = {lhs, rhs}
+
+    # Return this rule plus all child rules
+    [rule | child_rules]
+  end
+
+  defp extract_rules_from_tree(_), do: []
 
   # Build word → POS tag mapping from lexical rules
   defp build_lexicon(rules) do

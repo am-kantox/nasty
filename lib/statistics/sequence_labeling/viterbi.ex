@@ -81,7 +81,10 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
   Sum of all feature weights for features present in the feature vector.
   """
   @spec emission_score(feature_vector(), atom(), map(), boolean()) :: score()
-  def emission_score(features, label, feature_weights, log_domain \\ true) do
+  def emission_score(features, label, feature_weights, log_domain \\ true)
+
+  def emission_score(features, label, feature_weights, log_domain)
+      when is_list(features) do
     score =
       Enum.reduce(features, 0.0, fn feature, acc ->
         weight = get_in(feature_weights, [feature, label]) || 0.0
@@ -89,6 +92,16 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
       end)
 
     if log_domain, do: score, else: :math.exp(score)
+  end
+
+  def emission_score(nil, _label, _feature_weights, log_domain) do
+    # Handle nil features
+    if log_domain, do: 0.0, else: 1.0
+  end
+
+  def emission_score(_, _label, _feature_weights, log_domain) do
+    # Handle other unexpected types
+    if log_domain, do: 0.0, else: 1.0
   end
 
   @doc """
@@ -148,7 +161,7 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
 
               total_score =
                 if log_domain do
-                  prev_score + trans_score + emit_score
+                  safe_add(safe_add(prev_score, trans_score), emit_score)
                 else
                   prev_score * trans_score * emit_score
                 end
@@ -233,7 +246,7 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
             trans_score = transition_score(prev_label, curr_label, transition_weights, true)
             emit_score = emission_score(features_t, curr_label, feature_weights, true)
 
-            log_sum_exp(sum_acc, prev_score + trans_score + emit_score)
+            log_sum_exp(sum_acc, safe_add(safe_add(prev_score, trans_score), emit_score))
           end)
 
         Map.put(acc2, {t, curr_label}, score_sum)
@@ -268,7 +281,7 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
             trans_score = transition_score(curr_label, next_label, transition_weights, true)
             emit_score = emission_score(features_next, next_label, feature_weights, true)
 
-            log_sum_exp(sum_acc, next_score + trans_score + emit_score)
+            log_sum_exp(sum_acc, safe_add(safe_add(next_score, trans_score), emit_score))
           end)
 
         Map.put(acc2, {t, curr_label}, score_sum)
@@ -297,5 +310,16 @@ defmodule Nasty.Statistics.SequenceLabeling.Viterbi do
       score = Map.get(forward, {final_pos, label}, :neg_infinity)
       log_sum_exp(acc, score)
     end)
+  end
+
+  # Safe addition that handles infinity
+  defp safe_add(a, b) do
+    cond do
+      a == :neg_infinity and b == :neg_infinity -> :neg_infinity
+      a == :neg_infinity -> b
+      b == :neg_infinity -> a
+      a == :infinity or b == :infinity -> :infinity
+      true -> a + b
+    end
   end
 end

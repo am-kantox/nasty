@@ -967,7 +967,7 @@ nasty/
 │   └── fixtures/
 │       ├── english/
 │       │   ├── sentences.txt          # Test sentences
-│       │   └── expected_asts.exs      # Expected parse results
+│       │   └── expected_asts_test.exs # Expected parse results
 │       ├── spanish/                   # Future: Spanish test data
 │       └── catalan/                   # Future: Catalan test data
 ├── examples/

@@ -104,7 +104,9 @@ defmodule Nasty.Statistics.Parsing.CYKParser do
       Enum.reduce(0..(n - 1), chart, fn i, acc ->
         token = Enum.at(tokens, i)
         lexical_entries = get_lexical_parses(grammar, token, i)
-        put_chart_entries(acc, i, i, lexical_entries, beam_width)
+        # Also apply unary rules to lexical entries
+        with_unary = apply_unary_closure(grammar, lexical_entries, i, i)
+        put_chart_entries(acc, i, i, with_unary, beam_width)
       end)
 
     # Step 2: Fill chart for increasing span lengths
@@ -113,7 +115,7 @@ defmodule Nasty.Statistics.Parsing.CYKParser do
         j = i + length - 1
 
         # Try all split points k in [i, j-1]
-        entries =
+        binary_entries =
           for k <- i..(j - 1),
               left_entry <- get_chart_entries(chart_acc2, i, k),
               right_entry <- get_chart_entries(chart_acc2, k + 1, j),
@@ -121,7 +123,11 @@ defmodule Nasty.Statistics.Parsing.CYKParser do
             {label, tree}
           end
 
-        put_chart_entries(chart_acc2, i, j, entries, beam_width)
+        # Apply unary rules to entries we just created from binary rules
+        # Need to do this iteratively until no new entries are generated
+        with_unary = apply_unary_closure(grammar, binary_entries, i, j)
+
+        put_chart_entries(chart_acc2, i, j, with_unary, beam_width)
       end)
     end)
   end
@@ -173,6 +179,60 @@ defmodule Nasty.Statistics.Parsing.CYKParser do
         {lhs, tree}
       end)
     end)
+  end
+
+  # Apply unary grammar rules to a single parse tree
+  defp apply_unary_rules(grammar, {child_label, child_tree}, i, j) do
+    # Find all rules A → B where B = child_label
+    grammar.rule_index
+    |> Enum.flat_map(fn {lhs, rules} ->
+      Enum.filter(rules, fn rule ->
+        # Unary rule: single non-terminal on RHS
+        match?(%Rule{rhs: [^child_label]}, rule) and is_atom(child_label)
+      end)
+      |> Enum.map(fn rule ->
+        # Combined probability: P(rule) * P(child)
+        prob = rule.probability * child_tree.probability
+
+        tree = %{
+          label: lhs,
+          probability: prob,
+          children: [child_tree],
+          span: {i, j},
+          rule: rule
+        }
+
+        {lhs, tree}
+      end)
+    end)
+  end
+
+  # Apply unary rules repeatedly until no new entries are generated (closure)
+  defp apply_unary_closure(grammar, entries, i, j) do
+    apply_unary_closure_iter(grammar, entries, MapSet.new(), i, j)
+  end
+
+  defp apply_unary_closure_iter(grammar, entries, seen_labels, i, j) do
+    # Apply unary rules to all current entries
+    new_entries =
+      Enum.flat_map(entries, fn entry ->
+        apply_unary_rules(grammar, entry, i, j)
+      end)
+      # Filter out entries we've already seen (to prevent infinite loops)
+      |> Enum.reject(fn {label, _tree} -> MapSet.member?(seen_labels, label) end)
+
+    if new_entries == [] do
+      # No new entries, we're done
+      entries
+    else
+      # Add new entries and continue
+      all_entries = entries ++ new_entries
+
+      new_seen =
+        Enum.reduce(entries, seen_labels, fn {label, _}, acc -> MapSet.put(acc, label) end)
+
+      apply_unary_closure_iter(grammar, all_entries, new_seen, i, j)
+    end
   end
 
   # Store entries in chart cell, keeping only top-k by probability (beam search)

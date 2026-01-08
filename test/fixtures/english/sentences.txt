@@ -1,0 +1,195 @@
+# English Test Sentences for Nasty Parsing
+#
+# This file contains standard test sentences organized by complexity and
+# grammatical structures. Used for regression testing of the parsing pipeline.
+#
+# Format: Each non-comment, non-empty line is a separate test sentence.
+
+## Simple Sentences (Subject-Verb-Object)
+
+The cat sat.
+The dog runs.
+Birds fly.
+She eats.
+John sleeps.
+
+## Transitive Sentences (with Direct Object)
+
+The cat ate the food.
+John reads books.
+Mary loves music.
+The dog chased the ball.
+Children play games.
+
+## Sentences with Modifiers
+
+The big cat sat.
+The quick brown fox jumped.
+A very happy child laughed.
+The extremely fast runner won.
+Several small birds flew away.
+
+## Prepositional Phrases
+
+The cat sat on the mat.
+The book is on the table.
+John walked to the store.
+Mary lives in New York.
+The bird flew over the house.
+
+## Complex Noun Phrases
+
+The big black cat sat.
+The old wooden table broke.
+A beautiful red rose bloomed.
+The three little pigs ran.
+My best friend arrived.
+
+## Verb Phrases with Auxiliaries
+
+The cat is running.
+John has eaten.
+Mary will go.
+The dog was barking.
+Children have been playing.
+
+## Sentences with Multiple Complements
+
+John gave Mary the book.
+The teacher told students a story.
+Mary showed her friend the picture.
+Dad bought me a toy.
+She sent him a message.
+
+## Coordination
+
+John and Mary walked.
+The cat ate and slept.
+Birds fly and sing.
+She laughed or cried.
+He walked but didn't run.
+
+## Subordinate Clauses
+
+John left because he was tired.
+Mary smiled when she saw him.
+The cat slept while I worked.
+If it rains, we stay inside.
+Although tired, she continued working.
+
+## Relative Clauses
+
+The cat that sits is happy.
+The book that John read was good.
+The man who called left.
+The place where we met was nice.
+The day when she arrived was sunny.
+
+## Passive Voice
+
+The food was eaten by the cat.
+The book was read by John.
+The ball was chased by the dog.
+The story was told by the teacher.
+The house was built by workers.
+
+## Questions
+
+Who ate the food?
+What did John read?
+Where is Mary?
+When will she arrive?
+How did he do it?
+Why did they leave?
+
+## Imperatives
+
+Sit down.
+Read the book.
+Come here.
+Don't go.
+Please wait.
+
+## Complex Sentences
+
+The cat that was sleeping on the mat woke up when the dog barked.
+John, who works at Google, lives in San Francisco.
+Although Mary was tired, she finished the project that was due.
+The book on the table is the one that John read yesterday.
+When the sun rises, the birds start singing in the trees.
+
+## Copular Sentences
+
+The cat is happy.
+John is a teacher.
+Mary is in the house.
+The food smells good.
+He seems tired.
+
+## Sentences with Particles
+
+John picked up the book.
+Mary turned off the light.
+The cat looked out the window.
+He gave up trying.
+She put down her bag.
+
+## Multi-clause Coordination
+
+John walked to the store and Mary went to the park.
+The cat slept on the couch but the dog played outside.
+She studied hard yet she failed the test.
+He cooked dinner so she cleaned the dishes.
+
+## Negation
+
+The cat did not eat.
+John doesn't like coffee.
+Mary isn't here.
+They won't come.
+I haven't seen him.
+
+## Reflexives and Reciprocals
+
+John hurt himself.
+Mary prepared herself.
+They helped each other.
+We know ourselves.
+The children taught themselves.
+
+## Comparative and Superlative
+
+John is taller than Mary.
+The cat is faster than the dog.
+This is the best book.
+She is the smartest student.
+That was the worst day.
+
+## Quantifiers
+
+Every cat sat.
+Some dogs ran.
+All birds fly.
+Many children played.
+Few people came.
+No one left.
+
+## Time Expressions
+
+John arrived yesterday.
+Mary will leave tomorrow.
+The cat slept all day.
+Birds fly south in winter.
+We meet every Monday.
+
+## Complex Coordination with Ellipsis
+
+John reads books and Mary magazines.
+The cat is black and the dog white.
+She can sing and he dance.
+
+## Long Distance Dependencies
+
+What did John say Mary bought?
+Who does she think left?
+The book that I think John said Mary read was interesting.
