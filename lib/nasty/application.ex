@@ -19,8 +19,9 @@ defmodule Nasty.Application do
     opts = [strategy: :one_for_one, name: Nasty.Supervisor]
 
     with {:ok, pid} <- Supervisor.start_link(children, opts) do
-      # Register English language after registry starts
+      # Register languages after registry starts
       Nasty.Language.Registry.register(Nasty.Language.English)
+      Nasty.Language.Registry.register(Nasty.Language.Spanish)
       {:ok, pid}
     end
   end
