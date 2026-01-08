@@ -156,6 +156,15 @@ All nodes include:
 
 ### Recent Improvements (2026-01-08)
 
+**Grammar Resource Externalization**:
+- Grammar rules externalized to `.exs` files in `priv/languages/{lang}/grammars/`
+- Created GrammarLoader module with ETS caching for fast access
+- English grammar rules: phrase_rules.exs, dependency_rules.exs, coordination_rules.exs, subordination_rules.exs
+- Spanish grammar rules: Complete set with Spanish-specific features (pro-drop, flexible word order, post-nominal adjectives)
+- Support for grammar variants (e.g., technical, legal, medical domains)
+- Comprehensive documentation in docs/GRAMMAR_CUSTOMIZATION.md
+- Benefits: Customizable without code changes, domain adaptation, A/B testing, cross-project sharing
+
 **Parser Enhancements**:
 - Adjectival phrases now parse with prepositional complements ("greater than 21")
 - "than" treated as pseudo-preposition in comparative constructions
@@ -285,3 +294,5 @@ Key documentation files for understanding the codebase:
 - **[TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md)** - Guide for training neural models on custom datasets.
 
 - **[ROADMAP.md](docs/ROADMAP.md)** - Feature roadmap with priorities, timelines, and implementation strategies.
+
+- **[GRAMMAR_CUSTOMIZATION.md](docs/GRAMMAR_CUSTOMIZATION.md)** - Guide for creating custom grammar rules, domain-specific variants, and using the GrammarLoader system.
