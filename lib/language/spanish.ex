@@ -229,6 +229,9 @@ defmodule Nasty.Language.Spanish do
   @spec answer_question(Document.t(), String.t(), keyword()) ::
           {:ok, [Nasty.AST.Answer.t()]} | {:error, term()}
   def answer_question(%Document{} = document, question_text, opts \\ []) do
+    # Normalize to NFC form to ensure consistent Unicode representation
+    question_text = String.normalize(question_text, :nfc)
+
     with {:ok, tokens} <- tokenize(question_text),
          {:ok, tagged} <- tag_pos(tokens),
          {:ok, analysis} <- QuestionAnalyzer.analyze(tagged) do

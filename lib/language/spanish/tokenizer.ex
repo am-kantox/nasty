@@ -316,6 +316,9 @@ defmodule Nasty.Language.Spanish.Tokenizer do
   """
   @spec tokenize(String.t(), keyword()) :: {:ok, [Token.t()]} | {:error, term()}
   def tokenize(text, _opts \\ []) do
+    # Normalize to NFC form to ensure consistent Unicode representation
+    text = String.normalize(text, :nfc)
+
     # Handle empty or whitespace-only text
     if String.trim(text) == "" do
       {:ok, []}

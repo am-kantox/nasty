@@ -101,6 +101,9 @@ defmodule Nasty do
 
   """
   def parse(text, opts \\ []) do
+    # Normalize to NFC form to ensure consistent Unicode representation
+    text = String.normalize(text, :nfc)
+
     with {:ok, language_code} <- get_language(text, opts),
          {:ok, module} <- Nasty.Language.Registry.get(language_code),
          {:ok, tokens} <- module.tokenize(text, opts),

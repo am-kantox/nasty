@@ -249,6 +249,9 @@ defmodule Nasty.Language.English do
   @spec answer_question(Document.t(), String.t(), keyword()) ::
           {:ok, [Nasty.AST.Answer.t()]} | {:error, term()}
   def answer_question(%Document{} = document, question_text, opts \\ []) do
+    # Normalize to NFC form to ensure consistent Unicode representation
+    question_text = String.normalize(question_text, :nfc)
+
     with {:ok, tokens} <- tokenize(question_text),
          {:ok, tagged} <- tag_pos(tokens),
          {:ok, analysis} <- QuestionAnalyzer.analyze(tagged) do
@@ -418,6 +421,9 @@ defmodule Nasty.Language.English do
   """
   @spec to_code(String.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
   def to_code(text, opts \\ []) when is_binary(text) do
+    # Normalize to NFC form to ensure consistent Unicode representation
+    text = String.normalize(text, :nfc)
+
     with {:ok, intent} <- IntentRecognizer.recognize_from_text(text, language: :en),
          intent <- maybe_enhance_with_ragex(intent, opts),
          do: ElixirCodeGen.generate_string(intent, opts)
@@ -436,6 +442,9 @@ defmodule Nasty.Language.English do
   """
   @spec to_code_ast(String.t(), keyword()) :: {:ok, Macro.t()} | {:error, term()}
   def to_code_ast(text, opts \\ []) when is_binary(text) do
+    # Normalize to NFC form to ensure consistent Unicode representation
+    text = String.normalize(text, :nfc)
+
     with {:ok, intent} <- IntentRecognizer.recognize_from_text(text, language: :en),
          intent <- maybe_enhance_with_ragex(intent, opts),
          do: ElixirCodeGen.generate(intent, opts)
@@ -493,6 +502,9 @@ defmodule Nasty.Language.English do
   """
   @spec recognize_intent(String.t(), keyword()) :: {:ok, Nasty.AST.Intent.t()} | {:error, term()}
   def recognize_intent(text, opts \\ []) when is_binary(text) do
+    # Normalize to NFC form to ensure consistent Unicode representation
+    text = String.normalize(text, :nfc)
+
     IntentRecognizer.recognize_from_text(text, Keyword.put(opts, :language, :en))
   end
 
