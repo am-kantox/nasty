@@ -270,7 +270,7 @@ defmodule Mix.Tasks.Nasty.ZeroShot do
     _error ->
       # Fallback if Jason not available
       formatted =
-      Enum.map_join(results, "\n\n", &inspect/1)
+        Enum.map_join(results, "\n\n", &inspect/1)
 
       File.write!(output_path, formatted)
   end

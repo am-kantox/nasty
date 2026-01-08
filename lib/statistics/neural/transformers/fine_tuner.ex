@@ -355,6 +355,7 @@ defmodule Nasty.Statistics.Neural.Transformers.FineTuner do
       |> Axon.embedding(base_model.config.params, hidden_size)
       |> Axon.dropout(rate: 0.1)
       |> Axon.lstm(hidden_size, units, name: "encoder")
+      |> then(fn {output, _state} -> output end)
       |> Axon.dropout(rate: 0.1)
       |> Axon.dense(num_labels, name: "classifier")
     end)
