@@ -7,7 +7,7 @@
 
 **A comprehensive NLP library for Elixir that treats natural language with the same rigor as programming languages.**
 
-Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, with a full NLP pipeline from tokenization to text summarization.
+Nasty provides a complete grammatical Abstract Syntax Tree (AST) for multiple natural languages (English and Spanish), with a full NLP pipeline from tokenization to text summarization.
 
 - **Tokenization** - NimbleParsec-based text segmentation
 - **POS Tagging** - Rule-based + Statistical (HMM with Viterbi) + Neural (BiLSTM-CRF)
@@ -28,6 +28,7 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for English, wi
 - **AST Rendering** - Convert AST back to natural language text
 - **AST Utilities** - Traversal, queries, validation, and transformations
 - **Visualization** - Export to DOT/Graphviz and JSON formats
+- **Multi-Language Support** - English and Spanish with language-agnostic architecture
 
 ## Quick Start
 
@@ -171,6 +172,49 @@ Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing �
 ### Entity Types
 - Person, Organization, Place (GPE)
 - With confidence scores and multi-word support
+
+### Multi-Language Support
+
+Nasty provides a language-agnostic architecture using Elixir behaviours, enabling support for multiple natural languages:
+
+#### Supported Languages
+
+- **English** (`Nasty.Language.English`) - Fully implemented
+- **Spanish** (`Nasty.Language.Spanish`) - Fully implemented
+  - Spanish-specific tokenization (¿?, ¡!, contractions del/al, accented characters)
+  - Spanish morphology (verb conjugations, gender/number agreement)
+  - Complete NLP pipeline (tokenization → parsing → summarization)
+
+#### Usage
+
+```elixir
+alias Nasty.Language.Spanish
+
+# Spanish text processing
+text = "El gato duerme en el sofá."
+{:ok, tokens} = Spanish.tokenize(text)
+{:ok, tagged} = Spanish.tag_pos(tokens)
+{:ok, document} = Spanish.parse(tagged)
+
+# Works identically to English
+summary = Spanish.summarize(document, ratio: 0.3)
+{:ok, entities} = Spanish.extract_entities(document)
+```
+
+#### Language Registry
+
+All languages are registered in `Nasty.Language.Registry` and can be accessed dynamically:
+
+```elixir
+# Auto-detect language
+{:ok, lang} = Nasty.Language.Registry.detect_language("¿Cómo estás?")
+# => :es
+
+# Get language module
+{:ok, Spanish} = Nasty.Language.Registry.get(:es)
+```
+
+See `examples/spanish_example.exs` for a complete demonstration.
 
 ### Text Summarization
 - **Extractive summarization** - Select important sentences from document
