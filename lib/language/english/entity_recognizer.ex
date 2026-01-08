@@ -43,9 +43,9 @@ defmodule Nasty.Language.English.EntityRecognizer do
       {:person, &has_title_prefix?/1},
       {:gpe, &has_location_suffix?/1},
       {:org, &has_org_suffix?/1},
-      {:date, &is_date_pattern?/1},
-      {:time, &is_time_pattern?/1},
-      {:money, &is_money_pattern?/1}
+      {:date, &date_pattern?/1},
+      {:time, &time_pattern?/1},
+      {:money, &money_pattern?/1}
     ]
   end
 
@@ -318,7 +318,7 @@ defmodule Nasty.Language.English.EntityRecognizer do
   end
 
   # Check if text matches date pattern
-  defp is_date_pattern?({text, tokens}) do
+  defp date_pattern?({text, tokens}) do
     # Patterns: "January 5", "Jan 5", "5 January", "2026", "5/1/2026"
     cond do
       # Month names
@@ -344,7 +344,7 @@ defmodule Nasty.Language.English.EntityRecognizer do
   end
 
   # Check if text matches time pattern
-  defp is_time_pattern?({text, _tokens}) do
+  defp time_pattern?({text, _tokens}) do
     # Patterns: "3:00", "3:00 PM", "15:30", "noon", "midnight"
     text_lower = String.downcase(text)
 
@@ -367,7 +367,7 @@ defmodule Nasty.Language.English.EntityRecognizer do
   end
 
   # Check if text matches money pattern
-  defp is_money_pattern?({text, tokens}) do
+  defp money_pattern?({text, tokens}) do
     # Patterns: "$100", "€50", "100 dollars", "fifty euros"
     text_lower = String.downcase(text)
 
