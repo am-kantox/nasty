@@ -55,7 +55,7 @@ defmodule Nasty.Language.Spanish.Summarizer do
     SummarizerAdapter.summarize(doc, opts)
   end
 
-  def summarize(%Document{language: lang}, opts) do
+  def summarize(%Document{language: lang}, _opts) do
     {:error,
      {:language_mismatch,
       "Spanish summarizer called with #{lang} document. Use language-specific summarizer."}}
