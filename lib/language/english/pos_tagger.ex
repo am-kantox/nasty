@@ -21,9 +21,42 @@ defmodule Nasty.Language.English.POSTagger do
 
   alias Nasty.AST.Token
   alias Nasty.Language.English.TransformerPOSTagger
+  alias Nasty.Language.Resources.LexiconLoader
   alias Nasty.Statistics.{ModelLoader, POSTagging.HMMTagger, POSTagging.NeuralTagger}
 
   require Logger
+
+  # Load lexicons at compile time for performance
+  @determiners LexiconLoader.load(:en, :determiners)
+  @pronouns LexiconLoader.load(:en, :pronouns)
+  @prepositions LexiconLoader.load(:en, :prepositions)
+  @conjunctions_coord LexiconLoader.load(:en, :conjunctions_coord)
+  @conjunctions_sub LexiconLoader.load(:en, :conjunctions_sub)
+  @auxiliaries LexiconLoader.load(:en, :auxiliaries)
+  @adverbs LexiconLoader.load(:en, :adverbs)
+  @particles LexiconLoader.load(:en, :particles)
+  @interjections LexiconLoader.load(:en, :interjections)
+  @common_verbs LexiconLoader.load(:en, :common_verbs)
+  @common_adjectives LexiconLoader.load(:en, :common_adjectives)
+
+  # Extract base forms (stems) from common verbs for 3sg detection
+  @common_verb_stems @common_verbs
+                     |> Enum.map(fn verb ->
+                       cond do
+                         String.ends_with?(verb, "ing") and String.length(verb) > 4 ->
+                           String.slice(verb, 0..(String.length(verb) - 4))
+
+                         String.ends_with?(verb, "ed") and String.length(verb) > 3 ->
+                           String.slice(verb, 0..(String.length(verb) - 3))
+
+                         String.ends_with?(verb, "s") and String.length(verb) > 2 ->
+                           String.slice(verb, 0..(String.length(verb) - 2))
+
+                         true ->
+                           verb
+                       end
+                     end)
+                     |> Enum.uniq()
 
   @doc """
   Tags a list of tokens with POS tags.
@@ -483,262 +516,18 @@ defmodule Nasty.Language.English.POSTagger do
     end
   end
 
-  # Common verb stems (base forms) for 3sg detection
-  defp common_verb_stems do
-    ~w(
-      go come see get make know think take find give tell
-      work call try ask need feel become leave put mean keep
-      let begin seem help show hear play run move like live
-      believe bring happen write sit stand lose pay meet
-      include continue set learn change lead understand watch
-      follow stop create speak read spend grow open walk win
-      teach offer remember consider appear buy serve die send
-      build stay fall cut reach kill raise pass sell decide
-      return explain hope develop carry break receive agree
-      support hit produce eat cover catch draw sleep
-      filter sort map reduce select reject transform
-      calculate compute compare check validate
-    )
-  end
+  # Return loaded lexicons from module attributes
+  defp common_verb_stems, do: @common_verb_stems
 
-  ## Word Lists (Closed-class words)
-
-  defp determiners do
-    ~w(
-      the a an this that these those
-      my your his her its our their
-      some any no every each either neither
-      much many more most less least few several all both half
-      whose
-    )
-  end
-
-  defp pronouns do
-    # Note: ambiguous words (her, his, your, etc.) are in determiners list
-    # and handled by default as determiners since that's more common
-    ~w(
-      i me mine myself
-      you yours yourself yourselves
-      he him himself
-      she hers herself
-      it itself
-      we us ours ourselves
-      they them theirs themselves
-      who whom which what
-      this that these those
-      someone somebody something anyone anybody anything
-      everyone everybody everything no one nobody nothing
-    )
-  end
-
-  defp prepositions do
-    ~w(
-      in on at by for with from to of about
-      above across after against along among around
-      before behind below beneath beside between beyond
-      down during except inside into like near
-      off over past since through throughout till
-      toward under underneath until up upon within without
-    )
-  end
-
-  defp conjunctions_coord do
-    ~w(and or but nor yet so for)
-  end
-
-  defp conjunctions_sub do
-    ~w(
-      after although as because before if once since
-      than that though till unless until when whenever
-      where wherever whether while
-    )
-  end
-
-  defp auxiliaries do
-    ~w(
-      am is are was were be been being
-      have has had having
-      do does did doing
-      will would shall should may might
-      can could must ought
-    )
-  end
-
-  defp adverbs do
-    ~w(
-      not very really quite rather too so enough
-      always never often sometimes usually rarely seldom
-      already yet still just now then soon
-      here there everywhere nowhere anywhere somewhere
-      how why when where
-      indeed perhaps maybe probably possibly certainly
-      however therefore moreover furthermore nevertheless nonetheless
-    )
-  end
-
-  defp particles do
-    ~w(to up down out off in on away back)
-  end
-
-  defp interjections do
-    ~w(
-      ah oh wow hey hi hello goodbye yes no thanks please
-      ouch oops ugh hmm huh
-    )
-  end
-
-  defp common_verbs do
-    ~w(
-      go went gone going goes
-      come came coming comes
-      see saw seen seeing sees
-      get got gotten getting gets
-      make made making makes
-      know knew known knowing knows
-      think thought thinking thinks
-      take took taken taking takes
-      find found finding finds
-      give gave given giving gives
-      tell told telling tells
-      work worked working works
-      call called calling calls
-      try tried trying tries
-      ask asked asking asks
-      need needed needing needs
-      feel felt feeling feels
-      become became becoming becomes
-      leave left leaving leaves
-      put putting puts
-      mean meant meaning means
-      keep kept keeping keeps
-      let letting lets
-      begin began begun beginning begins
-      seem seemed seeming seems
-      help helped helping helps
-      show showed shown showing shows
-      hear heard hearing hears
-      play played playing plays
-      run ran running runs
-      move moved moving moves
-      like liked liking likes
-      live lived living lives
-      believe believed believing believes
-      bring brought bringing brings
-      happen happened happening happens
-      write wrote written writing writes
-      sit sat sitting sits
-      stand stood standing stands
-      lose lost losing loses
-      pay paid paying pays
-      meet met meeting meets
-      include included including includes
-      continue continued continuing continues
-      set setting sets
-      learn learned learning learns
-      change changed changing changes
-      lead led leading leads
-      understand understood understanding understands
-      watch watched watching watches
-      follow followed following follows
-      stop stopped stopping stops
-      create created creating creates
-      speak spoke spoken speaking speaks
-      read reading reads
-      spend spent spending spends
-      grow grew grown growing grows
-      open opened opening opens
-      walk walked walking walks
-      win won winning wins
-      teach taught teaching teaches
-      offer offered offering offers
-      remember remembered remembering remembers
-      consider considered considering considers
-      appear appeared appearing appears
-      buy bought buying buys
-      serve served serving serves
-      die died dying dies
-      send sent sending sends
-      build built building builds
-      stay stayed staying stays
-      fall fell fallen falling falls
-      cut cutting cuts
-      reach reached reaching reaches
-      kill killed killing kills
-      raise raised raising raises
-      pass passed passing passes
-      sell sold selling sells
-      decide decided deciding decides
-      return returned returning returns
-      explain explained explaining explains
-      hope hoped hoping hopes
-      develop developed developing develops
-      carry carried carrying carries
-      break broke broken breaking breaks
-      receive received receiving receives
-      agree agreed agreeing agrees
-      support supported supporting supports
-      hit hitting hits
-      produce produced producing produces
-      eat ate eaten eating eats
-      cover covered covering covers
-      catch caught catching catches
-      draw drew drawn drawing draws
-      filter filtered filtering filters
-      sort sorted sorting sorts
-      map mapped mapping maps
-      reduce reduced reducing reduces
-      select selected selecting selects
-      reject rejected rejecting rejects
-      transform transformed transforming transforms
-      calculate calculated calculating calculates
-      compute computed computing computes
-      compare compared comparing compares
-      check checked checking checks
-      validate validated validating validates
-    )
-  end
-
-  defp common_adjectives do
-    ~w(
-      good bad big small large little
-      new old young long short
-      high low great right left
-      different same next last
-      early late public important
-      able free real sure
-      certain wrong ready clear
-      white black red blue green
-      hot cold open happy sad
-      easy hard strong weak
-      full empty rich poor
-      heavy light fast slow
-      clean dirty safe dangerous
-      cheap expensive quiet loud
-      wide narrow deep shallow
-      thick thin bright dark
-      soft hard smooth rough
-      wet dry simple complex
-      common rare perfect terrible
-      beautiful ugly wonderful awful
-      excellent bad fine nice
-      popular famous special normal
-      main central natural human
-      social economic political legal
-      international national local private
-      general particular individual specific
-      recent modern current past
-      future present certain possible
-      likely similar different various
-      several additional extra available
-      necessary essential important serious
-      major minor primary secondary
-      positive negative active passive
-      direct indirect wild calm
-      brief brief enormous tiny
-      huge massive grand minor
-      greater less fewer more
-      valid invalid active inactive
-      enabled disabled archived
-    )
-  end
+  defp determiners, do: @determiners
+  defp pronouns, do: @pronouns
+  defp prepositions, do: @prepositions
+  defp conjunctions_coord, do: @conjunctions_coord
+  defp conjunctions_sub, do: @conjunctions_sub
+  defp auxiliaries, do: @auxiliaries
+  defp adverbs, do: @adverbs
+  defp particles, do: @particles
+  defp interjections, do: @interjections
+  defp common_verbs, do: @common_verbs
+  defp common_adjectives, do: @common_adjectives
 end
