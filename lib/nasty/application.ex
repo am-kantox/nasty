@@ -22,6 +22,7 @@ defmodule Nasty.Application do
       # Register languages after registry starts
       Nasty.Language.Registry.register(Nasty.Language.English)
       Nasty.Language.Registry.register(Nasty.Language.Spanish)
+      Nasty.Language.Registry.register(Nasty.Language.Catalan)
       {:ok, pid}
     end
   end
