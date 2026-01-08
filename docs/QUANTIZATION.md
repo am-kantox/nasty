@@ -136,7 +136,7 @@ Calibration determines optimal quantization ranges for activations.
 ```elixir
 # From CoNLL-U file
 defmodule CalibrationLoader do
-  def load_samples(path, opts \\\\ []) do
+  def load_samples(path, opts \\ []) do
     limit = Keyword.get(opts, :limit, 500)
     
     path

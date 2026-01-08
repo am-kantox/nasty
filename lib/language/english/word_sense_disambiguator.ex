@@ -1,151 +1,99 @@
 defmodule Nasty.Language.English.WordSenseDisambiguator do
   @moduledoc """
-  Simple English word sense disambiguation implementation.
+  English word sense disambiguation using WordNet.
 
-  Provides basic sense definitions for common ambiguous words.
-  For production use, integrate with WordNet or similar lexical database.
+  Provides comprehensive word sense disambiguation by leveraging the full
+  Open English WordNet database with 120K+ synsets.
 
   ## Example
 
       iex> WSD.disambiguate("bank", [river_token], pos_tag: :noun)
-      {:ok, %{definition: "land alongside water", ...}}
+      {:ok, %{definition: "land alongside water", synset_id: "oewn-...", ...}}
+
+  ## Features
+
+  - Full WordNet coverage (120K+ synsets)
+  - Automatic lemmatization and POS conversion
+  - Context-based disambiguation using Lesk algorithm
+  - Semantic similarity scoring
+  - Frequency-based fallback
   """
 
   @behaviour Nasty.Semantic.WordSenseDisambiguation
 
   alias Nasty.AST.Token
+  alias Nasty.Lexical.WordNet
   alias Nasty.Semantic.WordSenseDisambiguation, as: WSD
 
-  # Sample sense dictionary for common ambiguous words
-  @senses %{
-    "bank" => [
-      %{
-        word: "bank",
-        definition: "financial institution that accepts deposits",
-        pos: :noun,
-        examples: ["I need to go to the bank to deposit money"],
-        frequency_rank: 1
-      },
-      %{
-        word: "bank",
-        definition: "land alongside a body of water",
-        pos: :noun,
-        examples: ["We sat on the river bank"],
-        frequency_rank: 2
-      }
-    ],
-    "bark" => [
-      %{
-        word: "bark",
-        definition: "sound made by a dog",
-        pos: :noun,
-        examples: ["The dog's bark was loud"],
-        frequency_rank: 1
-      },
-      %{
-        word: "bark",
-        definition: "outer covering of a tree",
-        pos: :noun,
-        examples: ["The bark protects the tree"],
-        frequency_rank: 2
-      },
-      %{
-        word: "bark",
-        definition: "make the sound of a dog",
-        pos: :verb,
-        examples: ["The dog barked at the stranger"],
-        frequency_rank: 1
-      }
-    ],
-    "bat" => [
-      %{
-        word: "bat",
-        definition: "flying nocturnal mammal",
-        pos: :noun,
-        examples: ["Bats sleep hanging upside down"],
-        frequency_rank: 1
-      },
-      %{
-        word: "bat",
-        definition: "wooden stick used in sports",
-        pos: :noun,
-        examples: ["He swung the baseball bat"],
-        frequency_rank: 2
-      }
-    ],
-    "crane" => [
-      %{
-        word: "crane",
-        definition: "large wading bird",
-        pos: :noun,
-        examples: ["The crane flew over the marsh"],
-        frequency_rank: 1
-      },
-      %{
-        word: "crane",
-        definition: "machine for lifting heavy objects",
-        pos: :noun,
-        examples: ["The construction crane lifted steel beams"],
-        frequency_rank: 2
-      }
-    ],
-    "match" => [
-      %{
-        word: "match",
-        definition: "small stick for making fire",
-        pos: :noun,
-        examples: ["Strike a match to light the candle"],
-        frequency_rank: 1
-      },
-      %{
-        word: "match",
-        definition: "contest or game between opponents",
-        pos: :noun,
-        examples: ["We watched the tennis match"],
-        frequency_rank: 2
-      },
-      %{
-        word: "match",
-        definition: "be equal or correspond to",
-        pos: :verb,
-        examples: ["These socks don't match"],
-        frequency_rank: 1
-      }
-    ]
-  }
+  # No hardcoded senses - using WordNet!
 
   @impl true
   def get_senses(word, pos_tag \\ nil) do
-    word_lower = String.downcase(word)
+    # Convert UD POS tags to WordNet POS tags if needed
+    wn_pos = convert_pos_tag(pos_tag)
 
-    case Map.get(@senses, word_lower) do
-      nil ->
-        []
+    # Get synsets from WordNet
+    synsets = WordNet.synsets(word, wn_pos, :en)
 
-      senses when is_nil(pos_tag) ->
-        senses
-
-      senses ->
-        Enum.filter(senses, fn sense -> sense.pos == pos_tag end)
-    end
+    # Convert synsets to sense format expected by WSD behaviour
+    Enum.with_index(synsets, 1)
+    |> Enum.map(fn {synset, rank} ->
+      %{
+        word: word,
+        definition: synset.definition,
+        pos: synset.pos,
+        examples: synset.examples,
+        frequency_rank: rank,
+        synset_id: synset.id
+      }
+    end)
   end
 
   @impl true
   def get_related_words(sense) do
-    # Simple related words based on definition
-    # In production, use WordNet synsets
-    case {sense.word, sense.frequency_rank} do
-      {"bank", 1} -> ["money", "deposit", "account", "finance"]
-      {"bank", 2} -> ["river", "shore", "water", "stream"]
-      {"bark", 1} -> ["dog", "sound", "animal", "woof"]
-      {"bark", 2} -> ["tree", "wood", "trunk", "outer"]
-      {"bat", 1} -> ["animal", "fly", "mammal", "night"]
-      {"bat", 2} -> ["baseball", "hit", "sport", "swing"]
-      {"crane", 1} -> ["bird", "heron", "water", "wading"]
-      {"crane", 2} -> ["construction", "lift", "machine", "heavy"]
-      {"match", 1} -> ["fire", "light", "flame", "ignite"]
-      {"match", 2} -> ["game", "competition", "play", "opponent"]
-      _ -> []
+    synset_id = sense[:synset_id]
+
+    if synset_id do
+      # Get hypernyms (more general concepts)
+      hypernym_ids = WordNet.hypernyms(synset_id, :en)
+
+      hypernym_words =
+        hypernym_ids
+        |> Enum.flat_map(fn id ->
+          case WordNet.synset(id, :en) do
+            nil -> []
+            synset -> synset.lemmas
+          end
+        end)
+
+      # Get synonyms from same synset
+      synset = WordNet.synset(synset_id, :en)
+      synonyms = if synset, do: synset.lemmas, else: []
+
+      # Combine and deduplicate
+      (synonyms ++ hypernym_words)
+      |> Enum.uniq()
+      |> Enum.take(10)
+    else
+      # Fallback: extract words from definition
+      sense[:definition]
+      |> String.split(~r/\W+/)
+      |> Enum.reject(&(String.length(&1) < 3))
+      |> Enum.take(5)
+    end
+  end
+
+  # Private helpers
+
+  defp convert_pos_tag(nil), do: nil
+
+  defp convert_pos_tag(pos_tag) when is_atom(pos_tag) do
+    case pos_tag do
+      pos when pos in [:noun, :propn] -> :noun
+      pos when pos in [:verb, :aux] -> :verb
+      :adj -> :adj
+      :adv -> :adv
+      _ -> nil
     end
   end
 
