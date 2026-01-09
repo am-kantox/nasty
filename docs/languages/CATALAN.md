@@ -4,17 +4,19 @@ Comprehensive Catalan language support for the Nasty NLP library.
 
 ## Status
 
-**Implemented (Phases 1-4):**
+**Implemented (Phases 1-7):**
 - Tokenization with Catalan-specific features
 - POS tagging with Universal Dependencies tagset
 - Morphological analysis and lemmatization
 - Grammar resource files (phrase and dependency rules)
+- Phrase and sentence parsing (NP, VP, PP, clause detection)
+- Dependency extraction (Universal Dependencies relations)
+- Named entity recognition (PERSON, LOCATION, ORGANIZATION, DATE, MONEY, PERCENT)
 
-**Pending (Phases 5-8):**
-- Phrase and sentence parsing (stub implementation)
-- Dependency extraction (stub implementation)
-- Named entity recognition (stub implementation)
+**Pending (Phase 8):**
 - Text summarization (stub implementation)
+- Coreference resolution
+- Semantic role labeling
 
 ## Features
 
@@ -104,14 +106,29 @@ Externalized grammar files in `priv/languages/ca/grammars/`:
 ## Usage
 
 ```elixir
-# Tokenization
-{:ok, tokens} = Nasty.Language.Catalan.Tokenizer.tokenize("El gat dorm al sofà.")
+alias Nasty.Language.Catalan
 
-# POS Tagging
-{:ok, tagged} = Nasty.Language.Catalan.POSTagger.tag_pos(tokens)
+# Complete pipeline
+text = "El gat dorm al sofà."
+{:ok, tokens} = Catalan.tokenize(text)
+{:ok, tagged} = Catalan.tag_pos(tokens)
+{:ok, document} = Catalan.parse(tagged)
 
-# Morphology
-{:ok, analyzed} = Nasty.Language.Catalan.Morphology.analyze(tagged)
+# Extract entities
+alias Nasty.Language.Catalan.EntityRecognizer
+{:ok, entities} = EntityRecognizer.recognize(tagged)
+# => [%Entity{type: :person, text: "Joan Garcia", ...}]
+
+# Extract dependencies
+alias Nasty.Language.Catalan.DependencyExtractor
+sentences = document.paragraphs |> Enum.flat_map(& &1.sentences)
+deps = Enum.flat_map(sentences, &DependencyExtractor.extract/1)
+# => [%Dependency{relation: :nsubj, head: "dorm", dependent: "gat", ...}]
+
+# Individual components
+{:ok, tokens} = Catalan.Tokenizer.tokenize("El gat dorm al sofà.")
+{:ok, tagged} = Catalan.POSTagger.tag_pos(tokens)
+{:ok, analyzed} = Catalan.Morphology.analyze(tagged)
 
 # Access lemmas and features
 Enum.each(analyzed, fn token ->
@@ -168,15 +185,50 @@ Pronouns can attach to verbs as clitics:
   - Catalan-specific features
   - Context-based tagging
 
-## Future Work (Phases 5-8)
+## Implementation Details
 
-1. **Phrase Parser**: Implement using GrammarLoader with phrase_rules.exs
-2. **Sentence Parser**: Handle complex sentence structures with subordination
-3. **Dependency Extractor**: Extract UD relations using dependency_rules.exs
-4. **Entity Recognizer**: Named entity recognition for Catalan
-5. **Summarizer**: Extractive and abstractive text summarization
-6. **End-to-end Tests**: Integration tests for complete pipeline
-7. **Advanced Features**: Semantic role labeling, coreference resolution
+### Phrase Parser (`lib/language/catalan/phrase_parser.ex` - 334 lines)
+
+- `parse_noun_phrase/2`: Handles quantifiers, determiners, adjectives, and post-modifiers
+- `parse_verb_phrase/2`: Processes auxiliaries, main verbs, objects, and complements
+- `parse_prep_phrase/2`: Parses preposition + noun phrase structures
+- Catalan-specific: Post-nominal adjectives, quantifying adjectives (molt, poc, algun, tot)
+
+### Sentence Parser (`lib/language/catalan/sentence_parser.ex` - 281 lines)
+
+- `parse_sentences/2`: Sentence boundary detection and splitting
+- `parse_clause/2`: Subject and predicate extraction
+- Catalan subordinators: que, perquè, quan, on, si, encara, mentre, així, doncs, ja
+- Coordination: i, o, però, sinó, ni
+
+### Dependency Extractor (`lib/language/catalan/dependency_extractor.ex` - 226 lines)
+
+- Extracts Universal Dependencies relations from parsed structures
+- Core relations: nsubj (nominal subject), obj (object), iobj (indirect object)
+- Modifiers: det (determiner), amod (adjectival modifier), advmod (adverbial modifier)
+- Function words: aux (auxiliary), case (case marking), mark (subordinating conjunction)
+- Coordination: cc (coordinating conjunction), conj (conjunct)
+
+### Entity Recognizer (`lib/language/catalan/entity_recognizer.ex` - 285 lines)
+
+- Rule-based NER with 6 entity types
+- **PERSON**: Catalan titles (Sr., Sra., Dr., Dra., Don, Donya), capitalized name sequences
+- **LOCATION**: Catalan places (Barcelona, Catalunya, València, Girona, Tarragona, Lleida, Andorra)
+- **ORGANIZATION**: Indicators (banc, universitat, hospital, ajuntament, govern)
+- **DATE**: Catalan months and days (gener, febrer, març, dilluns, dimarts)
+- **MONEY**: Euro symbols (€, euros, dòlar, dòlars)
+- **PERCENT**: Percentage symbols (%, per cent)
+- Confidence scoring: 0.5-0.95 based on pattern strength
+
+## Future Work (Phase 8 and Beyond)
+
+1. **Summarizer**: Extractive and abstractive text summarization
+2. **Coreference Resolution**: Link mentions across sentences
+3. **Semantic Role Labeling**: Predicate-argument structure
+4. **End-to-end Tests**: Integration tests for complete pipeline
+5. **Advanced Entity Recognition**: ML-based NER with larger lexicons
+6. **Question Answering**: Extractive QA for Catalan texts
+7. **Text Classification**: Sentiment analysis, topic classification
 
 ## References
 

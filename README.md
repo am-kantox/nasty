@@ -7,7 +7,7 @@
 
 **A comprehensive NLP library for Elixir that treats natural language with the same rigor as programming languages.**
 
-Nasty provides a complete grammatical Abstract Syntax Tree (AST) for multiple natural languages (English and Spanish), with a full NLP pipeline from tokenization to text summarization.
+Nasty provides a complete grammatical Abstract Syntax Tree (AST) for multiple natural languages (English, Spanish, and Catalan), with a full NLP pipeline from tokenization to text summarization.
 
 - **Tokenization** - NimbleParsec-based text segmentation
 - **POS Tagging** - Rule-based + Statistical (HMM with Viterbi) + Neural (BiLSTM-CRF)
@@ -184,6 +184,10 @@ Nasty provides a language-agnostic architecture using Elixir behaviours, enablin
   - Spanish-specific tokenization (¿?, ¡!, contractions del/al, accented characters)
   - Spanish morphology (verb conjugations, gender/number agreement)
   - Complete NLP pipeline (tokenization → parsing → summarization)
+- **Catalan** (`Nasty.Language.Catalan`) - Fully implemented (Phases 1-7)
+  - Catalan-specific tokenization (interpunct l·l, apostrophe contractions, 10 diacritics)
+  - Catalan morphology (3 verb classes, irregular verbs, gender/number agreement)
+  - Full parsing pipeline (phrase/sentence parsing, dependency extraction, NER)
 
 #### Usage
 
@@ -199,6 +203,18 @@ text = "El gato duerme en el sofá."
 # Works identically to English
 summary = Spanish.summarize(document, ratio: 0.3)
 {:ok, entities} = Spanish.extract_entities(document)
+
+# Catalan text processing
+alias Nasty.Language.Catalan
+
+text_ca = "El gat dorm al sofà."
+{:ok, tokens_ca} = Catalan.tokenize(text_ca)
+{:ok, tagged_ca} = Catalan.tag_pos(tokens_ca)
+{:ok, document_ca} = Catalan.parse(tagged_ca)
+
+# Extract entities (Catalan-specific lexicons)
+alias Nasty.Language.Catalan.EntityRecognizer
+{:ok, entities_ca} = EntityRecognizer.recognize(tagged_ca)
 ```
 
 #### Language Registry
@@ -628,7 +644,7 @@ mix nasty.eval \
 - [x] Zero-shot classification using NLI models (done!)
 - [x] Model quantization (INT8 with 4x compression) (done!)
 - [x] Integration of PCFG/CRF with main pipeline (done!)
-- [x] Multi-language support - Spanish complete, Catalan future
+- [x] Multi-language support - Spanish and Catalan complete
 - [ ] Advanced coreference (neural models)
 
 ## License

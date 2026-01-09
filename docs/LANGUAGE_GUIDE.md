@@ -349,20 +349,22 @@ Use UD features: `number: :singular`, `tense: :past`, etc.
 - [ ] All tests pass
 - [ ] Documentation is complete
 
-## Example: Spanish Implementation ✅
+## Example Implementations
+
+### Spanish Implementation ✓
 
 Spanish is fully implemented and serves as a reference for adding new languages.
 
 See the complete implementation in `lib/language/spanish/` (13 modules) and comprehensive documentation in `docs/languages/SPANISH_IMPLEMENTATION.md`.
 
 **Key Features Implemented**:
-- ✅ Gender agreement (el gato, la gata)
-- ✅ Inverted punctuation (¿Cómo estás?, ¡Hola!)
-- ✅ Verb conjugations (all tenses)
-- ✅ Clitic pronouns (dámelo, dáselo)
-- ✅ Complete adapter pattern (3 adapters, 843 lines)
-- ✅ Spanish discourse markers, stop words, entity lexicons
-- ✅ 45% code reduction through generic algorithm reuse
+- ✓ Gender agreement (el gato, la gata)
+- ✓ Inverted punctuation (¿Cómo estás?, ¡Hola!)
+- ✓ Verb conjugations (all tenses)
+- ✓ Clitic pronouns (dámelo, dáselo)
+- ✓ Complete adapter pattern (3 adapters, 843 lines)
+- ✓ Spanish discourse markers, stop words, entity lexicons
+- ✓ 45% code reduction through generic algorithm reuse
 
 **Quick Reference**:
 ```elixir
@@ -386,6 +388,49 @@ For a complete guide, see:
 - [SPANISH_IMPLEMENTATION.md](languages/SPANISH_IMPLEMENTATION.md) - Full documentation
 - `examples/spanish_example.exs` - Working code examples
 - `test/language/spanish/` - Test suite
+
+### Catalan Implementation ✓
+
+Catalan is fully implemented (Phases 1-7) and demonstrates language-specific features.
+
+See the implementation in `lib/language/catalan/` (7 modules) and documentation in `docs/languages/CATALAN.md`.
+
+**Key Features Implemented**:
+- ✓ Interpunct handling (col·laborar, intel·ligent)
+- ✓ Apostrophe contractions (l', d', s', n', m', t')
+- ✓ Article contractions (del, al, pel)
+- ✓ 10 Catalan diacritics (à, è, é, í, ï, ò, ó, ú, ü, ç)
+- ✓ 3 verb conjugation classes (-ar, -re, -ir)
+- ✓ Post-nominal adjectives and flexible word order
+- ✓ Full parsing pipeline (phrase/sentence parsing, dependencies, NER)
+- ✓ Externalized grammar rules (phrase_rules.exs, dependency_rules.exs)
+- ✓ 74 comprehensive tests, 100% passing
+
+**Quick Reference**:
+```elixir
+defmodule Nasty.Language.Catalan do
+  @behaviour Nasty.Language.Behaviour
+  
+  @impl true
+  def language_code, do: :ca
+  
+  # Complete implementation in lib/language/catalan/
+  # See docs/languages/CATALAN.md for details
+end
+```
+
+**Modules**:
+- `Catalan.Tokenizer` (145 lines)
+- `Catalan.POSTagger` (509 lines)
+- `Catalan.Morphology` (519 lines)
+- `Catalan.PhraseParser` (334 lines)
+- `Catalan.SentenceParser` (281 lines)
+- `Catalan.DependencyExtractor` (226 lines)
+- `Catalan.EntityRecognizer` (285 lines)
+
+For complete details, see:
+- [CATALAN.md](languages/CATALAN.md) - Full documentation
+- `test/language/catalan/` - Test suite (74 tests)
 
 ## Resources
 
