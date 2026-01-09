@@ -505,6 +505,7 @@ defmodule Nasty.AST.Semantic.Mention do
           gender: gender(),
           number: grammatical_number(),
           entity_type: atom() | nil,
+          chain_id: non_neg_integer() | nil,
           span: Node.span()
         }
 
@@ -519,7 +520,8 @@ defmodule Nasty.AST.Semantic.Mention do
     tokens: [],
     gender: :unknown,
     number: :unknown,
-    entity_type: nil
+    entity_type: nil,
+    chain_id: nil
   ]
 
   @doc """
@@ -545,7 +547,8 @@ defmodule Nasty.AST.Semantic.Mention do
       phrase: Keyword.get(opts, :phrase),
       gender: Keyword.get(opts, :gender, :unknown),
       number: Keyword.get(opts, :number, :unknown),
-      entity_type: Keyword.get(opts, :entity_type)
+      entity_type: Keyword.get(opts, :entity_type),
+      chain_id: Keyword.get(opts, :chain_id)
     }
   end
 
