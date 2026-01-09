@@ -25,7 +25,9 @@ defmodule Nasty.Language.Catalan.Tokenizer do
   semicolon = string(";") |> unwrap_and_tag(:punct)
   colon = string(":") |> unwrap_and_tag(:punct)
 
-  punctuation = choice([sentence_end, comma, semicolon, colon, string("("), string(")")]) |> unwrap_and_tag(:punct)
+  punctuation =
+    choice([sentence_end, comma, semicolon, colon, string("("), string(")")])
+    |> unwrap_and_tag(:punct)
 
   # Numbers
   number =
@@ -35,25 +37,61 @@ defmodule Nasty.Language.Catalan.Tokenizer do
     |> unwrap_and_tag(:number)
 
   # Catalan diacritics
-  catalan_accented = [0x00E0, 0x00E8, 0x00E9, 0x00ED, 0x00EF, 0x00F2, 0x00F3, 0x00FA, 0x00FC, 0x00E7,
-                       0x00C0, 0x00C8, 0x00C9, 0x00CD, 0x00CF, 0x00D2, 0x00D3, 0x00DA, 0x00DC, 0x00C7]
-  
+  catalan_accented = [
+    0x00E0,
+    0x00E8,
+    0x00E9,
+    0x00ED,
+    0x00EF,
+    0x00F2,
+    0x00F3,
+    0x00FA,
+    0x00FC,
+    0x00E7,
+    0x00C0,
+    0x00C8,
+    0x00C9,
+    0x00CD,
+    0x00CF,
+    0x00D2,
+    0x00D3,
+    0x00DA,
+    0x00DC,
+    0x00C7
+  ]
+
   # Interpunct
   interpunct = [0x00B7]
 
   # Apostrophe contractions
   apostrophe_contraction =
     choice([
-      string("l'"), string("L'"), string("d'"), string("D'"),
-      string("s'"), string("S'"), string("n'"), string("N'"),
-      string("m'"), string("M'"), string("t'"), string("T'")
+      string("l'"),
+      string("L'"),
+      string("d'"),
+      string("D'"),
+      string("s'"),
+      string("S'"),
+      string("n'"),
+      string("N'"),
+      string("m'"),
+      string("M'"),
+      string("t'"),
+      string("T'")
     ])
     |> lookahead(utf8_string([?a..?z, ?A..?Z] ++ catalan_accented, 1))
     |> unwrap_and_tag(:apostrophe_contraction)
 
   # Article contractions
   article_contraction =
-    choice([string("del"), string("al"), string("pel"), string("Del"), string("Al"), string("Pel")])
+    choice([
+      string("del"),
+      string("al"),
+      string("pel"),
+      string("Del"),
+      string("Al"),
+      string("Pel")
+    ])
     |> lookahead_not(utf8_string([?a..?z, ?A..?Z] ++ catalan_accented, 1))
     |> unwrap_and_tag(:contraction)
 
@@ -69,7 +107,15 @@ defmodule Nasty.Language.Catalan.Tokenizer do
   word = utf8_string([?a..?z, ?A..?Z] ++ catalan_accented, min: 1) |> unwrap_and_tag(:word)
 
   # Token
-  token = choice([apostrophe_contraction, article_contraction, interpunct_word, number, word, punctuation])
+  token =
+    choice([
+      apostrophe_contraction,
+      article_contraction,
+      interpunct_word,
+      number,
+      word,
+      punctuation
+    ])
 
   # Text
   text = repeat(token |> optional(whitespace))
@@ -88,8 +134,9 @@ defmodule Nasty.Language.Catalan.Tokenizer do
           tokens = build_tokens(parsed_tokens, {line, col}, byte_offset)
           {:ok, tokens}
 
-        {:ok, _parsed, rest, %{}, {line, col}, byte_offset} ->
-          {:error, {:parse_incomplete, "Could not parse at line #{line}, col #{col}: #{inspect(rest)}"}}
+        {:ok, _parsed, rest, %{}, {line, col}, _byte_offset} ->
+          {:error,
+           {:parse_incomplete, "Could not parse at line #{line}, col #{col}: #{inspect(rest)}"}}
 
         {:error, reason, _rest, %{}, {line, col}, byte_offset} ->
           {:error, {:parse_failed, reason, line, col, byte_offset}}
@@ -101,30 +148,43 @@ defmodule Nasty.Language.Catalan.Tokenizer do
     {tokens, _byte_pos, _line, _col} =
       Enum.reduce(parsed_tokens, {[], 0, 1, 0}, fn
         # Handle nested tags from choice combinators (e.g., {:punct, {:sentence_end, "."}})
-        {outer_tag, {inner_tag, token_text}}, {acc_tokens, byte_pos, line, col} when is_binary(token_text) ->
+        {outer_tag, {inner_tag, token_text}}, {acc_tokens, byte_pos, line, col}
+        when is_binary(token_text) ->
           token_bytes = byte_size(token_text)
           start_offset = byte_pos
           end_offset = byte_pos + token_bytes
-          
-          span = Node.make_span({line, col}, start_offset, {line, col + String.length(token_text)}, end_offset)
-          
+
+          span =
+            Node.make_span(
+              {line, col},
+              start_offset,
+              {line, col + String.length(token_text)},
+              end_offset
+            )
+
           # Use inner tag for more specificity
           tag = inner_tag || outer_tag
           token = %Token{text: token_text, pos_tag: tag_to_pos(tag), language: :ca, span: span}
-          
+
           new_col = col + String.length(token_text)
           {[token | acc_tokens], end_offset, line, new_col}
-        
+
         # Handle simple tags
         {tag, token_text}, {acc_tokens, byte_pos, line, col} when is_binary(token_text) ->
           token_bytes = byte_size(token_text)
           start_offset = byte_pos
           end_offset = byte_pos + token_bytes
-          
-          span = Node.make_span({line, col}, start_offset, {line, col + String.length(token_text)}, end_offset)
-          
+
+          span =
+            Node.make_span(
+              {line, col},
+              start_offset,
+              {line, col + String.length(token_text)},
+              end_offset
+            )
+
           token = %Token{text: token_text, pos_tag: tag_to_pos(tag), language: :ca, span: span}
-          
+
           new_col = col + String.length(token_text)
           {[token | acc_tokens], end_offset, line, new_col}
       end)
