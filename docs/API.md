@@ -63,6 +63,36 @@ Renders an AST back to natural language text.
 # => "The cat sat."
 ```
 
+### Translation
+
+#### `Nasty.translate/2`
+
+Translates an AST document from one language to another.
+
+**Parameters:**
+- `ast` - AST Document to translate
+- `target_language` - Target language code (`:en`, `:es`, `:ca`, etc.)
+
+**Returns:**
+- `{:ok, %Nasty.AST.Document{}}` - Translated AST document
+- `{:error, reason}` - Translation error
+
+**Examples:**
+
+```elixir
+# Translate English to Spanish
+{:ok, doc_en} = Nasty.parse("The cat runs.", language: :en)
+{:ok, doc_es} = Nasty.translate(doc_en, :es)
+{:ok, text_es} = Nasty.render(doc_es)
+# => "El gato corre."
+
+# Translate Spanish to English  
+{:ok, doc_es} = Nasty.parse("La casa grande.", language: :es)
+{:ok, doc_en} = Nasty.translate(doc_es, :en)
+{:ok, text_en} = Nasty.render(doc_en)
+# => "The big house."
+```
+
 ### Summarization
 
 #### `Nasty.summarize/2`
@@ -524,6 +554,79 @@ labeled = English.SemanticRoleLabeler.label(sentence)
 ```elixir
 # Resolve coreferences
 {:ok, resolved} = English.CoreferenceResolver.resolve(document)
+```
+
+### Translation
+
+#### `Nasty.Translation.Translator`
+
+Translate documents between languages.
+
+```elixir
+alias Nasty.Translation.Translator
+
+# Translate document
+{:ok, translated_doc} = Translator.translate(source_doc, :es)
+
+# Translate with custom lexicons
+{:ok, translated_doc} = Translator.translate(source_doc, :es, lexicon_path: "custom_lexicons/")
+```
+
+#### `Nasty.Translation.TokenTranslator`
+
+Translate individual tokens with POS-aware lemma-to-lemma mapping.
+
+```elixir
+alias Nasty.Translation.TokenTranslator
+
+# Translate token
+translated_token = TokenTranslator.translate_token(token, :en, :es)
+
+# Translate with morphology
+translated_token = TokenTranslator.translate_with_morphology(token, :en, :es)
+```
+
+#### `Nasty.Translation.Agreement`
+
+Enforce morphological agreement rules.
+
+```elixir
+alias Nasty.Translation.Agreement
+
+# Apply gender/number agreement
+adjusted_tokens = Agreement.apply_agreement(tokens, :es)
+
+# Check agreement
+valid? = Agreement.check_agreement(determiner, noun)
+```
+
+#### `Nasty.Translation.WordOrder`
+
+Apply language-specific word order transformations.
+
+```elixir
+alias Nasty.Translation.WordOrder
+
+# Transform word order
+ordered_phrase = WordOrder.apply_order(phrase, :es)
+
+# Apply adjective position rules  
+ordered_np = WordOrder.apply_adjective_order(noun_phrase, :es)
+```
+
+#### `Nasty.AST.Renderer`
+
+Render AST back to natural language text.
+
+```elixir
+alias Nasty.AST.Renderer
+
+# Render document
+{:ok, text} = Renderer.render_document(document)
+
+# Render specific nodes
+{:ok, text} = Renderer.render_sentence(sentence)
+{:ok, text} = Renderer.render_phrase(phrase)
 ```
 
 ## Error Handling

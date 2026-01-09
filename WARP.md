@@ -156,6 +156,27 @@ All nodes include:
 
 ### Recent Improvements (2026-01-08/09)
 
+**AST-Based Translation System** (2026-01-09):
+- Complete translation system operating on grammatical AST structures
+- New modules:
+  - AST.Renderer: Converts AST back to natural text with proper spacing
+  - Translation.ASTTransformer: Transforms AST nodes between languages
+  - Translation.TokenTranslator: Handles lemma-to-lemma translation with POS
+  - Translation.Agreement: Enforces morphological agreement (gender/number/person)
+  - Translation.WordOrder: Applies language-specific word order transformations
+  - Translation.LexiconLoader: Manages bidirectional lexicon loading with ETS caching
+- Key features:
+  - AST-aware translation preserving grammatical structure
+  - Morphological feature agreement (gender/number/person)
+  - Language-specific word order rules (SVO, pro-drop, adjective position)
+  - Idiomatic expression support
+  - Fallback to original text for untranslatable content
+  - Bidirectional English-Spanish translation with expanded lexicons
+- Enhanced lexicons: Extended en_es.exs and es_en.exs with 200+ word pairs
+- Comprehensive translator tests covering noun phrases, verb phrases, adjectives with agreement, determiners, and full sentences
+- Example: translation_example.exs demonstrating English-Spanish-English roundtrip
+- Documentation: docs/TRANSLATION.md comprehensive guide
+
 **Catalan Language Support** (2026-01-09):
 - Complete tokenization with interpunct (l·l), apostrophe contractions (l', d', s'), article contractions (del, al, pel)
 - All 10 Catalan diacritics supported (à, è, é, í, ï, ò, ó, ú, ü, ç)

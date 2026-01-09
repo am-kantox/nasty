@@ -43,10 +43,12 @@ Nasty is built on three core principles:
 │  Document → Paragraph → Sentence → Clause → Phrases → Token│
 └───────────┬────────────────────────────────────────────────┘
             │
-┌───────────▼────────────────────────────────────────────────┐
-│                    AST Operations                           │
-│   Query, Validation, Transform, Traversal                   │
-└────────────────────────────────────────────────────────────┘
+     ┌──────┴──────┐
+     │             │
+┌────▼────────┐ ┌──▼─────────────────────────────────────────┐
+│ Translation │ │         AST Operations                      │
+│  System     │ │  Query, Validation, Transform, Traversal   │
+└─────────────┘ └────────────────────────────────────────────┘
 ```
 
 ## Core Components
@@ -365,7 +367,84 @@ Nasty.explain_code("Enum.sort(list)",
 # => "Sort list"
 ```
 
-### 8. Rendering & Visualization
+### 8. Translation System
+
+AST-based translation between natural languages:
+
+#### Translation Pipeline
+
+```
+Source AST (Language A)
+    ↓
+AST Transformation (structural changes)
+    ↓
+Token Translation (lemma-to-lemma mapping)
+    ↓
+Morphological Agreement (gender/number/person)
+    ↓
+Word Order Application (language-specific rules)
+    ↓
+Target AST (Language B)
+    ↓
+Rendering
+    ↓
+Target Text
+```
+
+**Components:**
+
+**ASTTransformer** - Transforms AST nodes between languages:
+```elixir
+alias Nasty.Translation.ASTTransformer
+
+{:ok, spanish_doc} = ASTTransformer.transform_document(english_doc, :es)
+```
+
+**TokenTranslator** - Lemma-to-lemma translation with POS awareness:
+```elixir
+alias Nasty.Translation.TokenTranslator
+
+# cat (noun) → gato (noun)
+translated = TokenTranslator.translate_token(token, :en, :es)
+```
+
+**Agreement** - Enforces morphological agreement:
+```elixir
+alias Nasty.Translation.Agreement
+
+# Ensure "el gato" (masc) not "la gato"
+adjusted = Agreement.apply_agreement(tokens, :es)
+```
+
+**WordOrder** - Applies language-specific word order:
+```elixir
+alias Nasty.Translation.WordOrder
+
+# "the big house" → "la casa grande" (adjective after noun in Spanish)
+ordered = WordOrder.apply_order(phrase, :es)
+```
+
+**LexiconLoader** - Manages bidirectional lexicons with ETS caching:
+```elixir
+alias Nasty.Translation.LexiconLoader
+
+# Load English-Spanish lexicon
+{:ok, lexicon} = LexiconLoader.load(:en, :es)
+
+# Bidirectional lookup
+"gato" = LexiconLoader.lookup(lexicon, "cat", :noun)
+"cat" = LexiconLoader.lookup(lexicon, "gato", :noun)
+```
+
+**Features:**
+- AST-aware translation preserving grammatical structure
+- Morphological feature agreement
+- Language-specific word order rules (SVO, pro-drop, adjective position)
+- Idiomatic expression support
+- Fallback to original text for untranslatable content
+- Bidirectional translation (English ↔ Spanish, English ↔ Catalan)
+
+### 9. Rendering & Visualization
 
 #### Text Rendering
 

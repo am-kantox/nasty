@@ -536,6 +536,157 @@ code_ast = quote do: x = a + b
 IO.puts(text)
 ```
 
+## Translation
+
+### AST-Based Translation
+
+Translate documents between languages while preserving grammatical structure:
+
+```elixir
+alias Nasty.Language.{English, Spanish}
+alias Nasty.Translation.Translator
+
+# English to Spanish
+text_en = "The quick cat runs in the garden."
+{:ok, tokens_en} = English.tokenize(text_en)
+{:ok, tagged_en} = English.tag_pos(tokens_en)
+{:ok, doc_en} = English.parse(tagged_en)
+
+# Translate
+{:ok, doc_es} = Translator.translate(doc_en, :es)
+
+# Render Spanish text
+alias Nasty.Rendering.Text
+{:ok, text_es} = Text.render(doc_es)
+IO.puts(text_es)
+# => "El gato rápido corre en el jardín."
+
+# Spanish to English
+text_es = "La casa grande está en la ciudad."
+{:ok, tokens_es} = Spanish.tokenize(text_es)
+{:ok, tagged_es} = Spanish.tag_pos(tokens_es)
+{:ok, doc_es} = Spanish.parse(tagged_es)
+
+{:ok, doc_en} = Translator.translate(doc_es, :en)
+{:ok, text_en} = Text.render(doc_en)
+IO.puts(text_en)
+# => "The big house is in the city."
+```
+
+### How Translation Works
+
+The translation system operates on AST structures, not raw text:
+
+1. **Parse source text** to AST
+2. **Transform AST nodes** to target language structure
+3. **Translate tokens** using lemma-to-lemma mapping with POS tags
+4. **Apply morphological agreement** (gender, number, person)
+5. **Apply word order rules** (language-specific)
+6. **Render** target AST to text
+
+### Morphological Agreement
+
+The system automatically handles agreement:
+
+```elixir
+# English: "the cats"
+# Spanish: "los gatos" (masculine plural determiner + noun)
+
+{:ok, doc_en} = Nasty.parse("The cats.", language: :en)
+{:ok, doc_es} = Translator.translate(doc_en, :es)
+{:ok, text_es} = Nasty.render(doc_es)
+# => "Los gatos."
+
+# English: "the big houses"
+# Spanish: "las casas grandes" (feminine plural, adjective after noun)
+
+{:ok, doc_en} = Nasty.parse("The big houses.", language: :en)
+{:ok, doc_es} = Translator.translate(doc_en, :es)
+{:ok, text_es} = Nasty.render(doc_es)
+# => "Las casas grandes."
+```
+
+### Word Order Transformations
+
+Language-specific word order is automatically applied:
+
+```elixir
+# English: Adjective before noun
+# Spanish: Most adjectives after noun
+
+{:ok, doc_en} = Nasty.parse("The red car.", language: :en)
+{:ok, doc_es} = Translator.translate(doc_en, :es)
+{:ok, text_es} = Nasty.render(doc_es)
+# => "El carro rojo." (car red)
+
+# Some adjectives stay before noun
+{:ok, doc_en} = Nasty.parse("The good book.", language: :en)
+{:ok, doc_es} = Translator.translate(doc_en, :es)
+{:ok, text_es} = Nasty.render(doc_es)
+# => "El buen libro." (good stays before)
+```
+
+### Roundtrip Translation
+
+Translations preserve grammatical structure for roundtrips:
+
+```elixir
+original = "The cat runs quickly."
+
+# English -> Spanish -> English
+{:ok, doc_en} = Nasty.parse(original, language: :en)
+{:ok, doc_es} = Translator.translate(doc_en, :es)
+{:ok, doc_en2} = Translator.translate(doc_es, :en)
+{:ok, result} = Nasty.render(doc_en2)
+
+IO.puts(original)
+IO.puts(result)
+# Original: "The cat runs quickly."
+# Result: "The cat runs quickly." (or close equivalent)
+```
+
+### Supported Language Pairs
+
+Currently supported:
+- English ↔ Spanish
+- English ↔ Catalan
+- Spanish ↔ Catalan (via English)
+
+### Custom Lexicons
+
+Extend lexicons with domain-specific vocabulary:
+
+```elixir
+# Lexicons are in priv/translation/lexicons/
+# Format: en_es.exs, es_en.exs, etc.
+
+# Add entries in priv/translation/lexicons/en_es.exs:
+%{
+  noun: %{
+    "widget" => "dispositivo",
+    "gadget" => "aparato"
+  },
+  verb: %{
+    "deploy" => "desplegar",
+    "compile" => "compilar"
+  }
+}
+```
+
+### Translation Limitations
+
+**Current limitations:**
+- Idiomatic expressions may not translate well
+- Complex verb tenses may need manual review
+- Cultural context not preserved
+- Ambiguous words use first lexicon entry
+
+**Best practices:**
+- Translate sentence by sentence for best results
+- Review translations for idiomatic expressions
+- Extend lexicons for domain-specific terms
+- Use for technical/formal text rather than creative writing
+
 ## AST Manipulation
 
 ### Traversal

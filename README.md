@@ -1,4 +1,4 @@
-# <img width="96" height="96" alt="logo-96x96" src="https://github.com/user-attachments/assets/c9f17ebf-d426-407d-986f-2cb4d6fb75c4" /> Nasty → Natural Abstract Syntax Tree Yeoman
+# <img width="48" height="48" alt="Nasty Logo" src="https://github.com/user-attachments/assets/c9f17ebf-d426-407d-986f-2cb4d6fb75c4" /> Nasty → Natural Abstract Syntax Tree Yeoman
 
 [![CI](https://github.com/am-kantox/nasty/workflows/CI/badge.svg)](https://github.com/am-kantox/nasty/actions)
 [![codecov](https://codecov.io/gh/am-kantox/nasty/branch/main/graph/badge.svg)](https://codecov.io/gh/am-kantox/nasty)
@@ -26,9 +26,10 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for multiple na
 - **Neural Models** - BiLSTM-CRF with 97-98% accuracy using Axon/EXLA
 - **Code Interoperability** - Bidirectional NL ↔ Code conversion (Natural language commands to Elixir code and vice versa)
 - **AST Rendering** - Convert AST back to natural language text
+- **Translation** - AST-based translation with morphological agreement and word order transformations
 - **AST Utilities** - Traversal, queries, validation, and transformations
 - **Visualization** - Export to DOT/Graphviz and JSON formats
-- **Multi-Language Support** - English and Spanish with language-agnostic architecture
+- **Multi-Language Support** - English, Spanish, and Catalan with language-agnostic architecture
 
 ## Quick Start
 
@@ -122,12 +123,21 @@ templates = [TemplateExtractor.employment_template()]
 
 ## Architecture
 
-```
-Text → Tokenization → POS Tagging → Phrase Parsing → Sentence Parsing → Document AST
-                                                                            ↓
-                                    ┌───────────────┬───────────────┬──────────────┐
-                                    │               │               │              │
-                              Dependencies    Entities      Summarization   (more...)
+```mermaid
+graph LR
+    A[Text] --> B[Tokenization]
+    B --> C[POS Tagging]
+    C --> D[Phrase Parsing]
+    D --> E[Sentence Parsing]
+    E --> F[Document AST]
+    F --> G[Dependencies]
+    F --> H[Entities]
+    F --> I[Summarization]
+    F --> J[Translation]
+    F --> K[More...]
+    
+    style F fill:#e1f5ff
+    style A fill:#fff3e0
 ```
 
 ### Complete Pipeline
@@ -215,6 +225,25 @@ text_ca = "El gat dorm al sofà."
 # Extract entities (Catalan-specific lexicons)
 alias Nasty.Language.Catalan.EntityRecognizer
 {:ok, entities_ca} = EntityRecognizer.recognize(tagged_ca)
+
+# Translate between languages (AST-based)
+alias Nasty.Translation.Translator
+
+# English to Spanish
+{:ok, tokens_en} = English.tokenize("The quick cat runs.")
+{:ok, tagged_en} = English.tag_pos(tokens_en)
+{:ok, doc_en} = English.parse(tagged_en)
+{:ok, doc_es} = Translator.translate(doc_en, :es)
+{:ok, text_es} = Nasty.render(doc_es)
+# => "El gato rápido corre."
+
+# Spanish to English
+{:ok, tokens_es} = Spanish.tokenize("La casa grande.")
+{:ok, tagged_es} = Spanish.tag_pos(tokens_es)
+{:ok, doc_es} = Spanish.parse(tagged_es)
+{:ok, doc_en} = Translator.translate(doc_es, :en)
+{:ok, text_en} = Nasty.render(doc_en)
+# => "The big house."
 ```
 
 #### Language Registry
@@ -524,7 +553,6 @@ Comprehensive documentation is available in the `docs/` directory:
 - [PLAN.md](PLAN.md) - Original vision and architectural design
 - [TODO.md](TODO.md) - Unimplemented features and future enhancements
 - [PARSING_GUIDE.md](docs/PARSING_GUIDE.md) - Complete parsing algorithms reference (tokenization, POS tagging, morphology, phrase/sentence parsing, dependencies)
-- [ENGLISH_GRAMMAR.md](docs/languages/ENGLISH_GRAMMAR.md) - Formal English grammar specification (CFG rules, dependencies, morphology)
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture and design patterns
 - [USER_GUIDE.md](docs/USER_GUIDE.md) - User guide with examples and API reference
 - [AST_REFERENCE.md](docs/AST_REFERENCE.md) - Complete AST node reference
@@ -574,7 +602,7 @@ Nasty includes comprehensive statistical and neural network models for state-of-
 - **Multilingual Support**: XLM-RoBERTa for cross-lingual transfer
 - **Mix Tasks**: CLI tools for model management, fine-tuning, and inference
 
-See [STATISTICAL_MODELS.md](docs/STATISTICAL_MODELS.md) for complete reference, [NEURAL_MODELS.md](docs/NEURAL_MODELS.md) for neural architecture details, [TRAINING_NEURAL.md](docs/TRAINING_NEURAL.md) for training guide, [PRETRAINED_MODELS.md](docs/PRETRAINED_MODELS.md) for transformer usage, [ZERO_SHOT.md](docs/ZERO_SHOT.md) for zero-shot classification, and [QUANTIZATION.md](docs/QUANTIZATION.md) for model optimization.
+See [Statistical Models](docs/STATISTICAL_MODELS.md) for complete reference, [Neural Models](docs/NEURAL_MODELS.md) for neural architecture details, [Training Neural](docs/TRAINING_NEURAL.md) for training guide, [Pretrained Models](docs/PRETRAINED_MODELS.md) for transformer usage, [Zero Shot](docs/ZERO_SHOT.md) for zero-shot classification, and [Quantization](docs/QUANTIZATION.md) for model optimization.
 
 ### Quick Start: Model Management
 
@@ -649,7 +677,7 @@ mix nasty.eval \
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License — see LICENSE file for details.
 
 ---
 
