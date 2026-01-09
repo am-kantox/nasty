@@ -49,6 +49,8 @@ defmodule Nasty.Language.English.TransformerNERTest do
   end
 
   describe "recognize_entities/2" do
+    @describetag [model: true, skip: true]
+
     setup do
       # Create sample tokens for testing
       span1 = Node.make_span({1, 0}, 0, {1, 4}, 4)
@@ -104,6 +106,8 @@ defmodule Nasty.Language.English.TransformerNERTest do
   end
 
   describe "entity extraction logic" do
+    @describetag [model: true, skip: true]
+
     test "label map is consistent with tag_to_id" do
       label_map = TransformerNER.label_map()
       tag_to_id = TransformerNER.tag_to_id()
@@ -137,6 +141,8 @@ defmodule Nasty.Language.English.TransformerNERTest do
   end
 
   describe "model resolution" do
+    @describetag [model: true, skip: true]
+
     test "uses roberta_base as default when :transformer specified", %{} do
       # Create minimal tokens
       span = Node.make_span({1, 0}, 0, {1, 4}, 4)

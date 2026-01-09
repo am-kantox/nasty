@@ -13,7 +13,9 @@ defmodule Nasty.Application do
       # Start the language registry
       Nasty.Language.Registry,
       # Start the model registry
-      Nasty.Statistics.ModelRegistry
+      Nasty.Statistics.ModelRegistry,
+      # Start the translation lexicon loader
+      Nasty.Translation.LexiconLoader
     ]
 
     opts = [strategy: :one_for_one, name: Nasty.Supervisor]

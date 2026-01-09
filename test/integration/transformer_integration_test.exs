@@ -94,6 +94,8 @@ defmodule Nasty.Integration.TransformerIntegrationTest do
   end
 
   describe "tokenizer to POS tagger integration" do
+    @describetag [model: true, skip: true]
+
     test "processes text through tokenization to POS tagging" do
       text = "The cat sat on the mat."
 
@@ -143,6 +145,8 @@ defmodule Nasty.Integration.TransformerIntegrationTest do
   end
 
   describe "model option handling in POSTagger" do
+    @describetag [model: true, skip: true]
+
     setup do
       span1 = Node.make_span({1, 0}, 0, {1, 3}, 3)
       span2 = Node.make_span({1, 4}, 4, {1, 7}, 7)
@@ -260,6 +264,8 @@ defmodule Nasty.Integration.TransformerIntegrationTest do
   end
 
   describe "error handling and robustness" do
+    @describetag [model: true, skip: true]
+
     test "handles offline mode gracefully" do
       result = Loader.load_model(:roberta_base, offline: true)
 

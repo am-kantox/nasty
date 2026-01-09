@@ -320,15 +320,11 @@
   "mí" => ["me"],
   "lo" => ["him", "it"],
   "le" => ["him", "her"],
-  "la" => ["her", "it"],
   "nos" => ["us"],
-  "los" => ["them"],
-  "las" => ["them"],
   "les" => ["them"],
   
   # Numbers
   "uno" => ["one"],
-  "una" => ["one"],
   "dos" => ["two"],
   "tres" => ["three"],
   "cuatro" => ["four"],

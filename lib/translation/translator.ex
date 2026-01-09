@@ -45,8 +45,9 @@ defmodule Nasty.Translation.Translator do
   - Gender assignment for English nouns uses defaults
   """
 
-  alias Nasty.AST.Document
-  alias Nasty.Language.{English, Spanish, Catalan, Registry}
+  alias Nasty.AST.{Document, Renderer}
+  alias Nasty.Language.{Catalan, English, Registry, Spanish}
+  alias Nasty.Translation.ASTTransformer
 
   require Logger
 
@@ -95,9 +96,8 @@ defmodule Nasty.Translation.Translator do
          {:ok, target} <- validate_target_language(target_lang),
          :ok <- validate_language_pair(source, target),
          {:ok, document} <- parse_source(text, source),
-         {:ok, translated_doc} <- translate_document(document, target, opts),
-         {:ok, rendered_text} <- render_target(translated_doc, target) do
-      {:ok, rendered_text}
+         {:ok, translated_doc} <- translate_document(document, target, opts) do
+      render_target(translated_doc, target)
     end
   end
 
@@ -117,12 +117,11 @@ defmodule Nasty.Translation.Translator do
           {:ok, Document.t()} | {:error, term()}
   def translate_document(document, target_lang, opts \\ [])
 
-  def translate_document(%Document{} = document, target_lang, _opts) do
-    with {:ok, target} <- validate_target_language(target_lang) do
-      # For now, just change the language marker
-      # Full transformation will be implemented in Phase 2-3
-      translated = %{document | language: target}
-      {:ok, translated}
+  def translate_document(%Document{language: source_lang} = document, target_lang, _opts) do
+    with {:ok, target} <- validate_target_language(target_lang),
+         :ok <- validate_language_pair(source_lang, target) do
+      # Use ASTTransformer for complete translation
+      ASTTransformer.transform(document, source_lang, target)
     end
   end
 
@@ -209,29 +208,27 @@ defmodule Nasty.Translation.Translator do
 
   defp parse_source(text, :en) do
     with {:ok, tokens} <- English.tokenize(text),
-         {:ok, tagged} <- English.tag_pos(tokens),
-         {:ok, document} <- English.parse(tagged) do
-      {:ok, document}
+         {:ok, tagged} <- English.tag_pos(tokens) do
+      English.parse(tagged)
     end
   end
 
   defp parse_source(text, :es) do
     with {:ok, tokens} <- Spanish.tokenize(text),
-         {:ok, tagged} <- Spanish.tag_pos(tokens),
-         {:ok, document} <- Spanish.parse(tagged) do
-      {:ok, document}
+         {:ok, tagged} <- Spanish.tag_pos(tokens) do
+      Spanish.parse(tagged)
     end
   end
 
   defp parse_source(text, :ca) do
     with {:ok, tokens} <- Catalan.tokenize(text),
-         {:ok, tagged} <- Catalan.tag_pos(tokens),
-         {:ok, document} <- Catalan.parse(tagged) do
-      {:ok, document}
+         {:ok, tagged} <- Catalan.tag_pos(tokens) do
+      Catalan.parse(tagged)
     end
   end
 
-  defp render_target(document, :en), do: English.render(document)
-  defp render_target(document, :es), do: Spanish.render(document)
-  defp render_target(document, :ca), do: Catalan.render(document)
+  defp render_target(document, _lang) do
+    # Use generic AST.Renderer for all languages
+    Renderer.render(document)
+  end
 end

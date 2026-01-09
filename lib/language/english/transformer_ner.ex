@@ -84,6 +84,10 @@ defmodule Nasty.Language.English.TransformerNER do
         Logger.warning("Transformer NER failed: #{inspect(reason)}")
         {:error, reason}
     end
+  rescue
+    error ->
+      Logger.warning("Transformer NER failed: #{inspect(error)}")
+      {:error, error}
   end
 
   @doc """

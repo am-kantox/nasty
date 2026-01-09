@@ -98,6 +98,10 @@ defmodule Nasty.Language.English.TransformerPOSTagger do
         Logger.warning("Transformer POS tagging failed: #{inspect(reason)}")
         {:error, reason}
     end
+  rescue
+    error ->
+      Logger.warning("Transformer POS tagging failed: #{inspect(error)}")
+      {:error, error}
   end
 
   @doc """

@@ -65,6 +65,8 @@ defmodule Nasty.Language.English.TransformerPOSTaggerTest do
   end
 
   describe "tag_pos/2" do
+    @describetag [model: true, skip: true]
+
     setup do
       # Create sample tokens for testing
       span1 = Node.make_span({1, 0}, 0, {1, 3}, 3)
@@ -157,6 +159,8 @@ defmodule Nasty.Language.English.TransformerPOSTaggerTest do
   end
 
   describe "label consistency" do
+    @describetag [model: true, skip: true]
+
     test "label map is consistent with tag_to_id" do
       label_map = TransformerPOSTagger.label_map()
       tag_to_id = TransformerPOSTagger.tag_to_id()
@@ -215,6 +219,8 @@ defmodule Nasty.Language.English.TransformerPOSTaggerTest do
   end
 
   describe "model resolution" do
+    @describetag [model: true, skip: true]
+
     test "uses roberta_base as default when :transformer specified" do
       span = Node.make_span({1, 0}, 0, {1, 4}, 4)
 

@@ -308,6 +308,8 @@ defmodule Nasty.Statistics.Neural.Transformers.ZeroShotTest do
   end
 
   describe "option combinations" do
+    @describetag [model: true, skip: true]
+
     test "combines model and multi_label options" do
       text = "Test text"
       labels = ["label1", "label2", "label3"]

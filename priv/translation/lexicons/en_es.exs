@@ -265,8 +265,6 @@
   "but" => ["pero"],
   "because" => ["porque"],
   "if" => ["si"],
-  "when" => ["cuando"],
-  "that" => ["que"],
   "which" => ["que", "cual"],
   "who" => ["quien", "que"],
   
