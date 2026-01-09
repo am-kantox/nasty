@@ -36,7 +36,14 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for multiple na
 ```bash
 # Run the complete demo
 ./demo.exs
+
+# Or try specific examples
+./examples/catalan_example.exs
+./examples/roundtrip_translation.exs
+./examples/multilingual_pipeline.exs
 ```
+
+New to Nasty? Start with the [Getting Started Guide](docs/GETTING_STARTED.md) for a beginner-friendly tutorial.
 
 ```elixir
 alias Nasty.Language.English
@@ -259,7 +266,11 @@ All languages are registered in `Nasty.Language.Registry` and can be accessed dy
 {:ok, Spanish} = Nasty.Language.Registry.get(:es)
 ```
 
-See `examples/spanish_example.exs` for a complete demonstration.
+See complete language-specific examples:
+- `examples/spanish_example.exs` - Spanish NLP pipeline demonstration
+- `examples/catalan_example.exs` - Catalan tokenization, morphology, and parsing
+- `examples/roundtrip_translation.exs` - Translation quality analysis with roundtrip testing
+- `examples/multilingual_pipeline.exs` - Side-by-side comparison of English/Spanish/Catalan
 
 ### Text Summarization
 - **Extractive summarization** - Select important sentences from document
@@ -550,12 +561,26 @@ mix test test/language/english/dependency_extractor_test.exs
 
 Comprehensive documentation is available in the `docs/` directory:
 
+### Getting Started
+- [GETTING_STARTED.md](docs/GETTING_STARTED.md) - Beginner-friendly tutorial with step-by-step examples
+- [EXAMPLES.md](docs/EXAMPLES.md) - Complete catalog of all 18 example scripts with usage guides
+
+### Core Documentation
 - [PLAN.md](PLAN.md) - Original vision and architectural design
 - [TODO.md](TODO.md) - Unimplemented features and future enhancements
 - [PARSING_GUIDE.md](docs/PARSING_GUIDE.md) - Complete parsing algorithms reference (tokenization, POS tagging, morphology, phrase/sentence parsing, dependencies)
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture and design patterns
 - [USER_GUIDE.md](docs/USER_GUIDE.md) - User guide with examples and API reference
+- [API.md](docs/API.md) - Complete API reference for all modules
 - [AST_REFERENCE.md](docs/AST_REFERENCE.md) - Complete AST node reference
+- [PERFORMANCE.md](docs/PERFORMANCE.md) - Benchmarks, optimization tips, and performance considerations
+
+### Language-Specific Documentation
+- [ENGLISH_GRAMMAR.md](docs/languages/ENGLISH_GRAMMAR.md) - Formal English grammar specification with CFG rules
+- [SPANISH.md](docs/languages/SPANISH.md) - Spanish language support details
+- [CATALAN.md](docs/languages/CATALAN.md) - Catalan language support details
+- [TRANSLATION.md](docs/TRANSLATION.md) - AST-based translation system guide
+- [GRAMMAR_CUSTOMIZATION.md](docs/GRAMMAR_CUSTOMIZATION.md) - Guide for custom grammar rules and domain variants
 
 ## Statistical & Neural Models
 
