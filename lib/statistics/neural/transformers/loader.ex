@@ -207,7 +207,8 @@ defmodule Nasty.Statistics.Neural.Transformers.Loader do
   end
 
   defp load_model_from_bumblebee(repo, cache_dir, _backend_config) do
-    {:ok, model_info} = Bumblebee.load_model({:hf, repo}, cache_dir: cache_dir)
+    # Bumblebee expects cache_dir in the repository spec, not as an option
+    {:ok, model_info} = Bumblebee.load_model({:hf, repo, cache_dir: cache_dir})
     {:ok, model_info}
   rescue
     error ->
@@ -215,7 +216,8 @@ defmodule Nasty.Statistics.Neural.Transformers.Loader do
   end
 
   defp load_tokenizer_from_bumblebee(repo, cache_dir) do
-    {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, repo}, cache_dir: cache_dir)
+    # Bumblebee expects cache_dir in the repository spec, not as an option
+    {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, repo, cache_dir: cache_dir})
     {:ok, tokenizer}
   rescue
     error ->
