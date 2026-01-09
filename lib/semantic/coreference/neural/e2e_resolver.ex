@@ -29,7 +29,7 @@ defmodule Nasty.Semantic.Coreference.Neural.E2EResolver do
 
   alias Nasty.AST.{Document, Sentence}
   alias Nasty.AST.Semantic.{CorefChain, Mention}
-  alias Nasty.Semantic.Coreference.Neural.{SpanEnumeration, SpanModel}
+  alias Nasty.Semantic.Coreference.Neural.{E2ETrainer, SpanEnumeration, SpanModel}
 
   @type models :: E2ETrainer.models()
   @type params :: E2ETrainer.params()
@@ -139,7 +139,7 @@ defmodule Nasty.Semantic.Coreference.Neural.E2EResolver do
   @spec resolve_auto(Document.t(), Path.t(), keyword()) ::
           {:ok, Document.t()} | {:error, term()}
   def resolve_auto(document, model_path, opts \\ []) do
-    case Nasty.Semantic.Coreference.Neural.E2ETrainer.load_models(model_path) do
+    case E2ETrainer.load_models(model_path) do
       {:ok, models, params, vocab} ->
         resolve(document, models, params, vocab, opts)
 

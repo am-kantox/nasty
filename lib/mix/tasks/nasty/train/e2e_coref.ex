@@ -114,9 +114,10 @@ defmodule Mix.Tasks.Nasty.Train.E2eCoref do
 
         Logger.info("Models saved successfully!")
 
-      {:error, reason} ->
-        Logger.error("Training failed: #{inspect(reason)}")
-        System.halt(1)
+        # [TODO] `E2ETrainer.train/4` should in future return errors too
+        # {:error, reason} ->
+        #   Logger.error("Training failed: #{inspect(reason)}")
+        #   System.halt(1)
     end
   end
 
