@@ -25,7 +25,7 @@ defmodule Nasty.Semantic.Coreference.Neural.Resolver do
       chains = document.coref_chains
   """
 
-  alias Nasty.AST.Document
+  alias Nasty.AST.{Document, Sentence}
   alias Nasty.AST.Semantic.{CorefChain, Mention}
   alias Nasty.Language.English.CoreferenceConfig
   alias Nasty.Semantic.Coreference.{Clusterer, MentionDetector}
@@ -143,7 +143,7 @@ defmodule Nasty.Semantic.Coreference.Neural.Resolver do
       |> Enum.flat_map(fn para -> para.sentences end)
       |> Enum.flat_map(fn sent ->
         sent
-        |> Nasty.AST.Sentence.all_clauses()
+        |> Sentence.all_clauses()
         |> Enum.flat_map(&extract_clause_tokens/1)
       end)
 
@@ -223,7 +223,7 @@ defmodule Nasty.Semantic.Coreference.Neural.Resolver do
   end
 
   # Build coreference chains from scored pairs
-  defp build_chains_from_scores(mentions, scored_pairs, min_score, max_distance, opts) do
+  defp build_chains_from_scores(mentions, scored_pairs, min_score, _max_distance, _opts) do
     # Convert neural scores to clustering format
     # Start with each mention in its own cluster
     clusters = Enum.map(mentions, fn m -> [m] end)

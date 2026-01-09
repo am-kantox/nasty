@@ -27,7 +27,7 @@ defmodule Nasty.Semantic.Coreference.Evaluator do
   - CoNLL: Pradhan et al. (2012). "CoNLL-2012 shared task"
   """
 
-  alias Nasty.AST.Semantic.{CorefChain, Mention}
+  alias Nasty.AST.Semantic.CorefChain
 
   @type metric :: %{precision: float(), recall: float(), f1: float()}
   @type evaluation :: %{
@@ -300,11 +300,11 @@ defmodule Nasty.Semantic.Coreference.Evaluator do
 
   # Safe division (returns 0 if denominator is 0)
   defp safe_divide(_num, 0), do: 0.0
-  defp safe_divide(_num, 0.0), do: 0.0
+  defp safe_divide(_num, +0.0), do: 0.0
   defp safe_divide(num, denom), do: num / denom
 
   # Compute F1 from precision and recall
-  defp compute_f1(0.0, 0.0), do: 0.0
+  defp compute_f1(+0.0, +0.0), do: 0.0
 
   defp compute_f1(precision, recall) do
     2 * precision * recall / (precision + recall)

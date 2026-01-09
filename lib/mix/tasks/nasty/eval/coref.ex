@@ -100,7 +100,8 @@ defmodule Mix.Tasks.Nasty.Eval.Coref do
     %Nasty.AST.Document{
       paragraphs: [],
       language: :en,
-      coref_chains: []
+      coref_chains: [],
+      span: nil
     }
   end
 

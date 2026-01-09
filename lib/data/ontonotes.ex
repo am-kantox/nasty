@@ -441,4 +441,141 @@ defmodule Nasty.Data.OntoNotes do
     :rand.seed(:exsss, {:os.system_time(), 0, 0})
     Enum.take_random(candidates, min(num_negative, length(candidates)))
   end
+
+  @doc """
+  Create span-based training data for end-to-end coreference.
+
+  Generates (span, label) pairs where label is 1 if the span is a mention,
+  0 otherwise. Also generates candidate spans using enumeration.
+
+  ## Options
+
+    - `:max_span_width` - Maximum span width in tokens (default: 10)
+    - `:negative_span_ratio` - Ratio of negative to positive spans (default: 3.0)
+
+  ## Returns
+
+  List of {span, label} tuples
+  """
+  @spec create_span_training_data([coref_document()], keyword()) :: [{map(), 0 | 1}]
+  def create_span_training_data(documents, opts \\ []) do
+    max_span_width = Keyword.get(opts, :max_span_width, 10)
+    negative_ratio = Keyword.get(opts, :negative_span_ratio, 3.0)
+
+    Enum.flat_map(documents, fn doc ->
+      # Get gold mentions
+      gold_mentions =
+        doc.chains
+        |> Enum.flat_map(& &1.mentions)
+        |> Enum.map(fn m ->
+          {m.sentence_idx, m.token_idx, m.token_idx + length(m.tokens) - 1}
+        end)
+        |> MapSet.new()
+
+      # Generate candidate spans
+      candidate_spans =
+        doc.sentences
+        |> Enum.with_index()
+        |> Enum.flat_map(fn {sent, sent_idx} ->
+          num_tokens = length(sent.tokens)
+
+          for start_idx <- 0..(num_tokens - 1),
+              width <- 1..min(max_span_width, num_tokens - start_idx) do
+            end_idx = start_idx + width - 1
+
+            span = %{
+              sentence_idx: sent_idx,
+              start_idx: start_idx,
+              end_idx: end_idx,
+              tokens: Enum.slice(sent.tokens, start_idx..end_idx)
+            }
+
+            is_mention = MapSet.member?(gold_mentions, {sent_idx, start_idx, end_idx})
+            {span, if(is_mention, do: 1, else: 0)}
+          end
+        end)
+
+      # Split positive and negative
+      {positive, negative} =
+        Enum.split_with(candidate_spans, fn {_span, label} -> label == 1 end)
+
+      # Sample negative spans
+      num_negative = round(length(positive) * negative_ratio)
+      sampled_negative = Enum.take_random(negative, min(num_negative, length(negative)))
+
+      positive ++ sampled_negative
+    end)
+  end
+
+  @doc """
+  Create antecedent training data for end-to-end coreference.
+
+  For each mention, generates (mention, antecedent, label) triples.
+  Label is 1 if antecedent is coreferent, 0 otherwise.
+
+  ## Options
+
+    - `:max_antecedent_distance` - Maximum distance in mentions (default: 50)
+    - `:negative_antecedent_ratio` - Ratio of negative to positive (default: 1.5)
+
+  ## Returns
+
+  List of {mention_span, antecedent_span, label} tuples
+  """
+  @spec create_antecedent_data([coref_document()], keyword()) :: [{map(), map(), 0 | 1}]
+  def create_antecedent_data(documents, opts \\ []) do
+    max_distance = Keyword.get(opts, :max_antecedent_distance, 50)
+    negative_ratio = Keyword.get(opts, :negative_antecedent_ratio, 1.5)
+
+    Enum.flat_map(documents, fn doc ->
+      # Collect all mentions with their chain IDs
+      all_mentions =
+        doc.chains
+        |> Enum.flat_map(fn chain ->
+          Enum.map(chain.mentions, fn m ->
+            %{
+              span: %{
+                sentence_idx: m.sentence_idx,
+                start_idx: m.token_idx,
+                end_idx: m.token_idx + length(m.tokens) - 1,
+                tokens: m.tokens
+              },
+              chain_id: m.chain_id
+            }
+          end)
+        end)
+        |> Enum.sort_by(fn m -> {m.span.sentence_idx, m.span.start_idx} end)
+
+      # For each mention, find antecedents
+      all_mentions
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {mention, idx} ->
+        # Get previous mentions within distance
+        start_idx = max(0, idx - max_distance)
+        candidates = Enum.slice(all_mentions, start_idx..(idx - 1))
+
+        # Split into positive and negative
+        {positive, negative} =
+          Enum.split_with(candidates, fn ant ->
+            ant.chain_id == mention.chain_id
+          end)
+
+        # Generate positive pairs
+        positive_pairs =
+          Enum.map(positive, fn ant ->
+            {mention.span, ant.span, 1}
+          end)
+
+        # Sample negative pairs
+        num_negative = round(length(positive_pairs) * negative_ratio)
+
+        negative_pairs =
+          negative
+          |> Enum.take_random(min(num_negative, length(negative)))
+          |> Enum.map(fn ant -> {mention.span, ant.span, 0} end)
+
+        positive_pairs ++ negative_pairs
+      end)
+    end)
+  end
 end
