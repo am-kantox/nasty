@@ -1,7 +1,7 @@
 defmodule Nasty.Language.Catalan.POSTaggerTest do
   use ExUnit.Case, async: true
 
-  alias Nasty.Language.Catalan.{Tokenizer, POSTagger}
+  alias Nasty.Language.Catalan.{POSTagger, Tokenizer}
 
   describe "tag_pos/1 - basic tagging" do
     test "tags simple sentence" do

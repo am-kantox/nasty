@@ -1,8 +1,8 @@
 defmodule Nasty.Language.Catalan.TokenizerTest do
   use ExUnit.Case, async: true
 
-  alias Nasty.Language.Catalan.Tokenizer
   alias Nasty.AST.Token
+  alias Nasty.Language.Catalan.Tokenizer
 
   describe "tokenize/1 - basic functionality" do
     test "tokenizes simple Catalan sentence" do
@@ -327,7 +327,7 @@ defmodule Nasty.Language.Catalan.TokenizerTest do
       [first, second] = tokens
       # "El" starts at column 0
       assert elem(first.span.start_pos, 1) == 0
-      # "gat" starts at column 2 (after "El")  
+      # "gat" starts at column 2 (after "El")
       assert elem(second.span.start_pos, 1) == 2
     end
 

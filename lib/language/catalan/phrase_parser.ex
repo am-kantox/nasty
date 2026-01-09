@@ -23,12 +23,9 @@ defmodule Nasty.Language.Catalan.PhraseParser do
   """
 
   alias Nasty.AST.{
-    AdjectivalPhrase,
-    AdverbialPhrase,
     Node,
     NounPhrase,
     PrepositionalPhrase,
-    RelativeClause,
     Token,
     VerbPhrase
   }

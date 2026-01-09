@@ -37,9 +37,9 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
     min_conf = Keyword.get(opts, :min_confidence, 0.5)
 
     filtered =
-      entities
-      |> Enum.filter(fn e -> e.confidence >= min_conf end)
-      |> Enum.filter(fn e -> types_filter == nil or e.type in types_filter end)
+      Enum.filter(entities, fn e ->
+        e.confidence >= min_conf and (types_filter == nil or e.type in types_filter)
+      end)
 
     {:ok, filtered}
   end
@@ -52,7 +52,7 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
     |> Enum.with_index()
     |> Enum.reduce(entities, fn {token, idx}, acc ->
       cond do
-        is_capitalized?(token) and has_following_capitalized?(tokens, idx) ->
+        capitalized?(token) and has_following_capitalized?(tokens, idx) ->
           case get_person_span(tokens, idx) do
             {start_idx, end_idx, conf} when conf > 0.5 ->
               entity = create_entity(:PERSON, tokens, start_idx, end_idx, conf)
@@ -85,7 +85,7 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
     |> Enum.with_index()
     |> Enum.reduce(entities, fn {token, idx}, acc ->
       if String.downcase(token.text) in catalan_places or
-           (is_capitalized?(token) and token.pos_tag == :propn) do
+           (capitalized?(token) and token.pos_tag == :propn) do
         entity = create_entity(:LOCATION, tokens, idx, idx, 0.7)
         [entity | acc]
       else
@@ -105,9 +105,6 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
           {start_idx, end_idx} ->
             entity = create_entity(:ORGANIZATION, tokens, start_idx, end_idx, 0.8)
             [entity | acc]
-
-          nil ->
-            acc
         end
       else
         acc
@@ -179,14 +176,14 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
 
   ## Helpers
 
-  defp is_capitalized?(%Token{text: text}) do
+  defp capitalized?(%Token{text: text}) do
     first = String.first(text)
     first == String.upcase(first) and String.match?(first, ~r/\p{Lu}/u)
   end
 
   defp has_following_capitalized?(tokens, idx) when idx + 1 < length(tokens) do
     next = Enum.at(tokens, idx + 1)
-    (next && is_capitalized?(next)) and next.pos_tag in [:noun, :propn]
+    (next && capitalized?(next)) and next.pos_tag in [:noun, :propn]
   end
 
   defp has_following_capitalized?(_, _), do: false
@@ -196,7 +193,7 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
       start_idx..(length(tokens) - 1)
       |> Enum.take_while(fn idx ->
         token = Enum.at(tokens, idx)
-        is_capitalized?(token) and token.pos_tag in [:noun, :propn]
+        capitalized?(token) and token.pos_tag in [:noun, :propn]
       end)
       |> List.last()
 
@@ -210,7 +207,7 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
   defp get_name_after_title(tokens, title_idx) when title_idx + 1 < length(tokens) do
     next_token = Enum.at(tokens, title_idx + 1)
 
-    if next_token && is_capitalized?(next_token) do
+    if next_token && capitalized?(next_token) do
       case get_person_span(tokens, title_idx + 1) do
         {_, end_idx, _} -> {title_idx + 1, end_idx}
         _ -> nil
@@ -227,7 +224,7 @@ defmodule Nasty.Language.Catalan.EntityRecognizer do
       (start_idx + 1)..min(start_idx + 5, length(tokens) - 1)
       |> Enum.take_while(fn idx ->
         token = Enum.at(tokens, idx)
-        token && (is_capitalized?(token) or token.text in ["de", "del", "la", "el"])
+        token && (capitalized?(token) or token.text in ["de", "del", "la", "el"])
       end)
       |> List.last()
 

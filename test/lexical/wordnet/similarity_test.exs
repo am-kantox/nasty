@@ -72,7 +72,7 @@ defmodule Nasty.Lexical.WordNet.SimilarityTest do
       assert similarity == 0.25
     end
 
-    test "returns 0.0 when no path exists", %{language: lang} do
+    test "returns 0.0 when no path exists", %{language: _lang} do
       Storage.init(:isolated)
       {:ok, synset} = Synset.new("isolated-1", :noun, "isolated concept", :isolated)
       Storage.put_synset(synset, :isolated)
@@ -101,7 +101,7 @@ defmodule Nasty.Lexical.WordNet.SimilarityTest do
       assert similarity < 0.5
     end
 
-    test "returns 0.0 when no common ancestor", %{language: lang} do
+    test "returns 0.0 when no common ancestor", %{language: _lang} do
       Storage.init(:isolated2)
       {:ok, synset} = Synset.new("isolated-2", :noun, "isolated", :isolated2)
       Storage.put_synset(synset, :isolated2)
@@ -123,7 +123,7 @@ defmodule Nasty.Lexical.WordNet.SimilarityTest do
       assert similarity > 0.0
     end
 
-    test "returns 0.0 for completely different definitions", %{language: lang} do
+    test "returns 0.0 for completely different definitions", %{language: _lang} do
       # Create synsets with no overlapping words
       Storage.init(:lesk_test)
 
@@ -191,7 +191,7 @@ defmodule Nasty.Lexical.WordNet.SimilarityTest do
       assert lcs_id == "test-animal"
     end
 
-    test "returns nil when no common ancestor", %{language: lang} do
+    test "returns nil when no common ancestor", %{language: _lang} do
       Storage.init(:lcs_test)
       {:ok, synset} = Synset.new("lcs-isolated", :noun, "isolated", :lcs_test)
       Storage.put_synset(synset, :lcs_test)

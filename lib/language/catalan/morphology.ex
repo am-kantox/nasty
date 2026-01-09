@@ -372,13 +372,9 @@ defmodule Nasty.Language.Catalan.Morphology do
     features = %{}
 
     features =
-      cond do
-        String.ends_with?(word, "a") or String.ends_with?(word, "es") ->
-          Map.put(features, :gender, :feminine)
-
-        true ->
-          features
-      end
+      if String.ends_with?(word, "a") or String.ends_with?(word, "es"),
+        do: Map.put(features, :gender, :feminine),
+        else: features
 
     features =
       if word != lemma and (String.ends_with?(word, "s") or String.ends_with?(word, "es")) do

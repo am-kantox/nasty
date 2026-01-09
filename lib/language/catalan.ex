@@ -35,6 +35,7 @@ defmodule Nasty.Language.Catalan do
   @behaviour Nasty.Language.Behaviour
 
   alias Nasty.Language.Catalan
+  alias Nasty.Utils.Query
 
   @doc """
   Returns the ISO 639-1 language code for Catalan.
@@ -116,9 +117,7 @@ defmodule Nasty.Language.Catalan do
   def parse(tokens, opts \\ []) do
     # Pipeline: morphology → phrase parsing → sentence parsing → document
     with {:ok, tokens_with_morphology} <- Catalan.Morphology.analyze(tokens),
-         {:ok, document} <- Catalan.Parser.parse(tokens_with_morphology, opts) do
-      {:ok, document}
-    end
+         do: Catalan.Parser.parse(tokens_with_morphology, opts)
   end
 
   @doc """
@@ -196,7 +195,7 @@ defmodule Nasty.Language.Catalan do
     tokens =
       document.paragraphs
       |> Enum.flat_map(& &1.sentences)
-      |> Enum.flat_map(&Nasty.Utils.Query.extract_tokens/1)
+      |> Enum.flat_map(&Query.extract_tokens/1)
 
     Catalan.EntityRecognizer.recognize(tokens)
   end
