@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-Nasty (Natural Abstract Syntax Treey) is a comprehensive NLP library for Elixir that treats natural language with the same rigor as programming languages. It provides a complete grammatical Abstract Syntax Tree (AST) for English and Spanish, with a behaviour-based architecture designed to support multiple languages.
+Nasty (Natural Abstract Syntax Treey) is a comprehensive NLP library for Elixir that treats natural language with the same rigor as programming languages. It provides a complete grammatical Abstract Syntax Tree (AST) for English, Spanish, and Catalan, with a behaviour-based architecture designed to support multiple languages.
 
 ## Core Commands
 
@@ -154,13 +154,24 @@ All nodes include:
 4. **Pure Elixir** - No external NLP dependencies; uses NimbleParsec for parsing
 5. **Composable** - Small, focused modules that compose into full pipeline
 
-### Recent Improvements (2026-01-08)
+### Recent Improvements (2026-01-08/09)
 
-**Grammar Resource Externalization**:
+**Catalan Language Support** (2026-01-09):
+- Complete tokenization with interpunct (l·l), apostrophe contractions (l', d', s'), article contractions (del, al, pel)
+- All 10 Catalan diacritics supported (à, è, é, í, ï, ò, ó, ú, ü, ç)
+- POS tagger with 300+ Catalan word forms, verb conjugations for all tenses
+- Morphological analyzer with lemmatization for 3 verb classes (-ar, -re, -ir)
+- Grammar resource files (phrase_rules.exs, dependency_rules.exs) with Catalan-specific patterns
+- 74 comprehensive tests, 100% passing
+- Documentation in docs/languages/CATALAN.md
+- Pro-drop, flexible word order, post-nominal adjectives
+
+**Grammar Resource Externalization** (2026-01-08):
 - Grammar rules externalized to `.exs` files in `priv/languages/{lang}/grammars/`
 - Created GrammarLoader module with ETS caching for fast access
 - English grammar rules: phrase_rules.exs, dependency_rules.exs, coordination_rules.exs, subordination_rules.exs
 - Spanish grammar rules: Complete set with Spanish-specific features (pro-drop, flexible word order, post-nominal adjectives)
+- Catalan grammar rules: Phrase and dependency patterns adapted for Catalan
 - Support for grammar variants (e.g., technical, legal, medical domains)
 - Comprehensive documentation in docs/GRAMMAR_CUSTOMIZATION.md
 - Benefits: Customizable without code changes, domain adaptation, A/B testing, cross-project sharing
