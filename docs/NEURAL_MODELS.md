@@ -77,22 +77,24 @@ words = ["The", "cat", "sat"]
 
 The default architecture is **Bidirectional LSTM with CRF** (Conditional Random Field):
 
-```
-Input Words
-    ↓
-Word Embeddings (300d)
-    ↓
-BiLSTM Layer 1 (256 hidden units)
-    ↓
-Dropout (0.3)
-    ↓
-BiLSTM Layer 2 (256 hidden units)
-    ↓
-Dense Projection → POS Tags
-    ↓
-Softmax/CRF
-    ↓
-Output Tags
+```mermaid
+flowchart TD
+    A[Input Words]
+    B["Word Embeddings (300d)"]
+    C["BiLSTM Layer 1 (256 hidden units)"]
+    D["Dropout (0.3)"]
+    E["BiLSTM Layer 2 (256 hidden units)"]
+    F["Dense Projection → POS Tags"]
+    G[Softmax/CRF]
+    H[Output Tags]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
 ```
 
 **Key Features:**

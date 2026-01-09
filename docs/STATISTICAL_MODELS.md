@@ -28,18 +28,20 @@ PCFG extends traditional context-free grammars with probabilities on production 
 - `Nasty.Statistics.Parsing.PCFG` - Main model implementing `Model` behaviour
 
 **Data Flow:**
-```
-Training Data (Treebank)
-    ↓
-Extract Grammar Rules + Probabilities
-    ↓
-CNF Conversion
-    ↓
-Trained PCFG Model
-    ↓
-CYK Parser (Viterbi)
-    ↓
-Parse Tree with Probability
+```mermaid
+flowchart TD
+    A["Training Data (Treebank)"]
+    B["Extract Grammar Rules + Probabilities"]
+    C["CNF Conversion"]
+    D["Trained PCFG Model"]
+    E["CYK Parser (Viterbi)"]
+    F["Parse Tree with Probability"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
 ```
 
 ### Grammar Rules
@@ -155,20 +157,22 @@ Unlike HMMs, CRFs can handle overlapping features and don't make independence as
 - `Nasty.Statistics.SequenceLabeling.CRF` - Main model implementing `Model` behaviour
 
 **Data Flow:**
-```
-Tokens + Labels (Training)
-    ↓
-Feature Extraction
-    ↓
-Forward-Backward (Gradient Computation)
-    ↓
-Gradient Descent Optimization
-    ↓
-Trained CRF Model
-    ↓
-Viterbi Decoding
-    ↓
-Label Sequence
+```mermaid
+flowchart TD
+    A["Tokens + Labels (Training)"]
+    B["Feature Extraction"]
+    C["Forward-Backward (Gradient Computation)"]
+    D["Gradient Descent Optimization"]
+    E["Trained CRF Model"]
+    F["Viterbi Decoding"]
+    G["Label Sequence"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
 ```
 
 ### Feature Extraction

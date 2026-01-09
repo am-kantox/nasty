@@ -98,29 +98,26 @@ Nasty.to_code("Map numbers to double each",
 
 The NL → Code pipeline:
 
-```
-Natural Language Text
-    ↓
-Parse to AST (Nasty.parse)
-    ↓
-Intent Recognition (Nasty.Interop.IntentRecognizer)
-    ├─ Analyze sentence structure
-    ├─ Extract action (sort, filter, map, etc.)
-    ├─ Identify target (list, users, etc.)
-    ├─ Extract arguments
-    └─ Identify constraints
-    ↓
-Intent AST (%Nasty.AST.Intent{})
-    ↓
-Code Generation (Nasty.Interop.CodeGen.Elixir)
-    ├─ Match intent pattern
-    ├─ Build Elixir AST using quote
-    ├─ Generate function calls
-    └─ Handle constraints
-    ↓
-Validation (Code.string_to_quoted)
-    ↓
-Elixir Code String
+```mermaid
+flowchart TD
+    A[Natural Language Text]
+    B["Parse to AST (Nasty.parse)"]
+    C["Intent Recognition (Nasty.Interop.IntentRecognizer)"]
+    C1["- Analyze sentence structure<br/>- Extract action (sort, filter, map, etc.)<br/>- Identify target (list, users, etc.)<br/>- Extract arguments<br/>- Identify constraints"]
+    D["Intent AST (%Nasty.AST.Intent{})"]
+    E["Code Generation (Nasty.Interop.CodeGen.Elixir)"]
+    E1["- Match intent pattern<br/>- Build Elixir AST using quote<br/>- Generate function calls<br/>- Handle constraints"]
+    F["Validation (Code.string_to_quoted)"]
+    G[Elixir Code String]
+    
+    A --> B
+    B --> C
+    C -.-> C1
+    C --> D
+    D --> E
+    E -.-> E1
+    E --> F
+    F --> G
 ```
 
 ### Intent Structure
@@ -236,23 +233,22 @@ Nasty.explain_code("x = 5",
 
 The Code → NL pipeline:
 
-```
-Elixir Code String
-    ↓
-Parse to Elixir AST (Code.string_to_quoted)
-    ↓
-Traverse AST (Nasty.Interop.CodeGen.Explain)
-    ├─ Match AST patterns
-    ├─ Recognize Enum calls
-    ├─ Identify operators
-    ├─ Handle pipelines
-    └─ Extract variables
-    ↓
-Natural Language Fragments
-    ↓
-Combine & Format
-    ↓
-Natural Language Text
+```mermaid
+flowchart TD
+    A[Elixir Code String]
+    B["Parse to Elixir AST (Code.string_to_quoted)"]
+    C["Traverse AST (Nasty.Interop.CodeGen.Explain)"]
+    C1["- Match AST patterns<br/>- Recognize Enum calls<br/>- Identify operators<br/>- Handle pipelines<br/>- Extract variables"]
+    D[Natural Language Fragments]
+    E[Combine & Format]
+    F[Natural Language Text]
+    
+    A --> B
+    B --> C
+    C -.-> C1
+    C --> D
+    D --> E
+    E --> F
 ```
 
 ### Explanation Styles

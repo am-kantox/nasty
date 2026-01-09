@@ -14,41 +14,24 @@ Nasty is built on three core principles:
 
 ### High-Level Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Public API (Nasty)                      │
-│  parse/2, render/2, summarize/2, to_code/2, explain_code/2  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│                   Language Registry                          │
-│   Manages language implementations & auto-detection          │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-            ┌──────────────┴──────────────┐
-            │                             │
-┌───────────▼────────────┐   ┌───────────▼────────────┐
-│  Nasty.Language.       │   │  Nasty.Language.       │
-│       English          │   │    Spanish/Catalan     │
-│  (Full implementation) │   │   (Future)             │
-└───────────┬────────────┘   └────────────────────────┘
-            │
-┌───────────▼────────────────────────────────────────────────┐
-│                      NLP Pipeline                           │
-│  Tokenization → POS Tagging → Parsing → Semantic Analysis  │
-└───────────┬────────────────────────────────────────────────┘
-            │
-┌───────────▼────────────────────────────────────────────────┐
-│                      AST Structures                         │
-│  Document → Paragraph → Sentence → Clause → Phrases → Token│
-└───────────┬────────────────────────────────────────────────┘
-            │
-     ┌──────┴──────┐
-     │             │
-┌────▼────────┐ ┌──▼─────────────────────────────────────────┐
-│ Translation │ │         AST Operations                      │
-│  System     │ │  Query, Validation, Transform, Traversal   │
-└─────────────┘ └────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    API["Public API (Nasty)<br/>parse/2, render/2, summarize/2, to_code/2, explain_code/2"]
+    Registry["Language Registry<br/>Manages language implementations & auto-detection"]
+    English["Nasty.Language.English<br/>(Full implementation)"]
+    Other["Nasty.Language.Spanish/Catalan<br/>(Future)"]
+    Pipeline["NLP Pipeline<br/>Tokenization → POS Tagging → Parsing → Semantic Analysis"]
+    AST["AST Structures<br/>Document → Paragraph → Sentence → Clause → Phrases → Token"]
+    Translation["Translation System"]
+    Operations["AST Operations<br/>Query, Validation, Transform, Traversal"]
+    
+    API --> Registry
+    Registry --> English
+    Registry --> Other
+    English --> Pipeline
+    Pipeline --> AST
+    AST --> Translation
+    AST --> Operations
 ```
 
 ## Core Components
@@ -182,19 +165,32 @@ Each language implementation follows a multi-stage pipeline:
 
 The AST is a hierarchical, linguistically-precise representation:
 
-```
-Document (root)
-  ├─ Paragraph
-  │   ├─ Sentence
-  │   │   ├─ Clause (main)
-  │   │   │   ├─ Subject (NounPhrase)
-  │   │   │   └─ Predicate (VerbPhrase)
-  │   │   │       ├─ Verb (Token)
-  │   │   │       ├─ Complement (NounPhrase)
-  │   │   │       └─ Adverbial (PrepositionalPhrase)
-  │   │   └─ Clause (subordinate)
-  │   └─ Sentence
-  └─ Paragraph
+```mermaid
+graph TD
+    Doc["Document (root)"]
+    P1[Paragraph]
+    P2[Paragraph]
+    S1[Sentence]
+    S2[Sentence]
+    C1["Clause (main)"]
+    C2["Clause (subordinate)"]
+    Subj["Subject (NounPhrase)"]
+    Pred["Predicate (VerbPhrase)"]
+    V["Verb (Token)"]
+    Comp["Complement (NounPhrase)"]
+    Adv["Adverbial (PrepositionalPhrase)"]
+    
+    Doc --> P1
+    Doc --> P2
+    P1 --> S1
+    P1 --> S2
+    S1 --> C1
+    S1 --> C2
+    C1 --> Subj
+    C1 --> Pred
+    Pred --> V
+    Pred --> Comp
+    Pred --> Adv
 ```
 
 #### Node Types

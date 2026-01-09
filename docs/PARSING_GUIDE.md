@@ -17,22 +17,24 @@ This document provides a comprehensive technical guide to all parsing algorithms
 
 The Nasty NLP pipeline processes text through the following stages:
 
-```
-Input Text
-    ↓
-[1] Tokenization (NimbleParsec)
-    ↓
-[2] POS Tagging (Rule-based / HMM / Neural)
-    ↓
-[3] Morphological Analysis (Lemmatization + Features)
-    ↓
-[4] Phrase Parsing (Bottom-up CFG)
-    ↓
-[5] Sentence Parsing (Clause Detection)
-    ↓
-[6] Dependency Extraction (UD Relations)
-    ↓
-Complete AST
+```mermaid
+flowchart TD
+    A[Input Text]
+    B["[1] Tokenization (NimbleParsec)"]
+    C["[2] POS Tagging (Rule-based / HMM / Neural)"]
+    D["[3] Morphological Analysis (Lemmatization + Features)"]
+    E["[4] Phrase Parsing (Bottom-up CFG)"]
+    F["[5] Sentence Parsing (Clause Detection)"]
+    G["[6] Dependency Extraction (UD Relations)"]
+    H[Complete AST]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
 ```
 
 Each stage:
@@ -229,18 +231,20 @@ Steps:
 
 #### Architecture
 
-```
-Input: Word IDs [batch_size, seq_len]
-    ↓
-Word Embeddings [batch_size, seq_len, embedding_dim]
-    ↓
-BiLSTM Layers (×2) [batch_size, seq_len, hidden_size * 2]
-    ↓
-Linear Projection [batch_size, seq_len, num_tags]
-    ↓
-CRF Layer (optional) [batch_size, seq_len, num_tags]
-    ↓
-Output: Tag IDs [batch_size, seq_len]
+```mermaid
+flowchart TD
+    A["Input: Word IDs [batch_size, seq_len]"]
+    B["Word Embeddings [batch_size, seq_len, embedding_dim]"]
+    C["BiLSTM Layers (×2) [batch_size, seq_len, hidden_size * 2]"]
+    D["Linear Projection [batch_size, seq_len, num_tags]"]
+    E["CRF Layer (optional) [batch_size, seq_len, num_tags]"]
+    F["Output: Tag IDs [batch_size, seq_len]"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
 ```
 
 #### Key Components
@@ -857,16 +861,20 @@ dependencies = DependencyExtractor.extract(sentence)
 
 Dependencies can be visualized as a directed graph:
 
-```
-        sat (ROOT)
-       /   \
-   nsubj   obl
-     /       \
-   cat      mat
-    |      /  \
-   det   case det
-    |     |    |
-   the   on   the
+```mermaid
+graph TD
+    Root["sat (ROOT)"]
+    Cat[cat]
+    Mat[mat]
+    The1[the]
+    On[on]
+    The2[the]
+    
+    Root -->|nsubj| Cat
+    Root -->|obl| Mat
+    Cat -->|det| The1
+    Mat -->|case| On
+    Mat -->|det| The2
 ```
 
 ## Integration Example

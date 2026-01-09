@@ -31,75 +31,56 @@ Nasty's translation system operates at the Abstract Syntax Tree (AST) level, pro
 
 ### System Diagram
 
-```
-┌─────────────────┐
-│  Source Text    │
-│   (Language A)  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Parse to AST   │
-│   (Source Lang) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ AST Transform   │  ← ASTTransformer
-│  (Structural)   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Token Translate │  ← TokenTranslator
-│ (Lemma mapping) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Agreement     │  ← Agreement
-│  (Morphology)   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Word Order     │  ← WordOrder
-│  (Reordering)   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Render to Text │  ← AST.Renderer
-│   (Target Lang) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Target Text    │
-│   (Language B)  │
-└─────────────────┘
+```mermaid
+flowchart TD
+    A["Source Text<br/>(Language A)"]
+    B["Parse to AST<br/>(Source Lang)"]
+    C["AST Transform<br/>(Structural)"] -.-> C1[ASTTransformer]
+    D["Token Translate<br/>(Lemma mapping)"] -.-> D1[TokenTranslator]
+    E["Agreement<br/>(Morphology)"] -.-> E1[Agreement]
+    F["Word Order<br/>(Reordering)"] -.-> F1[WordOrder]
+    G["Render to Text<br/>(Target Lang)"] -.-> G1[AST.Renderer]
+    H["Target Text<br/>(Language B)"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
 ```
 
 ### Module Structure
 
-```
-lib/
-├── translation/
-│   ├── translator.ex           # Main API
-│   ├── ast_transformer.ex      # AST node transformation
-│   ├── token_translator.ex     # Token-level translation
-│   ├── agreement.ex            # Morphological agreement
-│   ├── word_order.ex           # Word order rules
-│   └── lexicon_loader.ex       # Lexicon management
-├── ast/
-│   └── renderer.ex             # AST to text rendering
-└── priv/
-    └── translation/
-        └── lexicons/
-            ├── en_es.exs       # English → Spanish
-            ├── es_en.exs       # Spanish → English
-            ├── en_ca.exs       # English → Catalan
-            └── ca_en.exs       # Catalan → English
+```mermaid
+graph TD
+    Root[lib/]
+    Trans[translation/]
+    AST[ast/]
+    Priv[priv/]
+    TransSub[translation/]
+    Lex[lexicons/]
+    
+    Root --> Trans
+    Root --> AST
+    Root --> Priv
+    
+    Trans --> T1[translator.ex<br/>Main API]
+    Trans --> T2[ast_transformer.ex<br/>AST node transformation]
+    Trans --> T3[token_translator.ex<br/>Token-level translation]
+    Trans --> T4[agreement.ex<br/>Morphological agreement]
+    Trans --> T5[word_order.ex<br/>Word order rules]
+    Trans --> T6[lexicon_loader.ex<br/>Lexicon management]
+    
+    AST --> A1[renderer.ex<br/>AST to text rendering]
+    
+    Priv --> TransSub
+    TransSub --> Lex
+    Lex --> L1[en_es.exs<br/>English → Spanish]
+    Lex --> L2[es_en.exs<br/>Spanish → English]
+    Lex --> L3[en_ca.exs<br/>English → Catalan]
+    Lex --> L4[ca_en.exs<br/>Catalan → English]
 ```
 
 ## Quick Start
@@ -294,17 +275,28 @@ text = "The quick brown fox jumps."
 ```
 
 **AST Structure:**
-```
-Document (language: :en)
-└── Paragraph
-    └── Sentence
-        └── Clause
-            ├── Subject: NounPhrase
-            │   ├── Determiner: "The"
-            │   ├── Modifiers: ["quick", "brown"]
-            │   └── Head: "fox"
-            └── Predicate: VerbPhrase
-                └── Head: "jumps"
+```mermaid
+graph TD
+    Doc["Document (language: :en)"]
+    Para[Paragraph]
+    Sent[Sentence]
+    Clause[Clause]
+    Subj["Subject: NounPhrase"]
+    Det["Determiner: 'The'"]
+    Mod["Modifiers: ['quick', 'brown']"]
+    Head1["Head: 'fox'"]
+    Pred["Predicate: VerbPhrase"]
+    Head2["Head: 'jumps'"]
+    
+    Doc --> Para
+    Para --> Sent
+    Sent --> Clause
+    Clause --> Subj
+    Clause --> Pred
+    Subj --> Det
+    Subj --> Mod
+    Subj --> Head1
+    Pred --> Head2
 ```
 
 #### 2. Transform AST Structure
