@@ -189,15 +189,15 @@ defmodule Nasty.Language.Catalan do
       iex> Catalan.extract_entities(document)
       [%Entity{type: :person, text: "Josep Maria"}, ...]
   """
-  @spec extract_entities(Nasty.AST.Document.t()) :: [Nasty.AST.Entity.t()]
+  @spec extract_entities(Nasty.AST.Document.t()) :: [Nasty.AST.Semantic.Entity.t()]
   def extract_entities(%Nasty.AST.Document{} = document) do
     # Extract tokens from document
-    tokens =
-      document.paragraphs
-      |> Enum.flat_map(& &1.sentences)
-      |> Enum.flat_map(&Query.extract_tokens/1)
+    tokens = Query.tokens(document)
 
-    Catalan.EntityRecognizer.recognize(tokens)
+    case Catalan.EntityRecognizer.recognize(tokens) do
+      {:ok, entities} -> entities
+      entities when is_list(entities) -> entities
+    end
   end
 
   @doc """

@@ -55,7 +55,7 @@ defmodule Nasty.Language.Catalan.Summarizer do
 
   def summarize(%Document{language: :ca} = doc, opts) do
     # Simple implementation: select first N sentences
-    # TODO: Implement full scoring algorithm with Catalan stop words and discourse markers
+    # [TODO]: Implement full scoring algorithm with Catalan stop words and discourse markers
     max_sentences = Keyword.get(opts, :max_sentences)
     ratio = Keyword.get(opts, :ratio, 0.3)
 

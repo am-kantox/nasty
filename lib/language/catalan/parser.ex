@@ -95,7 +95,7 @@ defmodule Nasty.Language.Catalan.Parser do
         }
       }
 
-      # TODO: Optionally add semantic analysis when implemented
+      # [TODO]: Optionally add semantic analysis when implemented
       # document =
       #   document
       #   |> maybe_add_semantic_frames(opts)
