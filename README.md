@@ -35,12 +35,12 @@ Nasty provides a complete grammatical Abstract Syntax Tree (AST) for multiple na
 
 ```bash
 # Run the complete demo
-./demo.exs
+mix run demo.exs
 
 # Or try specific examples
-./examples/catalan_example.exs
-./examples/roundtrip_translation.exs
-./examples/multilingual_pipeline.exs
+mix run examples/catalan_example.exs
+mix run examples/roundtrip_translation.exs
+mix run examples/multilingual_pipeline.exs
 ```
 
 New to Nasty? Start with the [Getting Started Guide](docs/GETTING_STARTED.md) for a beginner-friendly tutorial.
@@ -240,7 +240,7 @@ alias Nasty.Translation.Translator
 {:ok, tokens_en} = English.tokenize("The quick cat runs.")
 {:ok, tagged_en} = English.tag_pos(tokens_en)
 {:ok, doc_en} = English.parse(tagged_en)
-{:ok, doc_es} = Translator.translate(doc_en, :es)
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
 {:ok, text_es} = Nasty.render(doc_es)
 # => "El gato rápido corre."
 
@@ -248,7 +248,7 @@ alias Nasty.Translation.Translator
 {:ok, tokens_es} = Spanish.tokenize("La casa grande.")
 {:ok, tagged_es} = Spanish.tag_pos(tokens_es)
 {:ok, doc_es} = Spanish.parse(tagged_es)
-{:ok, doc_en} = Translator.translate(doc_es, :en)
+{:ok, doc_en} = Translator.translate_document(doc_es, :en)
 {:ok, text_en} = Nasty.render(doc_en)
 # => "The big house."
 ```

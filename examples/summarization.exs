@@ -1,12 +1,8 @@
-#!/usr/bin/env elixir
-
 # Summarization Example
 #
 # This script demonstrates the text summarization capabilities of the Nasty library.
 # It shows both greedy and MMR (Maximal Marginal Relevance) selection methods.
-
-# Add the library to the path
-Mix.install([{:nasty, path: Path.expand("..", __DIR__)}])
+# Run with: mix run examples/summarization.exs
 
 alias Nasty.Language.English
 

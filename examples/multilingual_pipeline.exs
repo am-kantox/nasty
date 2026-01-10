@@ -1,5 +1,3 @@
-#!/usr/bin/env elixir
-
 # Multilingual Pipeline Example
 #
 # This example demonstrates processing the same text in multiple languages:
@@ -7,10 +5,8 @@
 # - Compare tokenization, POS tagging, and parsing
 # - Show language-specific features
 # - Cross-language translation comparison
-
-Mix.install([
-  {:nasty, path: Path.expand("..", __DIR__)}
-])
+#
+# Run with: mix run examples/multilingual_pipeline.exs
 
 alias Nasty.Language.{English, Spanish, Catalan}
 alias Nasty.Translation.Translator

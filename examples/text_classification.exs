@@ -1,9 +1,6 @@
-#!/usr/bin/env elixir
-
 # Text Classification Examples
 # Demonstrates sentiment analysis, spam detection, and topic classification
-
-Mix.install([{:nasty, path: Path.expand("..", __DIR__)}])
+# Run with: mix run examples/text_classification.exs
 
 alias Nasty.Language.English
 

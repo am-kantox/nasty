@@ -1,11 +1,7 @@
-#!/usr/bin/env elixir
-
 # Advanced Neural Features Demo
 # Demonstrates fine-tuning, zero-shot classification, and quantization
-
-Mix.install([
-  {:nasty, path: Path.expand("..", __DIR__)}
-])
+#
+# Run with: mix run examples/advanced_neural_features.exs
 
 alias Nasty.Statistics.Neural.Transformers.{Loader, FineTuner, ZeroShot, DataPreprocessor}
 alias Nasty.Statistics.Neural.Quantization.INT8

@@ -1,5 +1,3 @@
-#!/usr/bin/env elixir
-
 # Transformer-based POS Tagging Example
 #
 # This example demonstrates how to use pre-trained transformer models
@@ -10,9 +8,7 @@
 # - ~500MB disk space for model cache
 # - EXLA/CUDA optional for GPU acceleration
 #
-# Run with: elixir examples/transformer_pos_example.exs
-
-Mix.install([{:nasty, path: "."}])
+# Run with: mix run examples/transformer_pos_example.exs
 
 alias Nasty.Language.English.{Tokenizer, POSTagger}
 alias Nasty.Statistics.Neural.Transformers.{Loader, TokenClassifier, Inference}

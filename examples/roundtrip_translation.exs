@@ -1,5 +1,3 @@
-#!/usr/bin/env elixir
-
 # Roundtrip Translation Example
 #
 # This example demonstrates roundtrip translation quality:
@@ -7,10 +5,8 @@
 # - English → Catalan → English  
 # - Spanish → English → Spanish
 # - Quality metrics and comparison
-
-Mix.install([
-  {:nasty, path: Path.expand("..", __DIR__)}
-])
+#
+# Run with: mix run examples/roundtrip_translation.exs
 
 alias Nasty.Language.{English, Spanish, Catalan}
 alias Nasty.Translation.Translator
@@ -96,7 +92,7 @@ Enum.each(test_sentences, fn %{original: original, language: lang, complexity: c
     {:ok, tagged_en} = English.tag_pos(tokens_en)
     {:ok, doc_en} = English.parse(tagged_en)
     
-    {:ok, doc_es} = Translator.translate(doc_en, :es)
+    {:ok, doc_es} = Translator.translate_document(doc_en, :es)
     {:ok, text_es} = Nasty.Rendering.Text.render(doc_es)
     
     IO.puts("Spanish (ES):  #{text_es}")
@@ -106,7 +102,7 @@ Enum.each(test_sentences, fn %{original: original, language: lang, complexity: c
     {:ok, tagged_es} = Spanish.tag_pos(tokens_es)
     {:ok, doc_es_parsed} = Spanish.parse(tagged_es)
     
-    {:ok, doc_en_back} = Translator.translate(doc_es_parsed, :en)
+    {:ok, doc_en_back} = Translator.translate_document(doc_es_parsed, :en)
     {:ok, text_en_back} = Nasty.Rendering.Text.render(doc_en_back)
     
     IO.puts("Roundtrip (EN): #{text_en_back}")
@@ -141,7 +137,7 @@ Enum.each(catalan_test_sentences, fn original ->
   {:ok, tagged_en} = English.tag_pos(tokens_en)
   {:ok, doc_en} = English.parse(tagged_en)
   
-  {:ok, doc_ca} = Translator.translate(doc_en, :ca)
+  {:ok, doc_ca} = Translator.translate_document(doc_en, :ca)
   {:ok, text_ca} = Nasty.Rendering.Text.render(doc_ca)
   
   IO.puts("Catalan (CA):  #{text_ca}")
@@ -151,7 +147,7 @@ Enum.each(catalan_test_sentences, fn original ->
   {:ok, tagged_ca} = Catalan.tag_pos(tokens_ca)
   {:ok, doc_ca_parsed} = Catalan.parse(tagged_ca)
   
-  {:ok, doc_en_back} = Translator.translate(doc_ca_parsed, :en)
+  {:ok, doc_en_back} = Translator.translate_document(doc_ca_parsed, :en)
   {:ok, text_en_back} = Nasty.Rendering.Text.render(doc_en_back)
   
   IO.puts("Roundtrip (EN): #{text_en_back}")
@@ -177,7 +173,7 @@ Enum.each(test_sentences, fn %{original: original, language: lang, complexity: c
     {:ok, tagged_es} = Spanish.tag_pos(tokens_es)
     {:ok, doc_es} = Spanish.parse(tagged_es)
     
-    {:ok, doc_en} = Translator.translate(doc_es, :en)
+    {:ok, doc_en} = Translator.translate_document(doc_es, :en)
     {:ok, text_en} = Nasty.Rendering.Text.render(doc_en)
     
     IO.puts("English (EN):  #{text_en}")
@@ -187,7 +183,7 @@ Enum.each(test_sentences, fn %{original: original, language: lang, complexity: c
     {:ok, tagged_en} = English.tag_pos(tokens_en)
     {:ok, doc_en_parsed} = English.parse(tagged_en)
     
-    {:ok, doc_es_back} = Translator.translate(doc_en_parsed, :es)
+    {:ok, doc_es_back} = Translator.translate_document(doc_en_parsed, :es)
     {:ok, text_es_back} = Nasty.Rendering.Text.render(doc_es_back)
     
     IO.puts("Roundtrip (ES): #{text_es_back}")

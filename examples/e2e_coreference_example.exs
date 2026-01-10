@@ -1,19 +1,14 @@
-#!/usr/bin/env elixir
-
 # End-to-End Coreference Resolution Example
 #
 # This script demonstrates the Phase 2 end-to-end span-based coreference
 # resolution system, comparing it with the Phase 1 pipelined approach.
 #
-# Run: elixir examples/e2e_coreference_example.exs
-
-Mix.install([
-  {:nasty, path: "."}
-])
+# Run with: mix run examples/e2e_coreference_example.exs
 
 alias Nasty.AST.{Document, Paragraph, Sentence, Clause, Token}
 alias Nasty.AST.Phrase.{NounPhrase, VerbPhrase}
 alias Nasty.Semantic.Coreference.Neural.{E2EResolver, E2ETrainer}
+alias Nasty.Language.English
 
 IO.puts """
 ================================================================================
@@ -41,7 +36,9 @@ IO.puts "\n--- Input Text ---"
 IO.puts text
 
 # Parse text (simplified for demo)
-document = create_sample_document(text)
+{:ok, tokens} = English.tokenize(text)
+{:ok, tagged} = English.tag_pos(tokens)
+{:ok, document} = English.parse(tagged)
 
 IO.puts "\n--- Document Structure ---"
 IO.puts "Paragraphs: #{length(document.paragraphs)}"
@@ -88,40 +85,6 @@ if File.dir?(model_path) do
 
         {:error, reason} ->
           IO.puts "Resolution failed: #{inspect(reason)}"
-      end
-
-      # Compare with Phase 1 if available
-      phase1_path = "priv/models/en/coref"
-
-      if File.dir?(phase1_path) do
-        IO.puts "\n--- Comparison with Phase 1 ---"
-
-        case Nasty.Semantic.Coreference.Neural.Trainer.load_models(phase1_path) do
-          {:ok, p1_models, p1_params, p1_vocab} ->
-            case Nasty.Semantic.Coreference.Neural.Resolver.resolve(
-                   document,
-                   p1_models,
-                   p1_params,
-                   p1_vocab
-                 ) do
-              {:ok, p1_resolved} ->
-                p1_chains = p1_resolved.coref_chains
-
-                IO.puts "Phase 1 chains: #{length(p1_chains)}"
-                IO.puts "Phase 2 chains: #{length(chains)}"
-
-                IO.puts "\nKey Differences:"
-                IO.puts "- Phase 1 uses rule-based mention detection"
-                IO.puts "- Phase 2 learns mention boundaries from data"
-                IO.puts "- Phase 2 jointly optimizes both tasks"
-
-              {:error, _} ->
-                IO.puts "Could not resolve with Phase 1"
-            end
-
-          {:error, _} ->
-            IO.puts "Phase 1 models not found"
-        end
       end
 
     {:error, reason} ->
@@ -199,55 +162,3 @@ IO.puts """
 
 IO.puts "\nFor more information, see docs/E2E_COREFERENCE.md"
 IO.puts "================================================================================"
-
-# Helper function to create a sample document (simplified)
-defp create_sample_document(text) do
-  # In a real implementation, this would parse the text properly
-  # For demo purposes, create minimal structure
-
-  sentences =
-    text
-    |> String.split(~r/\.\s+/, trim: true)
-    |> Enum.with_index()
-    |> Enum.map(fn {sent_text, idx} ->
-      # Create tokens
-      tokens =
-        sent_text
-        |> String.split()
-        |> Enum.with_index()
-        |> Enum.map(fn {word, tok_idx} ->
-          Token.new(
-            String.replace(word, ~r/[^\w]/, ""),
-            :noun,
-            {idx, tok_idx, 0}
-          )
-        end)
-
-      # Create simple clause structure
-      clause = %Clause{
-        subject: nil,
-        predicate: %VerbPhrase{
-          head: List.first(tokens) || Token.new("", :verb, {0, 0, 0}),
-          auxiliaries: [],
-          complements: [],
-          modifiers: []
-        },
-        type: :main
-      }
-
-      %Sentence{
-        main_clause: clause,
-        subordinate_clauses: [],
-        relative_clauses: [],
-        coordination: nil
-      }
-    end)
-
-  paragraph = %Paragraph{sentences: sentences}
-
-  %Document{
-    paragraphs: [paragraph],
-    language: :en,
-    coref_chains: []
-  }
-end

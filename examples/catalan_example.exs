@@ -1,5 +1,3 @@
-#!/usr/bin/env elixir
-
 # Catalan Language Processing Example
 # 
 # This example demonstrates Catalan-specific NLP processing including:
@@ -8,13 +6,63 @@
 # - Phrase and sentence parsing
 # - Entity recognition with Catalan lexicons
 # - Translation between Catalan and English
-
-Mix.install([
-  {:nasty, path: Path.expand("..", __DIR__)}
-])
+#
+# Run with: mix run examples/catalan_example.exs
 
 alias Nasty.Language.{Catalan, English}
 alias Nasty.Translation.Translator
+
+defmodule H do
+  # Helper functions
+  def extract_phrase_text(phrase) do
+    case phrase do
+      %Nasty.AST.NounPhrase{} = np ->
+        det = if np.determiner, do: np.determiner.text <> " ", else: ""
+        mods = Enum.map(np.modifiers, & &1.text) |> Enum.join(" ")
+        mods_str = if mods != "", do: mods <> " ", else: ""
+        head = np.head.text
+        post = Enum.map(np.post_modifiers, &extract_phrase_text/1) |> Enum.join(" ")
+        post_str = if post != "", do: " " <> post, else: ""
+        "#{det}#{mods_str}#{head}#{post_str}"
+      
+      %Nasty.AST.VerbPhrase{} = vp ->
+        aux = Enum.map(vp.auxiliaries, & &1.text) |> Enum.join(" ")
+        aux_str = if aux != "", do: aux <> " ", else: ""
+        verb = vp.head.text
+        comps = Enum.map(vp.complements, &extract_phrase_text/1) |> Enum.join(" ")
+        comps_str = if comps != "", do: " " <> comps, else: ""
+        "#{aux_str}#{verb}#{comps_str}"
+      
+      %Nasty.AST.PrepositionalPhrase{} = pp ->
+        prep = pp.head.text
+        obj = extract_phrase_text(pp.object)
+        "#{prep} #{obj}"
+      
+      _ ->
+        ""
+    end
+  end
+
+  def extract_noun_phrases(clause) do
+    nps = []
+    
+    nps = if clause.subject && match?(%Nasty.AST.NounPhrase{}, clause.subject) do
+      [clause.subject | nps]
+    else
+      nps
+    end
+    
+    nps = if clause.predicate do
+      vp = clause.predicate
+      comp_nps = Enum.filter(vp.complements, &match?(%Nasty.AST.NounPhrase{}, &1))
+      comp_nps ++ nps
+    else
+      nps
+    end
+    
+    Enum.reverse(nps)
+  end
+end
 
 IO.puts("\n========================================")
 IO.puts("Catalan Language Processing Demo")
@@ -71,12 +119,12 @@ Enum.each(document.paragraphs, fn paragraph ->
       clause = sentence.main_clause
       
       if clause.subject do
-        subject_text = extract_phrase_text(clause.subject)
+        subject_text = H.extract_phrase_text(clause.subject)
         IO.puts("    Subject: #{subject_text}")
       end
       
       if clause.predicate do
-        predicate_text = extract_phrase_text(clause.predicate)
+        predicate_text = H.extract_phrase_text(clause.predicate)
         IO.puts("    Predicate: #{predicate_text}")
       end
     end
@@ -101,7 +149,7 @@ if sentence.main_clause do
   clause = sentence.main_clause
   
   # Extract noun phrases
-  noun_phrases = extract_noun_phrases(clause)
+  noun_phrases = H.extract_noun_phrases(clause)
   if length(noun_phrases) > 0 do
     IO.puts("\n  Noun Phrases:")
     Enum.each(noun_phrases, fn np ->
@@ -169,7 +217,7 @@ IO.puts("Catalan: #{ca_to_translate}")
 {:ok, tagged_ca} = Catalan.tag_pos(tokens_ca)
 {:ok, doc_ca} = Catalan.parse(tagged_ca)
 
-{:ok, doc_en} = Translator.translate(doc_ca, :en)
+{:ok, doc_en} = Nasty.translate(doc_ca, :ca, :en)
 {:ok, text_en} = Nasty.Rendering.Text.render(doc_en)
 
 IO.puts("English: #{text_en}")
@@ -248,53 +296,3 @@ IO.puts("\n========================================")
 IO.puts("Catalan Example Complete!")
 IO.puts("========================================\n")
 
-# Helper functions
-
-defp extract_phrase_text(phrase) do
-  case phrase do
-    %Nasty.AST.NounPhrase{} = np ->
-      det = if np.determiner, do: np.determiner.text <> " ", else: ""
-      mods = Enum.map(np.modifiers, & &1.text) |> Enum.join(" ")
-      mods_str = if mods != "", do: mods <> " ", else: ""
-      head = np.head.text
-      post = Enum.map(np.post_modifiers, &extract_phrase_text/1) |> Enum.join(" ")
-      post_str = if post != "", do: " " <> post, else: ""
-      "#{det}#{mods_str}#{head}#{post_str}"
-    
-    %Nasty.AST.VerbPhrase{} = vp ->
-      aux = Enum.map(vp.auxiliaries, & &1.text) |> Enum.join(" ")
-      aux_str = if aux != "", do: aux <> " ", else: ""
-      verb = vp.head.text
-      comps = Enum.map(vp.complements, &extract_phrase_text/1) |> Enum.join(" ")
-      comps_str = if comps != "", do: " " <> comps, else: ""
-      "#{aux_str}#{verb}#{comps_str}"
-    
-    %Nasty.AST.PrepositionalPhrase{} = pp ->
-      prep = pp.head.text
-      obj = extract_phrase_text(pp.object)
-      "#{prep} #{obj}"
-    
-    _ ->
-      ""
-  end
-end
-
-defp extract_noun_phrases(clause) do
-  nps = []
-  
-  nps = if clause.subject && match?(%Nasty.AST.NounPhrase{}, clause.subject) do
-    [clause.subject | nps]
-  else
-    nps
-  end
-  
-  nps = if clause.predicate do
-    vp = clause.predicate
-    comp_nps = Enum.filter(vp.complements, &match?(%Nasty.AST.NounPhrase{}, &1))
-    comp_nps ++ nps
-  else
-    nps
-  end
-  
-  Enum.reverse(nps)
-end

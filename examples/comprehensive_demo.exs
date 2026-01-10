@@ -1,9 +1,6 @@
-#!/usr/bin/env elixir
-
 # Comprehensive Demo of Nasty NLP Library
 # This script demonstrates all major features of the library
-
-Mix.install([{:nasty, path: "."}])
+# Run with: mix run examples/comprehensive_demo.exs
 
 IO.puts("\n" <> String.duplicate("=", 80))
 IO.puts("NASTY NLP LIBRARY - COMPREHENSIVE DEMO")

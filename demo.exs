@@ -1,5 +1,3 @@
-#!/usr/bin/env elixir
-#
 # Nasty NLP Library - End-to-End Demo
 # =====================================
 #
@@ -13,8 +11,8 @@
 # 7. Semantic Role Labeling (NEW!)
 # 8. Coreference Resolution (NEW!)
 # 9. Text Summarization (Enhanced with MMR!)
-
-Mix.install([{:nasty, path: "."}])
+#
+# Run with: mix run demo.exs
 
 alias Nasty.Language.English
 alias Nasty.Language.English.{

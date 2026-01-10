@@ -1,9 +1,6 @@
-#!/usr/bin/env elixir
-
 # Information Extraction Examples
 # Demonstrates relation extraction, event extraction, and template-based extraction
-
-Mix.install([{:nasty, path: Path.expand("..", __DIR__)}])
+# Run with: mix run examples/information_extraction.exs
 
 alias Nasty.Language.English
 alias Nasty.Language.English.TemplateExtractor

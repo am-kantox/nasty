@@ -1,5 +1,3 @@
-#!/usr/bin/env elixir
-#
 # Question Answering Examples
 # ============================
 #
@@ -10,9 +8,7 @@
 # - WHERE questions (locations)
 # - HOW questions (manner, quantity)
 #
-# Run: elixir examples/question_answering.exs
-
-Mix.install([{:nasty, path: "."}])
+# Run with: mix run examples/question_answering.exs
 
 alias Nasty.Language.English
 

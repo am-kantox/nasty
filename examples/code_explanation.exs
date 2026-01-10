@@ -1,9 +1,6 @@
-#!/usr/bin/env elixir
-
 # Code Explanation Examples
 # Demonstrates Code → Natural Language conversion
-
-Mix.install([{:nasty, path: Path.expand("..", __DIR__)}])
+# Run with: mix run examples/code_explanation.exs
 
 alias Nasty.Language.English
 
