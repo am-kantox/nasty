@@ -409,8 +409,8 @@ If processing is slow:
 
 ### Getting Help
 
-- **Documentation**: Check [docs/](../docs/) for detailed guides
-- **Examples**: See [examples/](../examples/) for working code
+- **Documentation**: Check [docs/](docs) for detailed guides
+- **Examples**: See [examples/](examples) for working code
 - **Issues**: Report bugs on [GitHub](https://github.com/am-kantox/nasty/issues)
 
 ## Next Steps

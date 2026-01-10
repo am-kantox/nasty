@@ -196,7 +196,7 @@ To add support for a new language:
 
 4. **Implement language module**: Create a module implementing `Nasty.Language.Behaviour`
 
-5. **Register language**: Register in `Nasty.Application`
+5. **Register language**: Register in the `Application`
 
 ### Example: Spanish Lexicons
 

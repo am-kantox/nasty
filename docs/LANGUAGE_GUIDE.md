@@ -193,7 +193,7 @@ end
 
 ### Step 6: Register Language
 
-Add to `lib/application.ex`:
+Add to `lib/nasty/application.ex`:
 
 ```elixir
 defmodule Nasty.Application do
@@ -203,8 +203,8 @@ defmodule Nasty.Application do
     # ... existing code ...
     
     # Register languages
-    Nasty.Language.Registry.register(Nasty.Language.English)
-    Nasty.Language.Registry.register(Nasty.Language.YourLanguage)  # Add this
+    :ok = Nasty.Language.Registry.register(Nasty.Language.English)
+    :ok = Nasty.Language.Registry.register(Nasty.Language.YourLanguage)  # Add this
     
     result
   end
@@ -355,7 +355,7 @@ Use UD features: `number: :singular`, `tense: :past`, etc.
 
 Spanish is fully implemented and serves as a reference for adding new languages.
 
-See the complete implementation in `lib/language/spanish/` (13 modules) and comprehensive documentation in `docs/languages/SPANISH_IMPLEMENTATION.md`.
+See the complete implementation in `lib/language/spanish/`.
 
 **Key Features Implemented**:
 - ✓ Gender agreement (el gato, la gata)

@@ -456,13 +456,13 @@ defmodule Nasty.Language.English.SentenceParser do
   # Infer sentence function from punctuation and clause structure
   defp infer_function(%Token{text: "?"}, _clause), do: :interrogative
   defp infer_function(%Token{text: "!"}, _clause), do: :exclamative
-  
+
   defp infer_function(_punct, %Clause{subject: nil, predicate: %{head: %Token{pos_tag: pos}}})
        when pos in [:verb, :aux] do
     # No subject + verb at start = imperative
     :imperative
   end
-  
+
   defp infer_function(_punct, _clause), do: :declarative
 
   # Get subordinating conjunction at position if present

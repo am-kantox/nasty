@@ -1,4 +1,4 @@
-# <img width="48" height="48" alt="Nasty Logo" src="https://github.com/user-attachments/assets/c9f17ebf-d426-407d-986f-2cb4d6fb75c4" /> Nasty → Natural Abstract Syntax Tree Yeoman
+# ![Nasty Logo](https://github.com/user-attachments/assets/c9f17ebf-d426-407d-986f-2cb4d6fb75c4) Nasty → Natural Abstract Syntax Tree Yeoman
 
 [![CI](https://github.com/am-kantox/nasty/workflows/CI/badge.svg)](https://github.com/am-kantox/nasty/actions)
 [![codecov](https://codecov.io/gh/am-kantox/nasty/branch/main/graph/badge.svg)](https://codecov.io/gh/am-kantox/nasty)

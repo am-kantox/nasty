@@ -479,7 +479,7 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
 
   ## Returns
 
-  {:error, :not_implemented}
+  `{:error, :not_implemented}`
   """
   def augment_text(_text, _opts), do: {:error, :not_implemented}
 
@@ -488,7 +488,7 @@ defmodule Nasty.Statistics.Neural.Preprocessing do
 
   ## Returns
 
-  {:error, :not_implemented}
+  `{:error, :not_implemented}`
   """
   def tokenize_subwords(_text, _model), do: {:error, :not_implemented}
 end

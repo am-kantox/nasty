@@ -609,9 +609,9 @@ Position information for precise source location tracking.
 ```
 
 **Functions:**
-- `Node.make_span/4` - Create span
-- `Node.span_length/1` - Calculate length
-- `Node.spans_overlap?/2` - Check overlap
+- `Nasty.AST.Node.make_span/4` - Create span
+- `Nasty.AST.Node.extract_text/2` - Extracts span text
+- `Nasty.AST.Node.merge_spans/2` - Merges two spans
 
 ## See Also
 

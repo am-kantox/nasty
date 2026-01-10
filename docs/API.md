@@ -65,12 +65,12 @@ Renders an AST back to natural language text.
 
 ### Translation
 
-#### `Nasty.translate/2`
+#### `Nasty.Translation.Translator.translate_document/2`
 
 Translates an AST document from one language to another.
 
 **Parameters:**
-- `ast` - AST Document to translate
+- `document` - AST Document to translate
 - `target_language` - Target language code (`:en`, `:es`, `:ca`, etc.)
 
 **Returns:**
@@ -80,17 +80,23 @@ Translates an AST document from one language to another.
 **Examples:**
 
 ```elixir
+alias Nasty.Translation.Translator
+
 # Translate English to Spanish
 {:ok, doc_en} = Nasty.parse("The cat runs.", language: :en)
-{:ok, doc_es} = Nasty.translate(doc_en, :es)
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
 {:ok, text_es} = Nasty.render(doc_es)
 # => "El gato corre."
 
 # Translate Spanish to English  
 {:ok, doc_es} = Nasty.parse("La casa grande.", language: :es)
-{:ok, doc_en} = Nasty.translate(doc_es, :en)
+{:ok, doc_en} = Translator.translate_document(doc_es, :en)
 {:ok, text_en} = Nasty.render(doc_en)
 # => "The big house."
+
+# Or translate text directly
+{:ok, text_es} = Translator.translate("The cat runs.", :en, :es)
+# => "El gato corre."
 ```
 
 ### Summarization
@@ -226,7 +232,7 @@ Generates natural language explanation from code.
 
 Manages language implementations.
 
-#### `Registry.register/1`
+#### `Nasty.Language.Registry.register/1`
 
 Registers a language implementation module.
 
@@ -235,7 +241,7 @@ Nasty.Language.Registry.register(Nasty.Language.English)
 # => :ok
 ```
 
-#### `Registry.get/1`
+#### `Nasty.Language.Registry.get/1`
 
 Gets the implementation module for a language code.
 
@@ -244,7 +250,7 @@ Gets the implementation module for a language code.
 # => {:ok, Nasty.Language.English}
 ```
 
-#### `Registry.detect_language/1`
+#### `Nasty.Language.Registry.detect_language/1`
 
 Detects the language of the given text.
 
@@ -256,16 +262,16 @@ Detects the language of the given text.
 # => {:ok, :es}
 ```
 
-#### `Registry.registered_languages/0`
+#### `Nasty.Language.Registry.registered_languages/0`
 
 Returns all registered language codes.
 
 ```elixir
 Nasty.Language.Registry.registered_languages()
-# => [:en]
+# => [:en, :es, :ca]
 ```
 
-#### `Registry.registered?/1`
+#### `Nasty.Language.Registry.registered?/1`
 
 Checks if a language is registered.
 
@@ -278,77 +284,95 @@ Nasty.Language.Registry.registered?(:en)
 
 ### Query
 
-#### `Nasty.AST.Query`
+#### `Nasty.Utils.Query`
 
 Query and traverse AST structures.
 
 ```elixir
+alias Nasty.Utils.Query
+
 # Find subject in a sentence
-subject = Nasty.AST.Query.find_subject(sentence)
+subject = Query.find_subject(sentence)
 
-# Extract all tokens
-tokens = Nasty.AST.Query.extract_tokens(document)
+# Find all noun phrases
+noun_phrases = Query.find_all(document, :noun_phrase)
 
-# Find entities
-entities = Nasty.AST.Query.find_entities(document)
+# Find by POS tag
+nouns = Query.find_by_pos(document, :noun)
+verbs = Query.find_by_pos(document, :verb)
+
+# Count nodes
+token_count = Query.count(document, :token)
 ```
 
 ### Validation
 
-#### `Nasty.AST.Validation`
+#### `Nasty.Utils.Validator`
 
 Validate AST structure.
 
 ```elixir
-case Nasty.AST.Validation.validate(document) do
-  :ok -> IO.puts("Valid AST")
-  {:error, errors} -> IO.inspect(errors)
+alias Nasty.Utils.Validator
+
+case Validator.validate(document) do
+  {:ok, _doc} -> IO.puts("Valid AST")
+  {:error, reason} -> IO.puts("Invalid: #{reason}")
+end
+
+# Check if valid (boolean)
+if Validator.valid?(document) do
+  IO.puts("Document is valid")
 end
 ```
 
 ### Transformation
 
-#### `Nasty.AST.Transform`
+#### `Nasty.Utils.Transform`
 
 Transform AST nodes.
 
 ```elixir
-# Apply transformation to all nodes
-transformed = Nasty.AST.Transform.map(document, fn node ->
-  # Modify node
-  node
-end)
+alias Nasty.Utils.Transform
 
-# Filter nodes
-filtered = Nasty.AST.Transform.filter(document, fn node ->
-  # Keep or discard
-  true
-end)
+# Case normalization
+lowercased = Transform.normalize_case(document, :lower)
+
+# Remove punctuation
+no_punct = Transform.remove_punctuation(document)
+
+# Remove stop words
+no_stops = Transform.remove_stop_words(document)
+
+# Lemmatize all tokens
+lemmatized = Transform.lemmatize(document)
 ```
 
 ### Traversal
 
-#### `Nasty.AST.Traversal`
+#### `Nasty.Utils.Traversal`
 
 Traverse AST structure.
 
 ```elixir
-# Pre-order traversal
-Nasty.AST.Traversal.pre_order(document, fn node ->
-  IO.inspect(node)
-  node
+alias Nasty.Utils.Traversal
+
+# Reduce over all nodes
+token_count = Traversal.reduce(document, 0, fn
+  %Nasty.AST.Token{}, acc -> acc + 1
+  _, acc -> acc
 end)
 
-# Post-order traversal
-Nasty.AST.Traversal.post_order(document, fn node ->
-  IO.inspect(node)
-  node
+# Collect matching nodes
+verbs = Traversal.collect(document, fn
+  %Nasty.AST.Token{pos_tag: :verb} -> true
+  _ -> false
 end)
 
-# Breadth-first traversal
-Nasty.AST.Traversal.breadth_first(document, fn node ->
-  IO.inspect(node)
-  node
+# Map over all nodes
+transformed = Traversal.map(document, fn
+  %Nasty.AST.Token{} = token ->
+    %{token | text: String.downcase(token.text)}
+  node -> node
 end)
 ```
 

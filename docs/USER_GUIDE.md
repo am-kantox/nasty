@@ -324,6 +324,7 @@ Extract key sentences from documents:
 
 ```elixir
 alias Nasty.Language.English
+alias Nasty.Rendering.Text
 
 long_text = """
 [Your long document here...]
@@ -333,16 +334,21 @@ long_text = """
 {:ok, tagged} = English.tag_pos(tokens)
 {:ok, document} = English.parse(tagged)
 
-# Extractive summarization - compression ratio
-summary = English.summarize(document, ratio: 0.3)
-IO.puts("30% summary:")
-IO.puts(summary)
+# Extractive summarization - returns list of Sentence structs
+summary_sentences = English.summarize(document, ratio: 0.3)
+IO.puts("30% summary (#{length(summary_sentences)} sentences):")
+
+# Render summary sentences to text
+Enum.each(summary_sentences, fn sentence ->
+  {:ok, text} = Text.render(sentence)
+  IO.puts(text)
+end)
 
 # Fixed sentence count
-summary = English.summarize(document, max_sentences: 3)
+summary_sentences = English.summarize(document, max_sentences: 3)
 
 # MMR for reduced redundancy
-summary = English.summarize(document, 
+summary_sentences = English.summarize(document, 
   max_sentences: 3, 
   method: :mmr, 
   mmr_lambda: 0.5
@@ -552,8 +558,8 @@ text_en = "The quick cat runs in the garden."
 {:ok, tagged_en} = English.tag_pos(tokens_en)
 {:ok, doc_en} = English.parse(tagged_en)
 
-# Translate
-{:ok, doc_es} = Translator.translate(doc_en, :es)
+# Translate document
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
 
 # Render Spanish text
 alias Nasty.Rendering.Text
@@ -561,13 +567,18 @@ alias Nasty.Rendering.Text
 IO.puts(text_es)
 # => "El gato rápido corre en el jardín."
 
+# Or translate text directly
+{:ok, text_es} = Translator.translate("The quick cat runs.", :en, :es)
+IO.puts(text_es)
+# => "El gato rápido corre."
+
 # Spanish to English
 text_es = "La casa grande está en la ciudad."
 {:ok, tokens_es} = Spanish.tokenize(text_es)
 {:ok, tagged_es} = Spanish.tag_pos(tokens_es)
 {:ok, doc_es} = Spanish.parse(tagged_es)
 
-{:ok, doc_en} = Translator.translate(doc_es, :en)
+{:ok, doc_en} = Translator.translate_document(doc_es, :en)
 {:ok, text_en} = Text.render(doc_en)
 IO.puts(text_en)
 # => "The big house is in the city."
@@ -589,20 +600,23 @@ The translation system operates on AST structures, not raw text:
 The system automatically handles agreement:
 
 ```elixir
+alias Nasty.Translation.Translator
+alias Nasty.Rendering.Text
+
 # English: "the cats"
 # Spanish: "los gatos" (masculine plural determiner + noun)
 
 {:ok, doc_en} = Nasty.parse("The cats.", language: :en)
-{:ok, doc_es} = Translator.translate(doc_en, :es)
-{:ok, text_es} = Nasty.render(doc_es)
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
+{:ok, text_es} = Text.render(doc_es)
 # => "Los gatos."
 
 # English: "the big houses"
 # Spanish: "las casas grandes" (feminine plural, adjective after noun)
 
 {:ok, doc_en} = Nasty.parse("The big houses.", language: :en)
-{:ok, doc_es} = Translator.translate(doc_en, :es)
-{:ok, text_es} = Nasty.render(doc_es)
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
+{:ok, text_es} = Text.render(doc_es)
 # => "Las casas grandes."
 ```
 
@@ -611,18 +625,21 @@ The system automatically handles agreement:
 Language-specific word order is automatically applied:
 
 ```elixir
+alias Nasty.Translation.Translator
+alias Nasty.Rendering.Text
+
 # English: Adjective before noun
 # Spanish: Most adjectives after noun
 
 {:ok, doc_en} = Nasty.parse("The red car.", language: :en)
-{:ok, doc_es} = Translator.translate(doc_en, :es)
-{:ok, text_es} = Nasty.render(doc_es)
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
+{:ok, text_es} = Text.render(doc_es)
 # => "El carro rojo." (car red)
 
 # Some adjectives stay before noun
 {:ok, doc_en} = Nasty.parse("The good book.", language: :en)
-{:ok, doc_es} = Translator.translate(doc_en, :es)
-{:ok, text_es} = Nasty.render(doc_es)
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
+{:ok, text_es} = Text.render(doc_es)
 # => "El buen libro." (good stays before)
 ```
 
@@ -631,13 +648,16 @@ Language-specific word order is automatically applied:
 Translations preserve grammatical structure for roundtrips:
 
 ```elixir
+alias Nasty.Translation.Translator
+alias Nasty.Rendering.Text
+
 original = "The cat runs quickly."
 
 # English -> Spanish -> English
 {:ok, doc_en} = Nasty.parse(original, language: :en)
-{:ok, doc_es} = Translator.translate(doc_en, :es)
-{:ok, doc_en2} = Translator.translate(doc_es, :en)
-{:ok, result} = Nasty.render(doc_en2)
+{:ok, doc_es} = Translator.translate_document(doc_en, :es)
+{:ok, doc_en2} = Translator.translate_document(doc_es, :en)
+{:ok, result} = Text.render(doc_en2)
 
 IO.puts(original)
 IO.puts(result)
@@ -942,16 +962,14 @@ alias Nasty.Rendering.Text
 # Basic rendering
 {:ok, text} = Text.render(document)
 
-# Custom options
-{:ok, text} = Text.render(document,
-  capitalize_sentences: false,
-  add_punctuation: false,
-  paragraph_separator: "\n\n"
-)
+# Or use language-specific rendering
+alias Nasty.Language.English
+{:ok, text} = English.render(document)
 
-# Render with agreement helper
-{subject, verb} = Text.apply_agreement("cat", "run", :en)
-# => {"cat", "runs"}
+# For specific languages
+alias Nasty.Language.{Spanish, Catalan}
+{:ok, text_es} = Spanish.render(document)
+{:ok, text_ca} = Catalan.render(document)
 ```
 
 ## Statistical & Neural Models

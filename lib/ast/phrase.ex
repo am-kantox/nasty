@@ -8,10 +8,18 @@ defmodule Nasty.AST.Phrase do
 
   alias Nasty.AST.{Node, Token}
 
+  @type t ::
+          Nasty.AST.NounPhrase.t()
+          | Nasty.AST.VerbPhrase.t()
+          | Nasty.AST.PrepositionalPhrase.t()
+          | Nasty.AST.AdverbialPhrase.t()
+          | Nasty.AST.AdjectivalPhrase.t()
+
   defprotocol Phrase do
     @moduledoc """
     Base protocol for all phrase types.
     """
+
     @doc "Returns the span of the phrase"
     def span(phrase)
 

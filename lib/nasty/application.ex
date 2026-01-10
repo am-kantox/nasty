@@ -1,9 +1,5 @@
 defmodule Nasty.Application do
-  @moduledoc """
-  OTP Application for Nasty.
-
-  Starts the Language.Registry and other supervised processes.
-  """
+  @moduledoc false
 
   use Application
 
