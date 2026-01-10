@@ -35,6 +35,56 @@ defmodule Nasty.Translation.TranslatorTest do
     end
   end
 
+  describe "translate/4 - Plain text translation" do
+    test "translates English sentence to Spanish" do
+      assert {:ok, translated} = Translator.translate("The cat sleeps", :en, :es)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+
+    test "translates Spanish sentence to English" do
+      assert {:ok, translated} = Translator.translate("El gato duerme", :es, :en)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+
+    test "translates English to Catalan" do
+      assert {:ok, translated} = Translator.translate("The cat sleeps", :en, :ca)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+
+    test "translates Catalan to English" do
+      assert {:ok, translated} = Translator.translate("El gat dorm", :ca, :en)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+
+    test "translates Spanish to Catalan" do
+      assert {:ok, translated} = Translator.translate("El gato duerme", :es, :ca)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+
+    test "translates Catalan to Spanish" do
+      assert {:ok, translated} = Translator.translate("El gat dorm", :ca, :es)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+
+    test "handles text with punctuation" do
+      assert {:ok, translated} = Translator.translate("Hello, world!", :en, :es)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+
+    test "handles multi-word phrases" do
+      assert {:ok, translated} = Translator.translate("The red car", :en, :es)
+      assert is_binary(translated)
+      assert String.length(translated) > 0
+    end
+  end
+
   describe "translate_document/3" do
     test "rejects same language translation" do
       alias Nasty.AST.{Document, Node}
@@ -43,6 +93,48 @@ defmodule Nasty.Translation.TranslatorTest do
       doc = %Document{language: :en, paragraphs: [], span: span}
 
       assert {:error, :same_language} = Translator.translate_document(doc, :en)
+    end
+
+    test "translates AST document from English to Spanish" do
+      alias Nasty.Language.English
+
+      # Parse English text to get AST
+      {:ok, tokens} = English.tokenize("The cat sleeps")
+      {:ok, tagged} = English.tag_pos(tokens)
+      {:ok, doc} = English.parse(tagged)
+
+      # Translate document to Spanish
+      assert {:ok, translated_doc} = Translator.translate_document(doc, :es)
+      assert translated_doc.language == :es
+
+      # Verify the document structure is preserved
+      assert length(translated_doc.paragraphs) == length(doc.paragraphs)
+    end
+
+    test "translates AST document from Spanish to English" do
+      alias Nasty.Language.Spanish
+
+      # Parse Spanish text to get AST
+      {:ok, tokens} = Spanish.tokenize("El gato duerme")
+      {:ok, tagged} = Spanish.tag_pos(tokens)
+      {:ok, doc} = Spanish.parse(tagged)
+
+      # Translate document to English
+      assert {:ok, translated_doc} = Translator.translate_document(doc, :en)
+      assert translated_doc.language == :en
+
+      # Verify the document structure is preserved
+      assert length(translated_doc.paragraphs) == length(doc.paragraphs)
+    end
+
+    test "rejects unsupported target language" do
+      alias Nasty.AST.{Document, Node}
+
+      span = Node.make_span({1, 0}, 0, {1, 3}, 3)
+      doc = %Document{language: :en, paragraphs: [], span: span}
+
+      assert {:error, {:unsupported_language, :fr}} =
+               Translator.translate_document(doc, :fr)
     end
   end
 

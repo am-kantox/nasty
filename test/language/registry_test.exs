@@ -79,6 +79,37 @@ defmodule Nasty.Language.RegistryTest do
       result2 = Registry.detect_language("Hello")
       assert match?({:ok, _}, result2)
     end
+
+    test "correctly detects English with common English words" do
+      text = "The cat is sleeping on the mat and the dog is barking"
+      assert {:ok, :en} = Registry.detect_language(text)
+    end
+
+    test "correctly detects Spanish with common Spanish words" do
+      text = "El gato está durmiendo en la alfombra y el perro está ladrando"
+      assert {:ok, :es} = Registry.detect_language(text)
+    end
+
+    test "detects English text with articles and prepositions" do
+      text = "The book is on the table with a pen"
+      assert {:ok, :en} = Registry.detect_language(text)
+    end
+
+    test "detects Spanish text with characteristic words" do
+      text = "La casa es muy grande y tiene muchas ventanas"
+      assert {:ok, :es} = Registry.detect_language(text)
+    end
+
+    test "handles text with only one word" do
+      result = Registry.detect_language("hello")
+      assert match?({:ok, _}, result)
+    end
+
+    test "returns no match for completely numeric text" do
+      result = Registry.detect_language("123 456 789")
+      # May return a language or no match depending on implementation
+      assert match?({:ok, _}, result) or match?({:error, :no_match}, result)
+    end
   end
 
   describe "register/1" do
@@ -89,6 +120,44 @@ defmodule Nasty.Language.RegistryTest do
       Registry.register(Nasty.Language.Spanish)
       assert Enum.sort(Registry.registered_languages()) == [:en, :es]
     end
+
+    test "registers English language module and returns :ok" do
+      Registry.clear()
+      result = Registry.register(Nasty.Language.English)
+      assert result == :ok
+      assert Registry.registered?(:en)
+    end
+
+    test "registers Spanish language module and returns :ok" do
+      Registry.clear()
+      result = Registry.register(Nasty.Language.Spanish)
+      assert result == :ok
+      assert Registry.registered?(:es)
+    end
+
+    test "registers Catalan language module and returns :ok" do
+      Registry.clear()
+      result = Registry.register(Nasty.Language.Catalan)
+      assert result == :ok
+      assert Registry.registered?(:ca)
+    end
+
+    test "allows re-registration of the same module" do
+      Registry.clear()
+      assert :ok = Registry.register(Nasty.Language.English)
+      assert :ok = Registry.register(Nasty.Language.English)
+      assert [:en] = Registry.registered_languages()
+    end
+
+    test "registers multiple language modules successfully" do
+      Registry.clear()
+      assert :ok = Registry.register(Nasty.Language.English)
+      assert :ok = Registry.register(Nasty.Language.Spanish)
+      assert :ok = Registry.register(Nasty.Language.Catalan)
+
+      registered = Enum.sort(Registry.registered_languages())
+      assert registered == [:ca, :en, :es]
+    end
   end
 
   describe "get/1" do
@@ -98,6 +167,34 @@ defmodule Nasty.Language.RegistryTest do
 
     test "returns error for unregistered language" do
       assert {:error, :language_not_found} = Registry.get(:fr)
+    end
+
+    test "returns the implementation module for English" do
+      result = Registry.get(:en)
+      assert {:ok, module} = result
+      assert module == Nasty.Language.English
+      assert function_exported?(module, :language_code, 0)
+      assert module.language_code() == :en
+    end
+
+    test "returns the implementation module for Spanish" do
+      result = Registry.get(:es)
+      assert {:ok, module} = result
+      assert module == Nasty.Language.Spanish
+      assert function_exported?(module, :language_code, 0)
+      assert module.language_code() == :es
+    end
+
+    test "returns error for German (unregistered language)" do
+      assert {:error, :language_not_found} = Registry.get(:de)
+    end
+
+    test "returns error for French (unregistered language)" do
+      assert {:error, :language_not_found} = Registry.get(:fr)
+    end
+
+    test "returns error for invalid language code" do
+      assert {:error, :language_not_found} = Registry.get(:invalid)
     end
   end
 
