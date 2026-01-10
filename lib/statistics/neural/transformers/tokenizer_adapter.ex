@@ -138,17 +138,21 @@ defmodule Nasty.Statistics.Neural.Transformers.TokenizerAdapter do
       |> Enum.with_index()
       |> Enum.reduce({[], %{}}, fn {text, token_idx}, {acc_tokens, acc_map} ->
         # Tokenize this word
-        {:ok, word_tokens} = tokenize_word(text, tokenizer)
+        case tokenize_word(text, tokenizer) do
+          {:ok, word_tokens} ->
+            # Calculate subword indices
+            start_idx = length(acc_tokens) + 1
+            end_idx = start_idx + length(word_tokens) - 1
 
-        # Calculate subword indices
-        start_idx = length(acc_tokens) + 1
-        end_idx = start_idx + length(word_tokens) - 1
+            # Update alignment map
+            new_map = Map.put(acc_map, token_idx, {start_idx, end_idx})
 
-        # Update alignment map
-        new_map = Map.put(acc_map, token_idx, {start_idx, end_idx})
+            # Accumulate tokens
+            {acc_tokens ++ word_tokens, new_map}
 
-        # Accumulate tokens
-        {acc_tokens ++ word_tokens, new_map}
+          {:error, :tokenization_failed} ->
+            {acc_tokens, acc_map}
+        end
       end)
 
     # Check truncation

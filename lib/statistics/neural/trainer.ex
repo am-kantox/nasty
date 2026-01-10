@@ -109,7 +109,7 @@ defmodule Nasty.Statistics.Neural.Trainer do
     model
     |> Axon.Loop.trainer(loss, optimizer_fn)
     |> add_metrics(metrics)
-    |> maybe_add_validation(valid_data)
+    |> maybe_add_validation(model, valid_data)
     |> maybe_add_early_stopping(opts)
     |> maybe_add_checkpointing(checkpoint_dir)
     |> maybe_add_gradient_clipping(opts)
@@ -216,10 +216,10 @@ defmodule Nasty.Statistics.Neural.Trainer do
     end)
   end
 
-  defp maybe_add_validation(loop, nil), do: loop
+  defp maybe_add_validation(loop, _model, nil), do: loop
 
-  defp maybe_add_validation(loop, valid_data) do
-    Axon.Loop.validate(loop, loop.model, valid_data)
+  defp maybe_add_validation(loop, model, valid_data) do
+    Axon.Loop.validate(loop, model, valid_data)
   end
 
   defp maybe_add_early_stopping(loop, opts) do
@@ -274,7 +274,7 @@ defmodule Nasty.Statistics.Neural.Trainer do
         "Epoch #{epoch}, Iteration #{iteration}: loss=#{format_metric(loss)}, #{metrics_str}"
       end,
       event: :iteration_completed,
-      filter: fn %{iteration: iteration} -> rem(iteration, 10) == 0 end
+      filter: fn %{iteration: iteration}, _event -> rem(iteration, 10) == 0 end
     )
     |> Axon.Loop.log(
       fn %{epoch: epoch} = state ->

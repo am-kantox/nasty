@@ -153,24 +153,24 @@ defmodule Nasty.Language.English.SentenceParser do
     # In a full implementation, you would traverse the parse tree and
     # extract proper clause structures
 
-    function = infer_function(punct)
-
-    first_token = hd(original_tokens)
-    last_token = List.last(original_tokens)
+    # Create a minimal clause first to infer function
+    first_token = List.first(Enum.reject(original_tokens, &(&1.pos_tag == :punct)))
+    first_token_span = hd(original_tokens).span
+    last_token_span = List.last(original_tokens).span
 
     span =
       Node.make_span(
-        first_token.span.start_pos,
-        first_token.span.start_offset,
-        last_token.span.end_pos,
-        last_token.span.end_offset
+        first_token_span.start_pos,
+        first_token_span.start_offset,
+        last_token_span.end_pos,
+        last_token_span.end_offset
       )
 
     # Create a simplified clause from the parse tree
     # Note: We need a predicate to create a proper Clause
     # For now, create a minimal VerbPhrase as placeholder
     predicate = %Nasty.AST.VerbPhrase{
-      head: List.first(Enum.reject(original_tokens, &(&1.pos_tag == :punct))),
+      head: first_token,
       language: :en,
       span: span
     }
@@ -182,6 +182,8 @@ defmodule Nasty.Language.English.SentenceParser do
       language: :en,
       span: span
     }
+
+    function = infer_function(punct, clause)
 
     %Sentence{
       function: function,
@@ -212,7 +214,7 @@ defmodule Nasty.Language.English.SentenceParser do
         {:ok, clauses} when is_list(clauses) ->
           # Multiple coordinated clauses
           [main_clause | additional] = clauses
-          function = infer_function(punct)
+          function = infer_function(punct, main_clause)
 
           first_token = hd(tokens)
           last_token = List.last(tokens)
@@ -239,7 +241,7 @@ defmodule Nasty.Language.English.SentenceParser do
         {:ok, %Clause{type: :subordinate} = subord_clause} ->
           # Subordinate clause - this shouldn't happen at sentence level
           # but handle gracefully
-          function = infer_function(punct)
+          function = infer_function(punct, subord_clause)
 
           first_token = hd(tokens)
           last_token = List.last(tokens)
@@ -262,7 +264,7 @@ defmodule Nasty.Language.English.SentenceParser do
 
         {:ok, clause} when is_struct(clause, Clause) ->
           # Determine sentence function from punctuation
-          function = infer_function(punct)
+          function = infer_function(punct, clause)
 
           # Calculate span including punctuation
           first_token = hd(tokens)
@@ -451,10 +453,17 @@ defmodule Nasty.Language.English.SentenceParser do
     end
   end
 
-  # Infer sentence function from punctuation
-  defp infer_function(%Token{text: "?"}), do: :interrogative
-  defp infer_function(%Token{text: "!"}), do: :exclamative
-  defp infer_function(_), do: :declarative
+  # Infer sentence function from punctuation and clause structure
+  defp infer_function(%Token{text: "?"}, _clause), do: :interrogative
+  defp infer_function(%Token{text: "!"}, _clause), do: :exclamative
+  
+  defp infer_function(_punct, %Clause{subject: nil, predicate: %{head: %Token{pos_tag: pos}}})
+       when pos in [:verb, :aux] do
+    # No subject + verb at start = imperative
+    :imperative
+  end
+  
+  defp infer_function(_punct, _clause), do: :declarative
 
   # Get subordinating conjunction at position if present
   defp get_subordinator(tokens, pos) do
@@ -508,7 +517,7 @@ defmodule Nasty.Language.English.SentenceParser do
 
     # Determine function
     punct = List.last(tokens)
-    function = if punct.pos_tag == :punct, do: infer_function(punct), else: :declarative
+    function = if punct.pos_tag == :punct, do: infer_function(punct, clause), else: :declarative
 
     %Sentence{
       function: function,

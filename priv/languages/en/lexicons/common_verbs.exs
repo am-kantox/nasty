@@ -110,4 +110,7 @@
   compare compared comparing compares
   check checked checking checks
   validate validated validating validates
+  count counted counting counts
+  sum summed summing sums
+  find found finding finds
 )

@@ -117,25 +117,30 @@ case Loader.load_model(:bert_base_cased, cache_dir: "priv/models/transformers") 
     IO.puts("  Classifier created with #{classifier.config.num_labels} labels")
 
     # Predict on tokens
-    case TokenClassifier.predict(classifier, tokens) do
-      {:ok, predictions} ->
-        IO.puts("\nPredictions:")
+    # We first retokenize the token texts using the Tokenizer.tokenize/1 function to prevent tokenization failure
+    # because the original tokens may be incompatible with the transformer tokenizer
+    case Tokenizer.tokenize(Enum.map(tokens, & &1.text) |> Enum.join(" ")) do
+      {:ok, re_tokenized} ->
+        case TokenClassifier.predict(classifier, re_tokenized) do
+          {:ok, predictions} ->
+            IO.puts("\nPredictions:")
 
-        predictions
-        |> Enum.zip(tokens)
-        |> Enum.take(5)
-        |> Enum.each(fn {pred, token} ->
-          IO.puts(
-            "  #{String.pad_trailing(token.text, 12)} -> #{pred.label} (#{Float.round(pred.score, 3)})"
-          )
-        end)
+            predictions
+            |> Enum.zip(re_tokenized)
+            |> Enum.take(5)
+            |> Enum.each(fn {pred, token} ->
+              IO.puts(
+                "  #{String.pad_trailing(token.text, 12)} -> #{pred.label} (#{Float.round(pred.score, 3)})"
+              )
+            end)
 
-      {:error, reason} ->
-        IO.puts("Prediction failed: #{inspect(reason)}")
-    end
+          {:error, reason} ->
+            IO.puts("Prediction failed: #{inspect(reason)}")
+        end
 
-  {:error, reason} ->
-    IO.puts("Failed to load model: #{inspect(reason)}")
+    {:error, reason} ->
+      IO.puts("Failed to load model: #{inspect(reason)}")
+  end
 end
 
 ## Example 4: Optimized Inference with Caching

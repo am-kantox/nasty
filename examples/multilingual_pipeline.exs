@@ -200,29 +200,29 @@ IO.puts(String.duplicate("=", 60))
 IO.puts("\nTranslation Matrix (Original → Translated):\n")
 
 # English → Spanish
-{:ok, en_to_es} = Translator.translate(doc_en, :es)
+{:ok, en_to_es} = Translator.translate_document(doc_en, :es)
 {:ok, en_to_es_text} = Nasty.Rendering.Text.render(en_to_es)
 
 # English → Catalan
-{:ok, en_to_ca} = Translator.translate(doc_en, :ca)
+{:ok, en_to_ca} = Translator.translate_document(doc_en, :ca)
 {:ok, en_to_ca_text} = Nasty.Rendering.Text.render(en_to_ca)
 
 # Spanish → English
-{:ok, es_to_en} = Translator.translate(doc_es, :en)
+{:ok, es_to_en} = Translator.translate_document(doc_es, :en)
 {:ok, es_to_en_text} = Nasty.Rendering.Text.render(es_to_en)
 
 # Spanish → Catalan (via English)
-{:ok, es_to_ca_temp} = Translator.translate(doc_es, :en)
-{:ok, es_to_ca} = Translator.translate(es_to_ca_temp, :ca)
+{:ok, es_to_ca_temp} = Translator.translate_document(doc_es, :en)
+{:ok, es_to_ca} = Translator.translate_document(es_to_ca_temp, :ca)
 {:ok, es_to_ca_text} = Nasty.Rendering.Text.render(es_to_ca)
 
 # Catalan → English
-{:ok, ca_to_en} = Translator.translate(doc_ca, :en)
+{:ok, ca_to_en} = Translator.translate_document(doc_ca, :en)
 {:ok, ca_to_en_text} = Nasty.Rendering.Text.render(ca_to_en)
 
 # Catalan → Spanish (via English)
-{:ok, ca_to_es_temp} = Translator.translate(doc_ca, :en)
-{:ok, ca_to_es} = Translator.translate(ca_to_es_temp, :es)
+{:ok, ca_to_es_temp} = Translator.translate_document(doc_ca, :en)
+{:ok, ca_to_es} = Translator.translate_document(ca_to_es_temp, :es)
 {:ok, ca_to_es_text} = Nasty.Rendering.Text.render(ca_to_es)
 
 IO.puts("FROM ENGLISH:")
@@ -256,15 +256,15 @@ IO.puts("  CA: #{complex_texts.ca}")
 # Process each
 {:ok, complex_tokens_en} = English.tokenize(complex_texts.en)
 {:ok, complex_tagged_en} = English.tag_pos(complex_tokens_en)
-{:ok, complex_doc_en} = English.parse(complex_tagged_en)
+{:ok, _complex_doc_en} = English.parse(complex_tagged_en)
 
 {:ok, complex_tokens_es} = Spanish.tokenize(complex_texts.es)
 {:ok, complex_tagged_es} = Spanish.tag_pos(complex_tokens_es)
-{:ok, complex_doc_es} = Spanish.parse(complex_tagged_es)
+{:ok, _complex_doc_es} = Spanish.parse(complex_tagged_es)
 
 {:ok, complex_tokens_ca} = Catalan.tokenize(complex_texts.ca)
 {:ok, complex_tagged_ca} = Catalan.tag_pos(complex_tokens_ca)
-{:ok, complex_doc_ca} = Catalan.parse(complex_tagged_ca)
+{:ok, _complex_doc_ca} = Catalan.parse(complex_tagged_ca)
 
 IO.puts("\nParsing Statistics:")
 IO.puts("  English: #{length(complex_tokens_en)} tokens")

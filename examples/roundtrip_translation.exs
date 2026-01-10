@@ -179,20 +179,37 @@ Enum.each(test_sentences, fn %{original: original, language: lang, complexity: c
     IO.puts("English (EN):  #{text_en}")
     
     # English → Spanish (roundtrip)
-    {:ok, tokens_en} = English.tokenize(text_en)
-    {:ok, tagged_en} = English.tag_pos(tokens_en)
-    {:ok, doc_en_parsed} = English.parse(tagged_en)
-    
-    {:ok, doc_es_back} = Translator.translate_document(doc_en_parsed, :es)
-    {:ok, text_es_back} = Nasty.Rendering.Text.render(doc_es_back)
-    
-    IO.puts("Roundtrip (ES): #{text_es_back}")
-    
-    # Calculate similarity
-    similarity = TranslationQuality.calculate_similarity(original, text_es_back)
-    rating = TranslationQuality.quality_rating(similarity)
-    
-    IO.puts("Similarity: #{similarity}% (#{rating})")
+    case English.tokenize(text_en) do
+      {:ok, tokens_en} ->
+        case English.tag_pos(tokens_en) do
+          {:ok, tagged_en} ->
+            case English.parse(tagged_en) do
+              {:ok, doc_en_parsed} ->
+                {:ok, doc_es_back} = Translator.translate_document(doc_en_parsed, :es)
+                {:ok, text_es_back} = Nasty.Rendering.Text.render(doc_es_back)
+                
+                IO.puts("Roundtrip (ES): #{text_es_back}")
+                
+                # Calculate similarity
+                similarity = TranslationQuality.calculate_similarity(original, text_es_back)
+                rating = TranslationQuality.quality_rating(similarity)
+                
+                IO.puts("Similarity: #{similarity}% (#{rating})")
+              
+              {:error, reason} ->
+                IO.puts("Roundtrip (ES): [Parse error: #{inspect(reason)}]")
+                IO.puts("Similarity: N/A (Parse failed)")
+            end
+          
+          {:error, reason} ->
+            IO.puts("Roundtrip (ES): [POS tagging error: #{inspect(reason)}]")
+            IO.puts("Similarity: N/A (Tagging failed)")
+        end
+      
+      {:error, reason} ->
+        IO.puts("Roundtrip (ES): [Tokenization error: #{inspect(reason)}]")
+        IO.puts("Similarity: N/A (Tokenization failed)")
+    end
   end
 end)
 
@@ -223,7 +240,7 @@ challenging_cases = [
   }
 ]
 
-Enum.each(challenging_cases, fn %{text: text, language: lang, challenge: challenge} ->
+Enum.each(challenging_cases, fn %{text: text, language: _lang, challenge: challenge} ->
   IO.puts("\nChallenge: #{challenge}")
   IO.puts("Original: #{text}")
   
@@ -232,7 +249,7 @@ Enum.each(challenging_cases, fn %{text: text, language: lang, challenge: challen
   {:ok, doc} = English.parse(tagged)
   
   # To Spanish and back
-  {:ok, doc_es} = Translator.translate(doc, :es)
+  {:ok, doc_es} = Translator.translate_document(doc, :es)
   {:ok, text_es} = Nasty.Rendering.Text.render(doc_es)
   IO.puts("Spanish:  #{text_es}")
   
@@ -240,7 +257,7 @@ Enum.each(challenging_cases, fn %{text: text, language: lang, challenge: challen
   {:ok, tagged_es} = Spanish.tag_pos(tokens_es)
   {:ok, doc_es_parsed} = Spanish.parse(tagged_es)
   
-  {:ok, doc_back} = Translator.translate(doc_es_parsed, :en)
+  {:ok, doc_back} = Translator.translate_document(doc_es_parsed, :en)
   {:ok, text_back} = Nasty.Rendering.Text.render(doc_back)
   IO.puts("Roundtrip: #{text_back}")
   

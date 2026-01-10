@@ -54,14 +54,10 @@ IO.puts("")
 summary_greedy
 |> Enum.with_index(1)
 |> Enum.each(fn {sentence, idx} ->
-  # Extract text from sentence
-  tokens =
-    sentence
-    |> Nasty.AST.Sentence.all_tokens()
-    |> Enum.map(& &1.text)
-    |> Enum.join(" ")
+  # Render sentence to text
+  {:ok, text} = Nasty.Rendering.Text.render(sentence)
 
-  IO.puts("#{idx}. #{tokens}")
+  IO.puts("#{idx}. #{text}")
   IO.puts("")
 end)
 
@@ -78,13 +74,10 @@ IO.puts("")
 summary_fixed
 |> Enum.with_index(1)
 |> Enum.each(fn {sentence, idx} ->
-  tokens =
-    sentence
-    |> Nasty.AST.Sentence.all_tokens()
-    |> Enum.map(& &1.text)
-    |> Enum.join(" ")
+  # Render sentence to text
+  {:ok, text} = Nasty.Rendering.Text.render(sentence)
 
-  IO.puts("#{idx}. #{tokens}")
+  IO.puts("#{idx}. #{text}")
   IO.puts("")
 end)
 
@@ -103,13 +96,10 @@ IO.puts("")
 summary_mmr
 |> Enum.with_index(1)
 |> Enum.each(fn {sentence, idx} ->
-  tokens =
-    sentence
-    |> Nasty.AST.Sentence.all_tokens()
-    |> Enum.map(& &1.text)
-    |> Enum.join(" ")
+  # Render sentence to text
+  {:ok, text} = Nasty.Rendering.Text.render(sentence)
 
-  IO.puts("#{idx}. #{tokens}")
+  IO.puts("#{idx}. #{text}")
   IO.puts("")
 end)
 
@@ -123,26 +113,20 @@ IO.puts("")
 IO.puts("High Lambda (0.9) - Favors Relevance:")
 summary_high_lambda = English.summarize(document, max_sentences: 2, method: :mmr, mmr_lambda: 0.9)
 Enum.each(summary_high_lambda, fn sentence ->
-  tokens =
-    sentence
-    |> Nasty.AST.Sentence.all_tokens()
-    |> Enum.map(& &1.text)
-    |> Enum.join(" ")
+  # Render sentence to text
+  {:ok, text} = Nasty.Rendering.Text.render(sentence)
 
-  IO.puts("- #{tokens}")
+  IO.puts("- #{text}")
 end)
 
 IO.puts("")
 IO.puts("Low Lambda (0.1) - Favors Diversity:")
 summary_low_lambda = English.summarize(document, max_sentences: 2, method: :mmr, mmr_lambda: 0.1)
 Enum.each(summary_low_lambda, fn sentence ->
-  tokens =
-    sentence
-    |> Nasty.AST.Sentence.all_tokens()
-    |> Enum.map(& &1.text)
-    |> Enum.join(" ")
+  # Render sentence to text
+  {:ok, text} = Nasty.Rendering.Text.render(sentence)
 
-  IO.puts("- #{tokens}")
+  IO.puts("- #{text}")
 end)
 
 IO.puts("")

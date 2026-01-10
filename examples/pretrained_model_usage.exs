@@ -22,13 +22,47 @@ IO.puts("Text: #{text}\n")
 IO.puts("Example 1: HMM Model (auto-load)")
 IO.puts("---")
 
+# Helper function to extract tokens from a clause
+extract_tokens_from_clause = fn clause ->
+  IO.inspect(clause, label: "CLAUSE")
+  # Extract from subject
+  subject_tokens =
+    case clause do
+      %{subject: %Nasty.AST.NounPhrase{}} -> []
+      _ -> []
+    end
+
+  # Extract from predicate
+  predicate_tokens =
+    case clause do
+      %{predicate: %Nasty.AST.VerbPhrase{}} ->
+        [] ++
+          case clause.predicate do
+            %{complements: comps} when is_list(comps) ->
+              Enum.flat_map(comps, fn
+                %Nasty.AST.NounPhrase{} -> []
+                %Nasty.AST.PrepositionalPhrase{} -> []
+                _ -> []
+              end)
+
+            _ ->
+              []
+          end
+
+      _ ->
+        []
+    end
+
+  subject_tokens ++ predicate_tokens
+end
+
 case Nasty.parse(text, language: :en, model: :hmm) do
   {:ok, ast} ->
     # Extract tokens
     tokens =
       case ast do
         %Nasty.AST.Document{paragraphs: [%{sentences: [%{clauses: [clause]} | _]} | _]} ->
-          extract_tokens_from_clause(clause)
+          extract_tokens_from_clause.(clause)
 
         _ ->
           []
@@ -54,7 +88,7 @@ case Nasty.parse(text, language: :en, model: :ensemble) do
     tokens =
       case ast do
         %Nasty.AST.Document{paragraphs: [%{sentences: [%{clauses: [clause]} | _]} | _]} ->
-          extract_tokens_from_clause(clause)
+          extract_tokens_from_clause.(clause)
 
         _ ->
           []
@@ -110,36 +144,3 @@ else
 end
 
 IO.puts("\n=== Example Complete ===")
-
-# Helper function to extract tokens from a clause
-defp extract_tokens_from_clause(clause) do
-  # Extract from subject
-  subject_tokens =
-    case clause do
-      %{subject: %Nasty.AST.NounPhrase{tokens: tokens}} -> tokens
-      _ -> []
-    end
-
-  # Extract from predicate
-  predicate_tokens =
-    case clause do
-      %{predicate: %Nasty.AST.VerbPhrase{verb: verb}} ->
-        [verb] ++
-          case clause.predicate do
-            %{complements: comps} when is_list(comps) ->
-              Enum.flat_map(comps, fn
-                %Nasty.AST.NounPhrase{tokens: tokens} -> tokens
-                %Nasty.AST.PrepositionalPhrase{tokens: tokens} -> tokens
-                _ -> []
-              end)
-
-            _ ->
-              []
-          end
-
-      _ ->
-        []
-    end
-
-  subject_tokens ++ predicate_tokens
-end

@@ -217,7 +217,7 @@ IO.puts("Catalan: #{ca_to_translate}")
 {:ok, tagged_ca} = Catalan.tag_pos(tokens_ca)
 {:ok, doc_ca} = Catalan.parse(tagged_ca)
 
-{:ok, doc_en} = Nasty.translate(doc_ca, :ca, :en)
+{:ok, doc_en} = Translator.translate_document(doc_ca, :en)
 {:ok, text_en} = Nasty.Rendering.Text.render(doc_en)
 
 IO.puts("English: #{text_en}")
@@ -233,7 +233,7 @@ IO.puts("English: #{en_to_translate}")
 {:ok, tagged_en} = English.tag_pos(tokens_en)
 {:ok, doc_en2} = English.parse(tagged_en)
 
-{:ok, doc_ca2} = Translator.translate(doc_en2, :ca)
+{:ok, doc_ca2} = Translator.translate_document(doc_en2, :ca)
 {:ok, text_ca2} = Nasty.Rendering.Text.render(doc_ca2)
 
 IO.puts("Catalan: #{text_ca2}")
@@ -250,7 +250,7 @@ IO.puts("Input: #{entity_text}")
 
 # Note: Entity recognition with Catalan lexicons
 alias Nasty.Language.Catalan.EntityRecognizer
-entities = EntityRecognizer.recognize(tagged_ent)
+{:ok, entities} = EntityRecognizer.recognize(tagged_ent)
 
 if length(entities) > 0 do
   IO.puts("\nEntities found:")

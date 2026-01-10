@@ -3,10 +3,6 @@
 #
 # Run with: mix run examples/advanced_neural_features.exs
 
-alias Nasty.Statistics.Neural.Transformers.{Loader, FineTuner, ZeroShot, DataPreprocessor}
-alias Nasty.Statistics.Neural.Quantization.INT8
-alias Nasty.AST.Token
-
 IO.puts """
 ===========================================
 Advanced Neural Features Demo
@@ -34,29 +30,18 @@ We'll fine-tune RoBERTa for POS tagging on a small dataset.
 """
 
 # Prepare small training dataset
-training_data = [
-  {
-    [
-      %Token{text: "The", pos: :det},
-      %Token{text: "cat", pos: :noun},
-      %Token{text: "sat", pos: :verb}
-    ],
-    [:det, :noun, :verb]
-  },
-  {
-    [
-      %Token{text: "Dogs", pos: :noun},
-      %Token{text: "run", pos: :verb},
-      %Token{text: "fast", pos: :adv}
-    ],
-    [:noun, :verb, :adv]
-  }
+# Note: In real training, these would be fully parsed Token structs with spans
+training_examples = [
+  {["The", "cat", "sat"], [:det, :noun, :verb]},
+  {["Dogs", "run", "fast"], [:noun, :verb, :adv]},
+  {["She", "reads", "books"], [:pron, :verb, :noun]},
+  {["They", "play", "soccer"], [:pron, :verb, :noun]}
 ]
 
-IO.puts "Training examples prepared: #{length(training_data)}"
+IO.puts "Training examples prepared: #{length(training_examples)}"
 
-# Create label map for UPOS tags
-label_map = %{
+# Label map for UPOS tags (would be used in actual fine-tuning)
+_label_map = %{
   0 => "ADJ", 1 => "ADP", 2 => "ADV", 3 => "AUX",
   4 => "CCONJ", 5 => "DET", 6 => "INTJ", 7 => "NOUN",
   8 => "NUM", 9 => "PART", 10 => "PRON", 11 => "PROPN",

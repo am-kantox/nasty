@@ -243,7 +243,12 @@ defmodule Nasty.Interop.IntentRecognizer do
     end
   end
 
-  defp extract_target(%SemanticFrame{roles: roles}, _sentence) do
+  defp extract_target(%SemanticFrame{roles: []}, sentence) do
+    # Frame has no roles, fallback to noun extraction
+    extract_target(nil, sentence)
+  end
+
+  defp extract_target(%SemanticFrame{roles: roles}, sentence) do
     # Look for patient, theme, or goal role
     target_role =
       Enum.find(roles, fn role ->
@@ -253,7 +258,8 @@ defmodule Nasty.Interop.IntentRecognizer do
     if target_role do
       normalize_variable_name(target_role.text)
     else
-      nil
+      # No matching role, fallback to noun extraction
+      extract_target(nil, sentence)
     end
   end
 

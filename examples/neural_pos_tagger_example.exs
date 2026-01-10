@@ -44,13 +44,13 @@ IO.puts("")
 
 IO.puts("Creating untrained neural tagger...")
 
-# Create neural tagger (vocabulary will be built from training data)
+# Create neural tagger with architecture options
+# Note: vocabulary will be built automatically from training data during train/3
 tagger =
   NeuralTagger.new(
-    vocab_size: 0,
-    # Will be built from data
-    num_tags: 0,
-    # Will be built from data
+    # Start with empty vocab - will be built from training data
+    vocab: %{word_to_id: %{}, id_to_word: %{}, frequencies: %{}, size: 0},
+    tag_vocab: %{tag_to_id: %{}, id_to_tag: %{}, size: 0},
     embedding_dim: 32,
     # Small for demo
     hidden_size: 64,

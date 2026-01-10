@@ -124,8 +124,13 @@ defmodule Nasty.Statistics.POSTagging.NeuralTagger do
       |> Keyword.put(:vocab_size, vocab.size)
       |> Keyword.put(:num_tags, tag_vocab.size)
 
-    # Build Axon model
-    axon_model = BiLSTMCRF.build(architecture_opts)
+    # Build Axon model (skip if vocab size is 0, will be built during training)
+    axon_model =
+      if vocab.size > 0 and tag_vocab.size > 0 do
+        BiLSTMCRF.build(architecture_opts)
+      else
+        nil
+      end
 
     %__MODULE__{
       vocab: vocab,

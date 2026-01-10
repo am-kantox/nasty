@@ -5,8 +5,6 @@
 #
 # Run with: mix run examples/e2e_coreference_example.exs
 
-alias Nasty.AST.{Document, Paragraph, Sentence, Clause, Token}
-alias Nasty.AST.Phrase.{NounPhrase, VerbPhrase}
 alias Nasty.Semantic.Coreference.Neural.{E2EResolver, E2ETrainer}
 alias Nasty.Language.English
 
