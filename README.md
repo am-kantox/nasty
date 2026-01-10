@@ -562,6 +562,7 @@ mix test test/language/english/dependency_extractor_test.exs
 Comprehensive documentation is available in the `docs/` directory:
 
 ### Getting Started
+- [STRENGTHS_AND_LIMITATIONS.md](docs/STRENGTHS_AND_LIMITATIONS.md) - The conprehensive analysis of what Nasty is good/bad for
 - [GETTING_STARTED.md](docs/GETTING_STARTED.md) - Beginner-friendly tutorial with step-by-step examples
 - [EXAMPLES.md](docs/EXAMPLES.md) - Complete catalog of all 18 example scripts with usage guides
 
